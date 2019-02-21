@@ -1,0 +1,1 @@
+!function(){var scheme="http:"==document.location.protocol?"http":"https";document.write('<script type="text/javascript" src="'+scheme+'://spdmg.i-mobile.co.jp/script/dg_gateway.js?20120316"></script>'),document.write('<script type="text/javascript" src="'+scheme+'://spcnv.i-mobile.co.jp/script/adv_inner.js?20120316"></script>')}();

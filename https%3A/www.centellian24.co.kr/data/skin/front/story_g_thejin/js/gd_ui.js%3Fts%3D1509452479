@@ -1,0 +1,630 @@
+/**
+ * This is commercial software, only users who have purchased a valid license
+ * and accept to the terms of the License Agreement can install and use this
+ * program.
+ *
+ * Do not edit or add to this file if you wish to upgrade Godomall5 to newer
+ * versions in the future.
+ *
+ * @copyright ⓒ 2016, NHN godo: Corp.
+ * @link http://www.godo.co.kr
+ * @history
+ *         20150922 류인상 | 최초작성
+ *         20151209 안종태 | 레이어, 체크박스/라디오 부분 동적컨텐츠에 적용되도록 수정
+ *                        | Placeholder제거, select2 제거
+ */
+
+/**
+ * 본 스크립트 함수는 이벤트가 바인딩 되어 있기때문에 주의깊게 사용해야 합니다.
+ * 동적 컨텐츠에 필요한 부분이 있다면 gd_common.js의 AjaxSetting내에 함수를 할당하시기 바랍니다.
+ */
+
+// IE9에서 console 객체가 없어 console 객체가 없는 경우 log로 사용하도록 처리
+if (!window.console) console = {log: function() {}};
+
+// 레이어박스 센터정렬 플러그인
+jQuery.fn.center = function() {
+    var top = ($(window).height() - this.outerHeight()) / 2;
+    var left = ($(window).width() - this.outerWidth()) / 2;
+
+    // 자동높이 설정
+    //var contentHeight = this.find('>div').height() + 45;
+    //if (this.height() != null) {
+    //    this.css({
+    //        height: contentHeight + 'px'
+    //    });
+    //}
+    //if (contentHeight > 680) {
+    //
+    //}
+
+    this.css({
+        position:'absolute',
+        margin:0,
+        top: (top > 0 ? top : 0) + 'px',
+        left: (left > 0 ? left : 0) + 'px',
+    });
+
+    return this;
+}
+
+//최상단 마이페이지 레이어
+function mypageLayer(){
+    $(document).on('focusin mouseenter','.header .mypage > a',function(){
+        $(this).parent().addClass('hover');
+    });
+    $(document).on('mouseleave','.header .mypage',function(){
+        $(this).removeClass('hover');
+    });
+    $(document).on('focusout','.header .mypage > div a:last-child',function(){
+        $(this).parent().parent().removeClass('hover');
+    });
+}
+
+//우측 사이드 최근본상품 레이어
+function rightSideLayer(){
+    $(document).on('focusin mouseenter','#scroll-right div.list ul li > a',function(){
+        $(this).parent().addClass('hover');
+    });
+    $(document).on('mouseleave','#scroll-right div.list ul li',function(){
+        $(this).removeClass('hover');
+    });
+}
+
+// LNB 레이어 메뉴
+function lnbLayer(){
+    $(document).on('focusin mouseenter','.lnb > .category.type-layer > li > a',function(){
+        $(this).parent().siblings().find('> a').removeClass('has-sub');
+        $(this).addClass('has-sub');
+        $(this).parent().siblings().find('ul').removeClass('db');
+        $(this).next().addClass('db');
+    });
+    $(document).on('focusin mouseenter','.lnb > .category.type-layer > li ul li',function(){
+        $(this).siblings().find('ul').removeClass('db');
+        $(this).find('> ul').addClass('db');
+        $(this).siblings().removeClass('dot-hide');
+        $(this).next().addClass('dot-hide');
+    });
+    $(document).on('focusin mouseleave','.lnb > .category.type-layer > li ul li',function(){
+        $(this).next().removeClass('dot-hide');
+    });
+
+    // 마우스 아웃시 메뉴 일정시간 유지
+    var setHoldingTime = 500;
+    var reset;
+
+    $('.lnb > .category.type-layer > li').on({
+        mouseenter: function(){
+            var self = this;
+            clearTimeout(reset);
+            $(self).siblings().find('ul').removeClass('db');
+            $(self).siblings().find('> a').removeClass('has-sub');
+        },
+        mouseleave: function(){
+            var self = this;
+            reset = setTimeout(function(){
+                $(self).find('ul').removeClass('db');
+                $(self).find('> a').removeClass('has-sub');
+                $(self).find('li').removeClass('dot-hide');
+            }, setHoldingTime);
+        }
+    });
+    $('.lnb > .category.type-layer li ul').on({
+        mouseenter: function(){
+            clearTimeout(reset);
+            $(this).addClass('db');
+        },
+        mouseleave: function(){
+            var self = this;
+            reset = setTimeout(function(){
+                $(self).removeClass('db');
+                $(self).find('li').removeClass('dot-hide');
+            }, setHoldingTime);
+        }
+    });
+}
+
+// LNB 트리 메뉴
+function lnbLayerTree(){
+    $('.lnb > .category.type-tree > li > ul > li > ul > li > ul > li:last-child').addClass('last');
+}
+
+// 전체 카테고리 레이어
+function allCategoryLayer(){
+    $(document).on('click','.header .top-service .all-category .all-category-layer > div > button',function(){
+        $(this).parent().parent().removeClass('db');
+    });
+    $('html').click(function(e) {
+        if($(e.target).closest('.header .top-service .all-category > .all-category-layer').length === 0) {
+            $('.header .top-service .all-category > .all-category-layer').removeClass('db');
+        }
+    });
+}
+
+// 사이드바컨트롤
+function sideSet(){
+    // 사이드바 탑버튼 클릭시 최상단 이동
+    $('#scroll-right div.top a').click(
+        function() {
+            $('html, body').stop().animate({scrollTop: $('body').offset().top}, 300);
+            return false;
+        }
+    );
+}
+
+// 꾸민 셀렉트
+function selectRemodeling(){
+    $("select.tune").chosen({
+        disable_search_threshold: 10,
+        no_results_text: __('검색결과가 없습니다.')
+    });
+
+    $("select.multiple-select").chosen({
+        disable_search_threshold: 10,
+        no_results_text: __('검색결과가 없습니다.')
+    });
+
+}
+
+// 파일첨부 꾸미기
+function fileAttach(){
+    $(document).on('change', '.file-upload .file', function(){
+        var i = $(this).val();
+        $('label[for='+$(this).attr('id')+']').find('.text').val(i);
+    });
+}
+
+// 상품상세 카드보기 레이어
+function cardFavorLayer(){
+    var i = 1;
+    $('.target-card').click(
+        function() {
+            if (i === 1) {
+                $('.favor-layer').removeClass('dn');
+                i = 0;
+            }
+            else {
+                $('.favor-layer').addClass('dn');
+                i = 1;
+            }
+            return false;
+        }
+    );
+    $('.favor-layer .close').click(
+        function() {
+            $(this).parent().parent().addClass('dn');
+            i = 1;
+            return false;
+        }
+    );
+}
+
+// 상품상세 확대보기 레이어
+function zoomLayer(){
+    $('.zoom-layer-open').click(
+        function() {
+            $('#zoom-layer').removeClass('dn');
+            $('#layerDim').removeClass('dn');
+            $('html').addClass('oh-space');
+            $('#scroll-left, #scroll-right').addClass('dim');
+            return false;
+        }
+    );
+    $('#zoom-layer .close').click(
+        function() {
+            $(this).parent().parent().addClass('dn');
+            $('#layerDim').addClass('dn');
+            $('html').removeClass('oh-space');
+            $('#scroll-left, #scroll-right').removeClass('dim');
+            return false;
+        }
+    );
+}
+
+// 상품상세 비밀글 인증 레이어
+function citeLayer(){
+    $('.protection').click(
+        function() {
+            $('.cite-layer').removeClass('dn');
+            $('#layerDim').removeClass('dn');
+            $('html').addClass('oh-space');
+            $('#scroll-left, #scroll-right').addClass('dim');
+            $('.cite-layer .wrap div .text').focus();
+            return false;
+        }
+    );
+    $('.cite-layer .close').click(
+        function() {
+            $(this).parent().parent().addClass('dn');
+            $('#layerDim').addClass('dn');
+            $('html').removeClass('oh-space');
+            $('#scroll-left, #scroll-right').removeClass('dim');
+            return false;
+        }
+    );
+}
+
+// 레이어 박스 이벤트
+function centerLayer(){
+    //$('.btn-open-layer').off('click');
+    $(document).on('click', '.btn-open-layer', function() {
+        // @qnibus 레이어 안에 레이어가 있는 경우 종속된 보이지 않는 레이어가 이미 떠있는 레이어 기준으로 center 처리 되어 보여져 레이아웃이 깨짐
+        $('.layer-wrap').removeAttr('style');
+
+        var target = $(this).attr('href');
+        $(target).removeClass('dn');
+        $('#layerDim').removeClass('dn');
+        $('html').addClass('oh-space');
+        if($('#scroll-left, #scroll-right').hasClass("side-move")) {
+            $('#scroll-left, #scroll-right').addClass('dim');
+        }
+        $(target).find('> div').center();
+
+        return false;
+    });
+
+    $(document).on('click', '.layer-wrap .close, .layer-wrap .btn-close', function(){
+        $(this).closest('.layer-wrap').addClass('dn');
+        // 창이 2개 이상 떠있는 경우 Dim처리 안되게
+        if (!$('.layer-wrap').is(':visible')) {
+            $('#layerDim').addClass('dn');
+            $('html').removeClass('oh-space');
+            $('#scroll-left, #scroll-right').removeClass('dim');
+        }
+        return false;
+    });
+}
+
+// 레이어 박스 창닫기 (현재 열려 있는 창만 닫는다)
+function closeLayer() {
+    if ($('.layer-wrap').is(':visible') || $('#layerDim').is(':visible')) {
+        if ($('.layer-wrap .close, .layer-wrap .btn-close').length > 0) {
+            $('.layer-wrap .close, .layer-wrap .btn-close').trigger('click');
+        } else {
+            // 딤만 떠있는 경우
+            $('.layer-wrap').addClass('dn');
+            $('#layerDim').addClass('dn');
+            $('html').removeClass('oh-space');
+            $('#scroll-left, #scroll-right').removeClass('dim');
+        }
+    }
+
+}
+
+// 고정 좌표 레이어
+function fixLayer(){
+    var target = $('.btn-open-fixlayer');
+    $(target).each(function() {
+        var i = 1;
+        var currentTab = $(this).attr('href');
+        $(this).click(function() {
+            if (i === 1) {
+                $(currentTab).removeClass('dn');
+                i = 0;
+            }
+            else {
+                $(currentTab).addClass('dn');
+                i = 1;
+            }
+            return false;
+        });
+        $(currentTab).find('.close').click(function() {
+            $(this).parent().parent().addClass('dn');
+            i = 1;
+            return false;
+        });
+    });
+}
+
+// 마우스 오버용 레이어
+function hoverLayer(){
+    var target = $('.btn-open-hoverlayer');
+    $(target).each(function() {
+        var currentTab = $(this).attr('href');
+        $(this).on('focusin mouseenter',function(){
+            $(currentTab).removeClass('dn');
+        });
+        $(this).on('focusout mouseleave',function(){
+            $(currentTab).addClass('dn');
+        });
+    });
+}
+
+// 체크박스 처리 로직 초기화
+function initCheckboxUi() {
+    $(document).on('click', 'input.radio[type=radio]', function(e){
+        $(this).parents('form:first').find("input[name='" + $(this).prop("name") + "']").each(function() {
+            if ($(this).prop("checked")) {
+                $("label[for=" + $(this).attr("id") + "]").addClass("on");
+            } else {
+                $("label[for=" + $(this).attr("id") + "]").removeClass("on");
+            }
+        });
+    });
+
+    $(document).on('click', 'input.checkbox[type=checkbox]', function(e){
+        if($(this).prop('readonly') === false) {
+            if($(this).prop("checked")) {
+                $("label[for="+$(this).attr("id")+"]").addClass("on");
+            } else {
+                $("label[for="+$(this).attr("id")+"]").removeClass("on");
+            }
+        } else {
+            e.preventDefault();
+        }
+    });
+}
+
+// 라디오박스,체크박스 이미지화 스크립트
+function triggerCheckboxUi() {
+    var $input = $('input.radio[type=radio], input.checkbox[type=checkbox]');
+    // 템플릿에서 check 처리한 경우 예외처리 추가
+    if(!$input.find('label.on')){
+        $input.each(function(){
+            var $item = $("label[for="+$(this).attr("id")+"]");
+            if($(this).prop("checked")) {
+                $item.addClass("on");
+            } else {
+                $item.removeClass("on");
+            }
+        });
+    }
+}
+
+
+// 퀵검색 레이어
+function quickLayer(){
+    //퀵검색 상단
+    var locationTopSize = $('.quick-search.location-top').height();
+    $('.quick-search.location-top').css({top:-locationTopSize});
+    var locationTopControl = $('.quick-search.location-top > button');
+    var locationTopClose = $('.quick-search.location-top .btn-close');
+    var locationTopNum = 1;
+    $(locationTopControl).click(function() {
+        if (locationTopNum === 1) {
+            $('.quick-search.location-top').animate({top:'0'},400);
+            $(this).addClass('hide');
+            locationTopNum = 0;
+        }
+        else {
+            $('.quick-search.location-top').animate({top:-locationTopSize},400);
+            $(this).removeClass('hide');
+            locationTopNum = 1;
+        }
+    });
+    $(locationTopClose).click(function() {
+        $('.quick-search.location-top').animate({top:-locationTopSize},400);
+        $(locationTopControl).removeClass('hide');
+        locationTopNum = 1;
+    });
+    //퀵검색 사이드
+    var locationSideSize = $('.quick-search.location-side').width();
+    $('.quick-search.location-side.left').css({left:-locationSideSize});
+    $('.quick-search.location-side.right').css({right:-locationSideSize});
+    var locationLeftControl = $('.quick-search.location-side.left > button');
+    var locationRightControl = $('.quick-search.location-side.right > button');
+    var locationLeftClose = $('.quick-search.location-side.left .btn-close');
+    var locationRightClose = $('.quick-search.location-side.right .btn-close');
+    var locationSideNum = 1;
+    $(locationLeftControl).click(function() {
+        if (locationSideNum === 1) {
+            $('.quick-search.location-side.left').animate({left:'0'},400);
+            $(this).addClass('hide');
+            locationSideNum = 0;
+        }
+        else {
+            $('.quick-search.location-side.left').animate({left:-locationSideSize},400);
+            $(this).removeClass('hide');
+            locationSideNum = 1;
+        }
+    });
+    $(locationLeftClose).click(function() {
+        $('.quick-search.location-side.left').animate({left:-locationSideSize},400);
+        $(locationLeftControl).removeClass('hide');
+        locationSideNum = 1;
+    });
+    $(locationRightControl).click(function() {
+        if (locationSideNum === 1) {
+            $('.quick-search.location-side.right').animate({right:'0'},400);
+            $(this).addClass('hide');
+            locationSideNum = 0;
+        }
+        else {
+            $('.quick-search.location-side.right').animate({right:-locationSideSize},400);
+            $(this).removeClass('hide');
+            locationSideNum = 1;
+        }
+    });
+    $(locationRightClose).click(function() {
+        $('.quick-search.location-side.right').animate({right:-locationSideSize},400);
+        $(locationRightControl).removeClass('hide');
+        locationSideNum = 1;
+    });
+
+    $("#frmQuickSearch").validate({
+        submitHandler: function (form) {
+            form.submit();
+        }
+    });
+
+}
+
+
+// 카트탭 레이어
+function cartTabLayer(){
+    var cartTabShow = $( '.top-service' ).offset();
+    var cartTabBox = $('.cart-tab');
+    var cartTabBar = $('.cart-tab .bar-bg');
+    var cartTabView = $('.cart-tab .view-wrap .view');
+    var btnCartTab = $('.cart-tab .btn-wrap .right .btn-carttab');
+    var btnLeftTab = $('.cart-tab .btn-wrap .left > a');
+    var btnOption = $('.cart-tab .btn-wrap .right .btn-option');
+    var btnOptionTarget = $(btnOption).attr('href');
+
+    var tabOpenText = __('카트탭 열기');
+    var tabCloseText = __('카트탭 닫기');
+
+    if ( $(window).scrollTop() > cartTabShow.top ) {
+        $(cartTabBox).show();
+        $(cartTabView).addClass('dn');
+    }
+    else {
+        $(cartTabView).addClass('dn');
+        $([btnLeftTab, btnOption]).each(function() {
+            $(this).removeClass('on');
+        });
+    }
+    $(window).scroll(function() {
+        if ( $(window).scrollTop() > cartTabShow.top ) {
+            $(cartTabBox).fadeIn('slow');
+        }
+        else {
+            $(cartTabView).addClass('dn');
+            $(cartTabBar).removeClass('opacity');
+            $([btnLeftTab, btnOption]).each(function() {
+                $(this).removeClass('on');
+            });
+            $(btnCartTab).removeClass('on');
+            $(btnCartTab).attr('title', tabOpenText);
+            $(btnCartTab).text(tabOpenText);
+            $(cartTabBox).fadeOut('slow').css({"bottom" : "-280px"});
+        }
+    });
+    $(btnCartTab).click(function() {
+        if (!$(this).hasClass("on")) {
+            $(cartTabBox).animate({bottom:'0'},200);
+            $(this).addClass('on');
+            $(this).attr('title', tabCloseText);
+            $(this).text(tabCloseText);
+            $(cartTabView).addClass('dn');
+            $(cartTabBar).addClass('opacity');
+            $(btnOptionTarget).removeClass('dn');
+            $(btnLeftTab).first("a").addClass('on');
+            $(btnOption).removeClass('on');
+            cart_tab_action("#cart-tab-today");
+        }
+        else {
+            $(cartTabBox).animate({bottom:'-280px'},200);
+            $(this).removeClass('on');
+            $(this).attr('title', tabOpenText);
+            $(this).text(tabOpenText);
+            $(cartTabView).addClass('dn');
+            $(cartTabBar).removeClass('opacity');
+            $(btnLeftTab).removeClass('on');
+            $(btnOption).removeClass('on');
+        }
+    });
+    $(btnLeftTab).each(function() {
+        $(this).click(function() {
+            var btnLeftTabTarget = $(this).attr('href');
+            var btnLeftTabLogin = $(this).attr('class');
+            if(btnLeftTabLogin !='btn-alert-login') {
+                $(cartTabBox).animate({bottom: '0'}, 200);
+                $(this).siblings().removeClass('on');
+                $(this).addClass('on');
+                $(cartTabView).addClass('dn');
+                $(cartTabBar).addClass('opacity');
+                $(btnLeftTabTarget).removeClass('dn');
+                $(btnOption).removeClass('on');
+                $(btnCartTab).addClass('on');
+                $(btnCartTab).attr('title', tabCloseText);
+                $(btnCartTab).text(tabCloseText);
+                cart_tab_action(btnLeftTabTarget);
+            }
+        });
+    });
+    $(btnOption).click(function() {
+        if (!$(this).hasClass("on")) {
+            $(cartTabBox).animate({bottom:'0'},200);
+            $(this).addClass('on');
+            $(cartTabView).addClass('dn');
+            $(cartTabBar).addClass('opacity');
+            $(btnOptionTarget).removeClass('dn');
+            $(btnLeftTab).removeClass('on');
+            $(btnCartTab).addClass('on');
+            $(btnCartTab).attr('title', tabCloseText);
+            $(btnCartTab).text(tabCloseText);
+            cart_tab_action('#option');
+        }
+    });
+}
+
+//해더 사이드메뉴 호버 기능
+function sideMenuView(){
+	$("#top.header .link > li").hover(function(){
+		$(".sub-menu").hide();
+		$(this).find(".sub-menu").show();
+		$("#top.header .m-btn a").removeClass("on");
+		$("#top.header .link > li").eq(1).removeClass("on");
+	}, function(){
+		$(".sub-menu").hide();
+		$("#top.header .m-btn a").removeClass("on");
+		$("#top.header .link > li").eq(1).removeClass("on");
+	});
+
+	$("#top.header .m-btn a").click(function(e){
+		e.preventDefault();
+		$("#top.header .link > li").removeClass("on");
+		$(".sub-menu").hide();
+		if($(this).hasClass("on")){
+			$("#top.header .link > li").eq(1).removeClass("on");
+			$("#top.header .link > li").eq(1).find(".sub-menu").hide();
+			$(this).removeClass("on");
+		}else if(!$(this).hasClass("on")){
+			$("#top.header .link > li").eq(1).addClass("on");
+			$("#top.header .link > li").eq(1).find(".sub-menu").show();
+			$(this).addClass("on");
+		}
+		
+	});
+}
+
+//풋터 패밀리사이트 링크 기능
+function familyLink(){
+	$("#footer .link-right select").change(function(){
+		var val = $(this).val();
+		if(val){
+			window.open(val, '_blank');
+		}
+	});
+}
+
+//풋터 팝업창
+function appPop(num){
+	$(".pop-app"+num).stop().fadeIn();
+}
+function appPopClose(num){
+	$(".pop-app"+num).stop().fadeOut();
+}
+
+// 함수 호출
+$(document).ready(function() {
+    triggerCheckboxUi();
+    initCheckboxUi();
+    mypageLayer();
+    rightSideLayer();
+    lnbLayer();
+    lnbLayerTree();
+    allCategoryLayer();
+    sideSet();
+    selectRemodeling();
+    citeLayer();
+    fileAttach();
+    cardFavorLayer();
+    centerLayer();
+    fixLayer();
+    hoverLayer();
+    quickLayer();
+	sideMenuView();
+	familyLink();
+    $(window).scroll(function() {
+        sideSet();
+    });
+    if($('html *').is(".top-service") === true) {
+        cartTabLayer();
+    }
+    $(window).resize(function() {
+        // 현재 열려진 레이어만 센터 정렬
+        $('.layer-wrap:visible').find('>div').center();
+    });
+});

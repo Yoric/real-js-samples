@@ -1,0 +1,109 @@
+/*
+ * RdonaIntro.jsp (모금함 상세페이지 뷰)의 이미지 갤러리 마크업을 기반으로 함:
+ * 
+ * <c:if test="${not empty intro.attachFileList}">
+ *	<div class="thmb_section">
+ *		<div class="view">
+ *			<img src="" width="548" height="320" alt="">
+ *			<div class="dsp">
+ *				<strong></strong>
+ *				<span class="bg"></span>
+ *			</div>
+ *		</div>
+ *		<div class="thmb_lst">
+ *			<a href="#" class="p_move prev">이전</a>
+ *			<ul>
+ *			<c:forEach items="${intro.attachFileList }" var="list" varStatus="count">
+ *				<li ${count.count eq 1 ? 'class="on"' : ''} ${count.count gt 6 ? 'style="display: none;"' : ''}><a href="#"><img src="${list.atch_file_url}" width="88" height="56" alt="${list.atch_file_desc_cont }"></a></li>
+ *			</c:forEach> 
+ *			</ul>
+ *			<a href="#" class="p_move next">다음</a>
+ *		</div>
+ *	</div>
+ *	</c:if>
+ * 
+ * 
+ * 사용 방법:
+ * <c:if test="${not empty intro.attachFileList}">
+ * $J('div.thmb_section').gallery();
+ * </c:if>
+ * 
+ * 썸네일 리스트 위치가 기본은 'bottom' 이지만 'top'도 지원:
+ * <c:if test="${not empty intro.attachFileList}">
+ * $J('div.thmb_section').gallery({thumbnailPosition: 'top'});
+ * </c:if>
+ * 
+ * 만약 한 페이지에 여러개의 갤러리를 사용해야 하는 경우 똑같은 마크업을 여러개 사용하면 됨.
+ * 
+ * 2012.12.03
+ * 
+ * author:
+ * 	orinu
+ * 	mOer
+ * 
+ */
+(function($, undefined) {
+	$.fn.gallery = function(options) {
+		var opts = $.extend({}, $.fn.gallery.defaults, options);
+		
+		return $(this).each(function() {
+			var section = $(this);
+			var thmb = $(section).find('div.thmb_lst');
+			var view = $(section).find("div.view");
+			var imgList = $(thmb).find('ul');
+			var target = $(imgList).find('li.on');
+			
+			if (opts.thumbnailPosition === 'top') {
+				section.prepend(thmb);
+			}
+			
+			section.css("visibility", "visible");
+			
+			makeView(target, view);
+			
+			$(imgList).find('li').on("click", function(e){
+				e.preventDefault();
+				
+				makeView(this, view);
+			});
+			
+			$(thmb).children('a').on("click", function(e){
+				e.preventDefault();
+				
+				var onImg = $(imgList).find('li.on');
+				
+				var target = $(onImg).next();
+				var index = $(target).index()-6;
+				
+				if($(this).hasClass('prev')){
+					target = $(onImg).prev();
+					index = $(target).index()+5;
+				}
+				
+				var siblings = $(target).siblings('li');
+				var cssChangedTarget = $(siblings).eq(index);
+				
+				if($(target).css('display') == 'none'){
+					$(target).css('display', 'block');
+					$(cssChangedTarget).css('display', 'none');
+				}
+				
+				makeView(target, view);
+			});
+		});
+	}
+	
+	function makeView(target, view){
+		var targetImg = $(target).find('a > img');
+		view.find('img').attr("src", $(targetImg).attr("src"));
+
+		var targetText = $(targetImg).attr('alt');
+		view.find('img').attr("alt", targetText);
+		view.find('div.dsp > strong').text(targetText);	
+		$(target).addClass('on').siblings().removeClass('on');
+	}
+	
+	$.fn.gallery.defaults = {
+		thumbnailPosition: 'bottom'
+	}
+})(jQuery);

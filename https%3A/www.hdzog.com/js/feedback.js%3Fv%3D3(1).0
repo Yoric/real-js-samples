@@ -1,0 +1,147 @@
+(function() {
+    let form = document.getElementById('report-form'),
+        theme = document.querySelector('.feedback-main').classList
+                .contains('day') ? 'light' : 'dark'
+
+    // v3 recaptcha
+    grecaptcha.ready(() => grecaptcha.execute('6LdzepEUAAAAAAzTegW4t41rZkAXRc69xhAMUo7U', {action: 'homepage'})
+        .then(token => document.querySelector('input[name=g-recaptcha-response]').value = token))
+
+    // --- event listeners ---
+    form.addEventListener('submit', request)
+    document.querySelector('.current-theme').addEventListener('click', toggleDropdown)
+    // set selected theme
+    document.querySelector('.themes-container').addEventListener('mousedown', (e) => {
+        toggleDropdown()
+        // hide error message if it is shown
+        document.querySelector('.feedback__container .subject').style.display = 'none'
+        document.querySelector('[data-label=subject]').classList.remove('has-error')
+        document.querySelector('.current-theme span:first-child').innerHTML = e.target.innerHTML
+        document.querySelector('.current-theme span:first-child').style.color = 
+            theme === 'dark' ? '#dadada' : '#303030'
+        document.querySelector('input[name="ticket[subject]"]').value = e.target.dataset.value
+    })
+    // upload-file button event-listener
+    document.querySelector('.upload-file__button').addEventListener('click', e => {
+        let hint = document.querySelector('.feedback-hint')
+
+        let createElementFunc = str => {
+            let elem = document.createElement('div')
+            elem.innerHTML = str
+            return elem.firstChild
+        }
+        
+        e.target.parentElement.insertBefore(createElementFunc(
+            `<input class="uvFieldFile" data-name="fileToUpload"
+                name="fileToUpload" size="20" title="Choose a File" type="file">`),
+            hint)
+        hint.style.display = ''
+        e.target.style.display = 'none'
+        e.target.classList.remove('hoverable')
+    })
+    // document.querySelector('.close-container').onclick = () => window.close()
+
+
+
+    // --- handler functions ---
+
+    // fetch
+    function request(e) {
+        e.preventDefault()
+
+        let fetchOptions = {
+                method: 'post',
+                body: new FormData(form)
+            },
+            ref = !~location.href.indexOf('#feed-back') ? location.href
+                : document.referrer !== '' ? document.referrer : location.href
+
+        fetch('/report.php?ref=' + ref, fetchOptions)
+            .then(res => {
+                if (res.status === 400) {
+                    res.json().then(data => {
+                        for (let [key, value] of Object.entries(data))
+                            handleError(key, value)
+                    })
+                }
+                if (res.status === 200)
+                    res.text().then(data => showSuccessWindow(data))
+            })
+            .catch(e => {
+                let adblockErr = document.querySelector('.adblock-err')
+                adblockErr && (adblockErr.innerHTML = 'Disable adblock to send a feedback')
+                form.querySelector('button').setAttribute('disabled', true)
+                form.querySelector('button').style.background = '#701B1B'
+            })
+    }
+
+    function handleError(key, value) {
+        let captchaVersion = document.getElementById('captcha-v').value
+        if (key === 'recaptcha' && captchaVersion == 3) {
+            if (value === 'low score') degradeRecaptcha()
+            else {
+                console.log('Recaptcha error: ', value)
+                resetRecaptcha()
+            }
+            return
+        }
+
+        if (key === 'reports_count') {
+            alert(value)
+            resetRecaptcha()
+            return
+        }
+
+        let redTextBlock = form.querySelector(`.red-text.${key}`),
+            relatedInput = form.querySelector(`[data-label=${key}]`)
+
+        redTextBlock.innerHTML = value
+        redTextBlock.style.display = 'block'
+        relatedInput && relatedInput.classList.add('has-error')
+
+        if (relatedInput)
+            form.querySelector(`[data-label=${key}]`).onfocus = () => {
+                redTextBlock.style.display = 'none'
+                relatedInput.classList.remove('has-error')
+            }
+        // if error was on file input
+        else form.querySelector('.uvFieldFile').onclick = () =>
+                redTextBlock.style.display = 'none'
+
+        resetRecaptcha()
+    }
+
+    function degradeRecaptcha() {
+        document.querySelector('input[name=g-recaptcha-response]').remove()
+        grecaptcha.render('captcha', {
+            'sitekey' : '6Le53lsUAAAAAEgUPaFBpub6_YE6XIAIgHY5ufMd',
+            theme: theme
+        });
+        document.getElementById('captcha-v').value = 2
+    }
+
+    function showSuccessWindow(data) {
+        let container = document.querySelector('.feedback__container')
+        document.querySelector('.feedback-success').classList.add('fade-in')
+        container.classList.add('fade-out')
+        // hide form after successful submit
+        setTimeout(() => container.style.display = 'none', 300)
+    }
+
+    function toggleDropdown() {
+        document.querySelector('.themes-container').classList.toggle('opened')
+        document.querySelector('.current-theme').classList.toggle('no-borders')
+        document.querySelector('.arrow').classList.toggle('up')
+    }
+
+    function resetRecaptcha() {
+        let recaptchaVestion = document.getElementById('captcha-v').value
+        if (+recaptchaVestion === 3)
+            grecaptcha.ready(() =>
+                grecaptcha.execute('6LdzepEUAAAAAAzTegW4t41rZkAXRc69xhAMUo7U', {action: 'homepage'})
+                    .then(token =>
+                        document.querySelector('input[name=g-recaptcha-response]').value = token))
+        else if (+recaptchaVestion === 2) grecaptcha.reset()
+    }
+    
+})();

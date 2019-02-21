@@ -1,0 +1,144 @@
+/**
+ *  Фасад для событий авторизации из портальной шапки
+ *  @requires 'lib/basic.js'
+ *  @requires 'lib/constructors.js',
+ *  @requires 'tools/tools.Deferred.js'
+ */
+(function (window, oCpf, oPH) {
+	'use strict';
+	var oBasic = oCpf.Basic;
+	var fExtend = oBasic.Extend;
+	var fTypeOf = oBasic.typeOf;
+	var oTools = oCpf.Tools;
+	var fPromise = oTools.Deferred;
+	var bHasMethod = 'activeUser' in oPH;
+	var mActiveUser = '';
+
+	if (oTools.Auth) {
+		return;
+	}
+
+	/**
+	 * Настройки по умолчанию
+	 * @property {number} rejectTimeout  Таймаут до прекращения ожидания ответа swa
+	 * @property {string} activeUserGlobal  Имя глобального свойства с данными об активном пользователе
+	 */
+	var oDefOpts = {
+		rejectTimeout: 1e3,
+		activeUserGlobal: '__activeUser'
+	};
+	var oAuthPromise = fPromise();
+
+	/**
+	 * Обработка изменения статуса авторизации
+	 * @param {Event} oEvent
+	 * @param {function} [fNext] Передача "инициативы" скрипатам шапки
+	 * @this {Auth}
+	 */
+	function fOnAuthChange (oEvent, fNext) {
+		var eventUser = oEvent.data.email || null;
+		if (mActiveUser !== eventUser) {
+			mActiveUser = eventUser;
+			this._trigger('authChange', mActiveUser, oPH.activeUser());
+		}
+		if (fTypeOf(fNext, 'function')) {
+			fNext();
+		}
+	}
+
+	/**
+	 * Разовый колбэк получения данных о пользователе
+	 * @param {string|null} mUserInfo  Данные об авторизации
+	 * @this {Auth}
+	 */
+	function hOnсеGetUserInfo (mUserInfo) {
+		clearTimeout(this._rejectTimeout);
+		mActiveUser = mUserInfo;
+		oAuthPromise.resolve(mUserInfo);
+		this._trigger('getUserInfo', mUserInfo);
+	}
+
+	var Auth = oBasic.Constructors.getModel(/** @lends Auth.prototype */{
+
+		_Events: {
+			authChange: {
+				opts: {
+					memory: 1
+				}
+			},
+			getUserInfo: null
+		},
+		/** @constructor */
+		_Init: function () {
+			var oOpts = this._Opts;
+			var fAuthChangeCallback = fOnAuthChange.bind(this);
+			var fOnсеGetUserInfo = hOnсеGetUserInfo.bind(this);
+			var isInfoRecieved;
+
+			mActiveUser = bHasMethod && oPH.activeUser() || window[oOpts.activeUserGlobal] || '';
+
+			// Ретрансляция событий шапки
+			oPH.on('authChange', fAuthChangeCallback);
+			// Получение первых данных
+
+			// XXX: защита от баги Оперы
+			if (mActiveUser === '') {
+				this._rejectTimeout = setTimeout(fOnсеGetUserInfo, oOpts.rejectTimeout);
+
+				// Первое "честное" получение данных
+				oPH[bHasMethod ? 'once' : 'on']('update', function (oAuthEvent, fNext) {
+					var mCurUser = oAuthEvent.data.email;
+					if (!isInfoRecieved) {
+						isInfoRecieved = true;
+						fOnсеGetUserInfo(mCurUser);
+						// первый 'authChange' не приходит, имитируем его
+						fAuthChangeCallback(oAuthEvent);
+					}
+					fNext();
+				});
+			} else {
+				isInfoRecieved = true;
+				fOnсеGetUserInfo(mActiveUser);
+				this._trigger('authChange', mActiveUser, oPH.activeUser());
+			}
+		},
+		getAccountsList: function () {
+			var oOnResult = fPromise();
+			if ('loadAccountsList' in oPH) {
+				oPH.loadAccountsList(function (oData) {
+					if (oData.status === 'ok') {
+						oOnResult.resolve(oData.accounts);
+					} else {
+						oOnResult.reject();
+					}
+				});
+			} else {
+				oOnResult.reject();
+			}
+			return oOnResult;
+		},
+		/**
+		 * Проверка авторизации при загрузке страницы для обратной совместимости со старым интерфейсом
+		 * @param fCallback
+		 */
+		onGetStatus: function (fCallback) {
+			if (fTypeOf(fCallback, 'function')) {
+				if (mActiveUser !== '') {
+					// null или не пустая строка (статус авторизации получен)
+					fCallback(mActiveUser);
+				} else {
+					// статус авторизации еще не известен, ждем
+					oAuthPromise.done(fCallback);
+				}
+			} else {
+				throw new TypeError('First argument must be a function.');
+			}
+		}
+
+	}, oDefOpts, null, 'Auth');
+
+	// Создаем синглтон
+	fExtend(oTools, {
+		Auth: new Auth()
+	});
+})(window, window.ru.mail.cpf, window.__PH);

@@ -1,0 +1,186 @@
+;(function (root, factory) {
+	'use strict';
+	if (typeof define === 'function' && define.amd) {   // jshint ignore:line
+		// AMD
+		define([                                            // jshint ignore:line
+			'jquery'
+			// ,'optVar'
+		], factory);
+	} else {
+		// Browser globals
+		root.skp11 = root.skp11 || {};
+		root.skp11.product = root.skp11.product || {};
+		root.skp11.product.CustomAddPrdBot = factory(
+			root.jQuery
+			// ,root.optVar
+		);
+	}
+}(this, function ($) {
+	'use strict';
+	var CustomAddPrdBot;
+
+    var optVar = productOptInfo;
+
+	var AddPrdRecord = function(data) {
+		this.compPrdNo = data.compPrdNo;
+		this.prdCompNo = data.prdCompNo;
+		this.compPrdStckNo = data.compPrdStckNo
+		this.addCompPrc = data.addCompPrc;
+		this.stckQty = data.stckQty;
+		this.amount = data.amount;
+		this.addPrc = data.addCompPrc;
+		this.addPrdMixNo = data.compPrdNo + ":" + data.prdCompNo;
+		this.selAddPrdNm = data.addPrdGrpNm + " / " + data.addPrdCompNm;
+		this.addPrdCompNm = data.addPrdCompNm;
+	};
+
+	CustomAddPrdBot = function (optionId, position) {
+		// 사용되는 객체
+		this.$button = $(optionId);
+		this.position = position;
+		this.$content = $(this.$button.attr('href'));
+		this.$subContent = $(this.$button.data('subTarget'));
+		this.$optionBox = $('.prdc_ezop_wrap > .option_listbox > .ui_option_box > .option_box');
+		this.$win = $(window);
+
+		// 템플릿 적용 컨텐츠
+		this.$templateContent = this.$content.find('.op_list');
+	};
+
+	CustomAddPrdBot.prototype.init = function () {
+		var _this = this;
+
+		_this.bind();
+	};
+
+	// 옵션 레이어 호출
+	CustomAddPrdBot.prototype.viewOption = function (isOpen, isFocus) {
+		var _this = this;
+		isFocus = false;
+		
+		if(isOpen) {
+			
+		} else {
+			$('#ui_option_etc_layer2').parent().removeClass('is_open');
+			$('.bot_addPrd_section ').removeClass('is_open');
+		}
+	};
+
+	CustomAddPrdBot.prototype.zIndex = function ($el, isOpen) {
+		if (isOpen) {
+			// 레이어가 보일때 부모요소들의 zIndex를 같이 올려줌
+			$el.parentsUntil('body').filter(function () {
+				return $(this).css('position') === 'relative';
+			}).addClass('zindex');
+		} else {
+			// 레이어가 닫힐때 부모요소들의 zIndex를 원래대로 돌림
+			$el.parentsUntil('body').filter(function () {
+				return $(this).css('position') === 'relative';
+			}).removeClass('zindex');
+		}
+	};
+
+	// 이벤트 바인드
+	CustomAddPrdBot.prototype.bind = function () {
+		var _this = this
+
+		// 다른 옵션 레이어가 뜰경우 옵션 레이어를 닫아준다.
+		_this.$win.on('optionLayerClose', function () {
+			$(document).trigger('infoContentClose');
+			_this.viewOption(false, false);
+		});
+
+		$('.bot_addPrd_section > .accordion_body > .option_item_list > li > a').on('click', function(e){
+			e.preventDefault();
+			var $this = $(this),
+				isEnd = $this.parent().hasClass('soldout');
+
+			if (isEnd) {
+				// alert('품절입니다.');
+				return false;
+			} else {
+
+				if(_this.chkDuplicateSelAddPrd($this)) {
+					return false;
+				}
+				var addPrdRecord = _this.setAddPrdRecord($this);
+				optVar.orderAddPrdArr.push(addPrdRecord);
+				addPrdRecord = $.extend({}, {"target": "ui_addPrdSelWrapper"}, _this.getTransSetItemData(addPrdRecord));
+
+				$(window).trigger('setItem', addPrdRecord);
+				_this.viewOption(false, true);
+			}
+		});
+	};
+
+	CustomAddPrdBot.prototype.chkDuplicateSelAddPrd = function($obj){	// 추가 상품 클릭시 사용
+		for(var i=0,size=optVar.orderAddPrdArr.length;i<size;i++){
+			if(optVar.orderAddPrdArr[i].compPrdStckNo == $obj.data("compprdstckno")){
+				alert("이미 선택되어 있는 추가구성상품입니다.");
+				return true;
+			}
+		}
+		return false;
+	};
+
+
+	CustomAddPrdBot.prototype.setAddPrdRecord = function($obj){	// 추가 상품 클릭시
+		var _this = this
+			,addPrdData = _this.extractData($obj);
+
+		var addPrdRecord = new AddPrdRecord({
+			"compPrdNo" : addPrdData.compprdno
+			,"prdCompNo" : addPrdData.prdcompno
+			,"compPrdStckNo" : addPrdData.compprdstckno
+			,"addPrdGrpNm" : addPrdData.addprdgrpnm
+			,"addPrdCompNm" : addPrdData.prdnm
+			,"addCompPrc" : addPrdData.addcompprc
+			,"stckQty" : addPrdData.stckqty
+			,"amount" : 1
+		});
+
+		return addPrdRecord;
+	};
+
+
+	CustomAddPrdBot.prototype.extractData = function ($obj) {
+		var dataList = [];
+
+		$.each( $obj, function( key, value ) {
+			dataList.push( $(value).data() );
+		});
+
+		if(dataList.length == 1) {
+			return dataList[0];
+		}else{
+			return dataList;
+		}
+	};
+
+	CustomAddPrdBot.prototype.getTransSetItemData = function (data) { // 추가 상품 클릭시
+
+		var _this = this;
+		data.idxMixNo = data.addPrdMixNo;
+		data.prdStckNo = data.compPrdStckNo;
+		data.stckQty = data.stckQty;
+		data.price = data.addCompPrc;
+		data.dispNm = "[추가] " + data.addPrdCompNm;
+		data.priceTxt = _this.commaFormat(data.price);
+		return data;
+	};
+
+	CustomAddPrdBot.prototype.commaFormat = function (num) {
+		if (num === 0) {
+			return 0;
+		}
+		var reg = /(^[+-]?\d+)(\d{3})/,
+			n = (num + '');
+
+		while (reg.test(n)) {
+			n = n.replace(reg, '$1' + ',' + '$2');
+		}
+		return n;
+	};
+
+	return CustomAddPrdBot;
+}));

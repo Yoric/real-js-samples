@@ -1,0 +1,50 @@
+adv.AdBase.extend('Ad17173YeyouKaifuText', {
+  init: function(options) {
+    this.base(options);
+    this.emit(adv.ENUM.EVENTS.inited);
+  },
+  setup: function(data) {
+    this.data = data;
+    this.emit(adv.ENUM.EVENTS.setuped);
+  },
+  template:function(){/*@preserve
+    <li class="item">
+			<div class="c2">
+				<div class="art-item">
+					<style type="text/css">
+.tg-slide-v-rank{display:inline-block;min-width:4em;*display:inline;*zoom:1;overflow: hidden;height:22px;margin:2px 0;line-height:22px;color:#fff;text-align:center;}
+.tg-slide-v-rank:hover{ color:#fff;}
+.tg-slide-v-rank .in{display: block;-webkit-animation:ani-tg-slide-v-rank 4s .5s infinite;animation:ani-tg-slide-v-rank 4s .5s infinite}
+.tg-slide-v-rank:hover .in{-webkit-animation-play-state:paused;animation-play-state:paused;}
+.tg-slide-v-rank .in b{display:block;padding:0 4px;font-weight:400}
+.tg-slide-v-rank .in .t1{background:#ff5c00}
+.tg-slide-v-rank .in .t2{background:#477cd5}
+.tg-slide-v-rank .in .t3{background:#53b35e}
+@@-webkit-keyframes ani-tg-slide-v-rank{
+0%,25%{-webkit-transform:translateY(0)}
+30%,55%{-webkit-transform:translateY(-22px)}
+60%,85%{-webkit-transform:translateY(-44px)}
+}
+@@keyframes ani-tg-slide-v-rank{
+    0%,25%{transform:translateY(0)}
+    30%,55%{transform:translateY(-22px)}
+    60%,85%{transform:translateY(-44px)}
+}
+</style>
+<a href="@link" target="_blank" class="tg-slide-v-rank"><span class="in"><b class="t1">@gameName</b><b class="t2">@tip1</b><b class="t3">@tip2</b></span></a>
+	
+				</div>
+			</div>
+			<div class="c3"><a href="@link" target="_blank" class="c-red1">@serverName</a></div>
+			<div class="c5"><a href="@link" target="_blank" class="c-red1">试玩</a></div>
+		</li>
+  */},
+  play: function() {
+    var advEl = $('.' + this.options.advid);
+    advEl.find('.rank-bd').css('height',567);
+    
+    var html = $(adv.razor(this.template,this.data));
+    advEl.find('.list-rank-total').prepend(html);
+    this.emit(adv.ENUM.EVENTS.played);
+  }
+});

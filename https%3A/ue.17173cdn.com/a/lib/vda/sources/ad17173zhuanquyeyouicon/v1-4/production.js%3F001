@@ -1,0 +1,98 @@
+adv.AdBase.extend('Ad17173ZhuanquYeyouIcon', {
+  init: function (options) {
+    this.base(options);
+    this.emit(adv.ENUM.EVENTS.inited);
+  },
+  setup: function (data) {
+    this.data = data;
+    this.emit(adv.ENUM.EVENTS.setuped);
+  },
+
+  lteIE:function (ver) {
+    var b = document.createElement('b');
+    b.innerHTML = '<!--[if IE lte' + ver + ']><i></i><![endif]-->';
+    return b.getElementsByTagName('i').length === 1;
+  },
+  replaceLink: function (item) {
+    var li = this.advEl.find('li:eq(' + (item.index - 1) + ')');
+    item.isHot ? li.addClass('top') : li.removeClass('top')
+    li.find('a').attr('href', item.link)
+    li.find('img').attr('src', item.img);
+    li.find('.tit').text(item.name)
+    li.find('.desc').text(item.desc)
+    var onlineTmpl = '<span class="online"><span class="num" data-value="' + item.onlineUser + '">'
+    var numArr = (item.onlineUser + '').split('')
+    var num
+    while (numArr.length) {
+      num = numArr.shift()
+      onlineTmpl += '<b class="n' + num + '">'+(this.lteIE(8)?num :'')+'</b>'
+    }
+    onlineTmpl += '在线</span></span>'
+    li.find('.desc').after(onlineTmpl);
+    /* link.attr('href', item.link);
+    link.find('img').attr('src', item.img);
+    link.find('.txt').text(item.name);
+    item.isHot ? link.find('.txt').addClass('tg-c-red') : link.find('.txt').removeClass('tg-c-red'); */
+  },
+  randomNum: function () {
+    var me =this;
+    function Counter(selector) {
+      this.el = $(selector);
+      this.numbers = this.el.find('> b').toArray().reverse();
+    }
+    Counter.prototype.count = function (newVal) {
+      var reversedArr, className;
+      this.value = newVal || this.el.attr('data-value') | 0;
+      this.value = '000000'.slice((this.value + '').length) + this.value
+      if (!this.value) return;
+      reversedArr = this.value.split('').reverse();
+      jQuery.each(this.numbers, function (i, item) {
+        setTimeout(function () {
+          className = 'n' + reversedArr[i] || 0;
+          item.className = className;
+          if (me.lteIE(8)) {
+            $(item).text(reversedArr[i]);
+          }
+        }, i * 200);
+      });
+    }
+    $('.online .num').each(function () {
+      var _this = $(this);
+      var counter = new Counter(_this);
+      randomCount(counter, _this.data('value'));
+    });
+
+    function randomCount(c, n) {
+      c.count(randomNum(n, n + 199));
+      setTimeout(function () {
+        randomCount(c, n);
+      }, Math.random() * 3000);
+    }
+
+    function randomNum(min, max) {
+      return Math.floor(Math.random() * (max - min) + min)
+    }
+
+  },
+  render: function (ads) {
+    var me = this;
+    for (var i = 0; i < ads.length; i++) {
+      me.replaceLink(ads[i]);
+    }
+    this.randomNum()
+  },
+  play: function () {
+    var opt = this.options, me = this, ads = this.data.games;
+    this.advEl = $('.' + opt.advid);
+    this.advEl[0] ?
+      me.render(ads)
+      :
+      $(document.body).bind('appendHtml', function (e, targetEl) {
+        me.advEl = $(targetEl).find('.' + opt.advid);
+        if (me.advEl[0]) {
+          me.render(ads);
+        }
+      });
+    this.emit(adv.ENUM.EVENTS.played);
+  }
+});

@@ -1,0 +1,185 @@
+var translations = {
+	"AR" : {
+		"requiredFields" : "* &#1581;&#1602;&#1608;&#1604; &#1605;&#1591;&#1604;&#1608;&#1576;&#1577;"
+	},
+	"AR-SA" : {
+		"requiredFields" : "* &#1581;&#1602;&#1608;&#1604; &#1605;&#1591;&#1604;&#1608;&#1576;&#1577;"
+	},
+	"BH-BH" : {
+		"requiredFields" : "* &#1581;&#1602;&#1608;&#1604; &#1605;&#1591;&#1604;&#1608;&#1576;&#1577;"
+	},
+	"CS-CZ" : {
+		"requiredFields" : "* povinn&eacute;"
+	},
+	"DA" : {
+		"requiredFields" : "* obligatoriske felter"
+	},
+	"DA-DK" : {
+		"requiredFields" : "* obligatoriske felter"
+	},
+	"DE" : {
+		"requiredFields" : "* Pflichtfeld"
+	},
+	"DE-AT" : {
+		"requiredFields" : "* erforderliche Felder"
+	},
+	"DE-CH" : {
+		"requiredFields" : "* erforderliche Felder"
+	},
+	"DE-DE" : {
+		"requiredFields" : "* erforderliche Felder"
+	},
+	"ES" : {
+		"requiredFields" : "* campos necesarios"
+	},
+	"ES-CL" : {
+		"requiredFields" : "* campos necesarios"
+	},
+	"ES-CO" : {
+		"requiredFields" : "* campos necesarios"
+	},
+	"ES-ES" : {
+		"requiredFields" : "* campos necesarios"
+	},
+	"ES-MX" : {
+		"requiredFields" : "* campos necesarios"
+	},
+	"ES-XL" : {
+		"requiredFields" : "* campos necesarios"
+	},
+	"FI" : {
+		"requiredFields" : "* vaaditut kent&auml;t"
+	},
+	"FI-FI" : {
+		"requiredFields" : "* vaaditut kent&auml;t"
+	},
+	"FR" : {
+		"requiredFields" : "* indique le champ requis"
+	},
+	"FR-BE" : {
+		"requiredFields" : "* indique le champ requis"
+	},
+	"FR-CA" : {
+		"requiredFields" : "* indique le champ requis"
+	},
+	"FR-CH" : {
+		"requiredFields" : "* indique le champ requis"
+	},
+	"FR-FR" : {
+		"requiredFields" : "* indique le champ requis"
+	},
+	"HE" : {
+		"requiredFields" : "* &#1502;&#1510;&#1497;&#1497;&#1503; &#1513;&#1491;&#1492; &#1495;&#1493;&#1489;&#1492;"
+	},
+	"HE-IL" : {
+		"requiredFields" : "* &#1502;&#1510;&#1497;&#1497;&#1503; &#1513;&#1491;&#1492; &#1495;&#1493;&#1489;&#1492;"
+	},
+	"HU-HU" : {
+		"requiredFields" : "* sz&uuml;ks&eacute;ges"
+	},
+	"ID" : {
+		"requiredFields" : "* diperlukan"
+	},
+	"ID-ID" : {
+		"requiredFields" : "* diperlukan"
+	},
+	"IT" : {
+		"requiredFields" : "* Campi obbligatori"
+	},
+	"IT-IT" : {
+		"requiredFields" : "* Campi obbligatori"
+	},
+	"JA" : {
+		"requiredFields" : "* &#24517;&#38920;&#12501;&#12451;&#12540;&#12523;&#12489;"
+	},
+	"JA-JP" : {
+		"requiredFields" : "* &#24517;&#38920;&#12501;&#12451;&#12540;&#12523;&#12489;"
+	},
+	"KO" : {
+		"requiredFields" : "* &#54596;&#49688; &#54596;&#46300;"
+	},
+	"KO-KR" : {
+		"requiredFields" : "* &#54596;&#49688; &#54596;&#46300;"
+	},
+	"NO" : {
+		"requiredFields" : "* obligatoriske felt"
+	},
+	"NB-NO" : {
+		"requiredFields" : "* obligatoriske felt"
+	},
+	"NL" : {
+		"requiredFields" : "* vereiste velden"
+	},
+	"NL-BE" : {
+		"requiredFields" : "* vereiste velden"
+	},
+	"NL-NL" : {
+		"requiredFields" : "* vereiste velden"
+	},
+	"PL" : {
+		"requiredFields" : "* pola wymagane"
+	},
+	"PL-PL" : {
+		"requiredFields" : "* pola wymagane"
+	},
+	"PT" : {
+		"requiredFields" : "* campos obrigat&oacute;rios"
+	},
+	"PT-BR" : {
+		"requiredFields" : "* campos obrigat&oacute;rios"
+	},
+	"PT-PT" : {
+		"requiredFields" : "* campos obrigat&oacute;rios"
+	},
+	"RO-RO" : {
+		"requiredFields" : "* c&acirc;mpuri obligatorii"
+	},
+	"RU" : {
+		"requiredFields" : "* &#1087;&#1086;&#1083;&#1103; &#1086;&#1073;&#1103;&#1079;&#1072;&#1090;&#1077;&#1083;&#1100;&#1085;&#1099;&#1077; &#1076;&#1083;&#1103; &#1079;&#1072;&#1087;&#1086;&#1083;&#1085;&#1077;&#1085;&#1080;&#1103;"
+	},
+	"RU-RU" : {
+		"requiredFields" : "* &#1087;&#1086;&#1083;&#1103; &#1086;&#1073;&#1103;&#1079;&#1072;&#1090;&#1077;&#1083;&#1100;&#1085;&#1099;&#1077; &#1076;&#1083;&#1103; &#1079;&#1072;&#1087;&#1086;&#1083;&#1085;&#1077;&#1085;&#1080;&#1103;"
+	},
+	"SK-SK" : {
+		"requiredFields" : "* povinn&eacute;"
+	},
+	"SE" : {
+		"requiredFields" : "* obligatoriska f&auml;lt"
+	},
+	"SV" : {
+		"requiredFields" : "* obligatoriska f&auml;lt"
+	},
+	"SV-SE" : {
+		"requiredFields" : "* obligatoriska f&auml;lt"
+	},
+	"TH-TH" : {
+		"requiredFields" : "* &#3595;&#3638;&#3656;&#3591;&#3592;&#3635;&#3648;&#3611;&#3655;&#3609;"
+	},
+	"TR" : {
+		"requiredFields" : "* gerekli alanlar"
+	},
+	"TR-TR" : {
+		"requiredFields" : "* gerekli alanlar"
+	},
+	"UK-UA" : {
+		"requiredFields" : "* &#1054;&#1073;&#1086;&#1074;'&#1103;&#1079;&#1082;&#1086;&#1074;&#1110; &#1087;&#1086;&#1083;&#1103;"
+	},
+	"VI-NM" : {
+		"requiredFields" : "* b&#7855;t bu&#7897;c"
+	},
+	"VI-VM" : {
+		"requiredFields" : "* b&#7855;t bu&#7897;c"
+	},
+	"ZH-CN" : {
+		"requiredFields" : "* &#24517;&#38656;&#23383;&#27573;"
+	},
+	"ZH-SG" : {
+		"requiredFields" : "* &#24517;&#38656;&#23383;&#27573;"
+	},
+	"ZH-HK" : {
+		"requiredFields" : "* &#24517;&#38656;&#23383;&#27573;"
+	},
+	"ZH-TW" : {
+		"requiredFields" : "* &#24517;&#22635;&#27396;&#20301;"
+	}
+};

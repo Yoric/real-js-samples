@@ -1,0 +1,698 @@
+/**
+ * Created by fengjj on 2017/6/21.
+ */
+//var _hmt = _hmt || [];
+//(function() {
+//    var hm = document.createElement("script");
+//    hm.src = "https://hm.baidu.com/hm.js?6bcd52f51e9b3dce32bec4a3997715ac";
+//    var s = document.getElementsByTagName("script")[0];
+//    s.parentNode.insertBefore(hm, s);
+//})();
+//function insertBaiduJS(){
+//    var hm = document.createElement("script");
+//    hm.src = "https://hm.baidu.com/hm.js?6bcd52f51e9b3dce32bec4a3997715ac";
+//    var s = document.getElementsByTagName("script")[0];
+//    s.parentNode.insertBefore(hm, s);
+//}
+(function(window,undefined){
+    //通过url 获取查询关键词
+    var _csdnDataObj = {};
+    var csdnObj = {}
+    var _patternArr = ['search_bc_5']
+    /****
+     * {
+     *  key:[num,flag]
+     * }
+     * key 策略模式
+     * num 间隔条数
+     * flag 前后顺序  true:csdn在前   false:百度在前
+     * **/
+    var _patterns = {
+        //"search_cb_1":[1,true],
+        //"search_cb_2":[2,true],
+        //"search_cb_4":[4,true],
+        //"search_cb_8":[8,true],
+        // "search_bc_1":[1,false],
+        // "search_bc_2":[2,false],
+        // "search_bc_4":[4,false],
+        // "search_bc_8":[8,false]
+        "search_bc_5":[5,false]
+    }
+    var _types = {
+        "codes_snippet":'',
+        "blog":"blog",
+        "discuss":"bbs",
+        "doc":"download",
+        "news":"geek",
+        "ask":"ask",
+        "course":"edu",
+        "gitchat":"gitchat"
+    }
+    csdnObj.configs = {
+        keyWord:'',
+        url:'//so.csdn.net/so/search/s.do?q=',
+        curPage:1,
+        totalPage:1,
+        postUrl:'',
+        curPatternID:csdnObj.getPatternID,
+        curPatetern:'',
+        postBaiduDataUrl:'http://ec.csdn.net/search/push?key=',
+        type:'all',
+        exceptSites:['codes_snippet'],
+        author:''
+    }
+    csdn.cse = null;
+    csdnObj.getCookieByKey = function(key){
+        var cookie = '';
+        var cookieStr = document.cookie || cookie;
+        var cookieObj = {};
+        cookieStr.split(';').forEach(function(value){
+            var arr = value.split('=');
+            cookieObj[$.trim(arr[0])] = $.trim(arr[1]);
+        })
+        return cookieObj[key] || null;
+    }
+    csdnObj.getPatternID = function(){
+        // 生产环境
+        var  uuid = csdnObj.getCookieByKey('uuid_tt_dd'),
+            id =Math.random()*_patternArr.length;
+        if(uuid){
+            id = uuid.slice(12,19).replace(/\b(0+)/gi,"");
+        }else{
+            csdnObj.reportPattern('not_exist');
+        }
+        return parseInt(id)%_patternArr.length;
+
+        //测试
+        //return 3;
+    }
+    csdnObj.setCurPatternID = function(){
+        csdnObj.configs.curPatternID = csdnObj.getPatternID();
+    }
+    csdnObj.getSearchProps = function(){
+        if(window.location.search.split('?')[1]){
+            var searchArr = decodeURIComponent(window.location.search).split('?')[1].split('&');
+            var len = searchArr.length;
+            var searchObj = {}
+            if(len>0){
+                searchArr.forEach(function(searchItem){
+                    searchObj[searchItem.split('=')[0]] = searchItem.split('=')[1]
+                })
+            }
+            csdnObj.configs.keyWord = (searchObj['q'] && (searchObj['q'] != 'null'))?searchObj['q']:'';
+            csdnObj.configs.curPage = (searchObj['p'] && (searchObj['p'] != 'null'))?searchObj['p']:1;
+            csdnObj.configs.type = (searchObj['t'] && (searchObj['t'] != 'null'))?searchObj['t']:"all";
+        }else{
+            return ;
+        }
+    }
+    //数据渲染成功后引入统计系统
+    //function addTracking(){
+    //    var script = document.createElement("script");
+    //    script.type = "text/javascript";
+    //    script.charset = "utf-8";
+    //    document.body.appendChild(script);
+    //}
+    csdnObj.getSearchInfoHandle = function(data){
+        csdnObj.configs.totalPage = data.totalNum;
+    }
+    csdnObj.getBaiduDataFailed = function(flag){
+        if($('.search-list-con').find('.J_search').length > 0){
+            //只有csdn的数据,没有百度的数据
+            csdnObj.reportPattern('search_csdn');
+            csdnObj.setStrategy();
+        }else{
+            //csdn 百度的数据均没有
+            csdnObj.reportPattern('search_0');
+        }
+    }
+    csdnObj.errorHandle = function(err){
+
+        if(!err.status && err.reason !== 'Success!'){
+            csdnObj.getBaiduDataFailed(false);
+        }
+    }
+    // csdnObj.distinct = function(data){
+    //     return  data.filter(function(obj){
+    //         return !_csdnDataObj[obj['linkUrl']];
+    //     })
+    // }
+    /**
+     * 过滤掉不良信息
+     * 举报原因和举报内容是博客中展示的信息
+     * 举报人是下载中举报的信息
+     * @param data
+     */
+    csdnObj.filterBadInfo=function (data) {
+        return (data.abstract.indexOf("举报原因")<0||data.abstract.indexOf("举报内容")<0) && (data.abstract.indexOf("举报人")<0);
+    }
+    //处理结果回调函数示例
+    csdnObj.display = function(data,domain){
+        // 生产环境代码
+        csdn.cse.getSearchInfo(csdnObj.configs.keyWord,csdnObj.getSearchInfoHandle)
+        csdn.cse.getError(csdnObj.errorHandle);
+        if(data && data.length>0){
+            csdnObj.setCsdnDataObj();
+            var _baiduDataArray = csdnObj.distinct(data);
+            _baiduDataArray=_baiduDataArray.filter(csdnObj.filterBadInfo);
+            if(_baiduDataArray.length>0){
+                csdnObj.patternHandle(_baiduDataArray);
+            }else{
+                csdnObj.reportPattern('search_csdn')
+            }
+        }else{
+            if($('.search-list-con').find('.J_search').length>0){
+                csdnObj.reportPattern('search_csdn')
+            }else{
+                $("#nodata").show();
+                // $('.baidu_img').hide()
+                csdnObj.reportPattern('search_0');
+            }
+        }
+        //为搜索结果list 增加策略
+        csdnObj.setStrategy();
+        //学院栏目 和 vip用户不显示广告
+        if(domain!='edu'){
+            // postVipInfo(getCookie('UserName'))
+            resultListAdInsert();
+        }
+    }
+    csdnObj.loadBaiduData = function(cse){
+        if(csdnObj.configs.type !== 'all'){
+            csdn.cse.setSearchRange(2,[_types[csdnObj.configs.type]+'.csdn.net'])
+        }
+        if(csdnObj.configs.author){
+            csdn.cse.setSearchRange(3,[csdnObj.configs.author]);
+        }
+        cse.getResult(csdnObj.configs.keyWord,csdnObj.display,csdnObj.configs.curPage);
+        //模拟
+        //csdnObj.display();
+    }
+    csdnObj.loadScript = function(){
+        var script = document.createElement("script");
+        script.type = "text/javascript";
+        script.charset = "utf-8";
+        script.src = "http://zhannei.baidu.com/api/customsearch/apiaccept?sid=10742016945123576423&v=2.0&callback=loadBaiduData";
+        script.onerror = function(){
+            csdnObj.getBaiduDataFailed(true);
+        }
+        var s = document.getElementsByTagName('script')[0];
+        s.parentNode.insertBefore(script, s);
+    }
+    //_csdnDataObj key = url value = boolean  为了去重所用
+    csdnObj.setCsdnDataObj = function(){
+        $('.J_search').each(function(){
+            var url = $(this).find('dt').find('a').eq(0).attr('href')
+            _csdnDataObj[url] = true;
+        })
+    }
+    //修改每个a标签上的strategy
+    csdnObj.setStrategy = function(){
+        $('.search-list-con .J_search').each(function(index){
+            $(this).find('a').attr('strategy',csdnObj.configs.curPatetern+'_'+index)
+        })
+    }
+    //提交当前用的什么模式
+    csdnObj.reportPattern = function(patternStr){
+        /*        csdnObj.configs.curPatetern = patternStr;
+                var img = new Image();
+                img.src = 'http://csdnimg.cn/Judiciary.png?'+patternStr;
+                img.onload = img.onerror = function(){
+                    img.onload = img.onerror = null;
+                    img = null;
+                }*/
+    }
+    //去重
+    csdnObj.distinct = function(data){
+        return  data.filter(function(obj){
+            return !_csdnDataObj[obj['linkUrl']];
+        })
+    }
+    //不同模式展示处理  增加百度数据
+    csdnObj.patternHandle = function(data){
+        //console.log('pattern id',csdnObj.configs.curPatternID,_patterns[_patternArr[csdnObj.configs.curPatternID]])
+        var $csdnDl = $('.search-list-con').find('.J_search'),
+            num = _patterns[_patternArr[csdnObj.configs.curPatternID]][0],
+            order = _patterns[_patternArr[csdnObj.configs.curPatternID]][1],
+            count = 0,
+            $frag = $('<div></div>'),
+            csdnLen = $csdnDl.size(),
+            baiduLen = data.length,
+            insertIndex = 0;
+        if(csdnLen<=0){
+            $("#nodata").show();
+            $('.relation-search').hide()
+            $('.baidu_img').hide()
+        }
+        //csdn的数据为空时 将百度的数据直接插入
+        // if(csdnLen == 0){
+        //     //上报此时只有百度的数据
+        //     csdnObj.reportPattern('search_baidu')
+        //     data.forEach(function(obj,index){
+        //         console.log('只有百度数据的obj输出====',obj)
+        //         var $dl = $('<dl class="search-list J_search"></dl>'),
+        //             $dt = $('<dt></dt>'),
+        //             $a = $('<a></a>');
+        //         $a.attr('href',obj['linkUrl']).attr('target','_blank').html(obj['title']);
+        //         $dt.append($a);
+        //         $dl.append($dt);
+        //         var $dd_abstract = $('<dd class="search-detail"></dd>').html(obj['abstract']);
+        //         $dl.append($dd_abstract);
+        //         var $dd_dispUrl = $('<dd class="search-link"></dd>'),
+        //             $a_dispUrl = $('<a></a>').attr('href',obj['linkUrl']).attr('target','_blank').html(obj['linkUrl']);
+        //         $dd_dispUrl.append($a_dispUrl);
+        //         $dl.append($dd_dispUrl);
+        //         $frag.append($dl);
+        //     })
+        //     $('.search-list-con').append($frag.children());
+        //
+        //     return false;
+        // }
+
+        //两方数据皆有 上报
+        csdnObj.reportPattern(_patternArr[csdnObj.configs.curPatternID])
+        //csdn baidu 数据穿插
+        data.forEach(function(obj,index){
+            // console.log('百度csdn两方数据的obj输出====',obj)
+            if(obj.dispUrl){
+                if(obj.dispUrl.indexOf('gitchat')>-1){
+                    obj.flagIcon = 'flag_icon5'
+                    obj.tip = '图文课'
+                } else if(obj.dispUrl.indexOf('blog')>-1){
+                    obj.flagIcon = 'flag_icon1'
+                    obj.tip = '博客'
+                }else if(obj.dispUrl.indexOf('download')>-1){
+                    obj.flagIcon = 'flag_icon6'
+                    obj.tip = '下载'
+                }else if(obj.dispUrl.indexOf('bbs')>-1 || obj.dispUrl.indexOf('forum')>-1 ){
+                    obj.flagIcon = 'flag_icon2'
+                    obj.tip = '论坛'
+                }else if(obj.dispUrl.indexOf('edu')>-1){
+                    obj.flagIcon = 'flag_icon3'
+                    obj.tip = '学院'
+                }else if(obj.dispUrl.indexOf('ask')>-1){
+                    obj.flagIcon = 'flag_icon4'
+                    obj.tip = '问答'
+                }else{
+                    obj.flagIcon = ''
+                    obj.tip = ''
+                }
+            }
+            var $dl = $('<dl class="search-list J_search"></dl>'),
+                $dt = $('<dt></dt>'),
+                $limit = $('<div class="limit_width"></div>'),
+                $a = $('<a></a>'),
+                $span = $('<span class="flag_icon"></span>');
+            $span.addClass(obj['flagIcon']).html(obj['tip']);
+            var ary = ['CSDN学院','CSDN博客','CSDN下载','CSDN论坛','CSDN问答频道','CSDN图文课']
+            // obj['title'] = 'fdfdsfCSDN博客89-jskCSDN博客kkl'
+            if(obj['title']) {
+                ary.map(function(item,index){
+                    if(obj['title'].indexOf(item)){
+                        if(obj['title'].indexOf(item) !== obj['title'].lastIndexOf(item)){
+                            // 有重复数据
+                            var dex = obj['title'].lastIndexOf(item)
+                            obj['title'] = obj['title'].substring(0,dex)
+                        }
+                    }
+                    return item
+                })
+            }
+            $a.attr('href',obj['linkUrl']).attr('target','_blank').html(obj['title']);
+            var objs={
+                "mod":"popu_271",
+                "con":obj['linkUrl']
+            }
+            var jsonData = JSON.stringify(objs);
+            $dl.attr('data-track-view',jsonData)
+            $dl.attr('data-track-click',jsonData)
+            $limit.append($a);
+            $dt.append($limit);
+            $dt.append($span);
+            $dl.append($dt);
+            var $dd_abstract = $('<dd class="search-detail"></dd>').html(obj['abstract']);
+            $dl.append($dd_abstract);
+            var $dd_dispUrl = $('<dd class="search-link"></dd>'),
+                $a_dispUrl = $('<a></a>').attr('href',obj['linkUrl']).attr('target','_blank').html(obj['linkUrl']);
+            $dd_dispUrl.append($a_dispUrl);
+            $dl.append($dd_dispUrl);
+            $frag.append($dl);
+            count++;
+            if(csdnLen === baiduLen){ //去重以后csdn的搜索结果和 百度搜索结果条数相同
+                if(!order){
+                    if(count == num){
+                        insertIndex = (index+1)-num;
+                        $frag.children().insertBefore($csdnDl.eq(insertIndex));
+                        count = 0;
+                    }else if((index+1) == baiduLen){
+                        insertIndex = baiduLen - (index+1)%num;
+                        $frag.children().insertBefore($csdnDl.eq(insertIndex));
+                    }
+                }else{
+                    if(count == num){
+                        insertIndex = index;
+                        $frag.children().insertAfter($csdnDl.eq(insertIndex));
+                        count = 0;
+                    }else if((index+1) == baiduLen){
+                        insertIndex = csdnLen-1;
+                        $frag.children().insertAfter($csdnDl.eq(insertIndex));
+                    }
+                }
+            }else if(csdnLen < baiduLen){ //去重以后csdn的搜索结果 小于 百度搜索结果条数相同
+                if(!order){// 百度在前
+                    if(count == num){
+                        if( (index-num) > csdnLen){
+                            $csdnDl.eq(0).parent().append($frag.children())
+                        }else{
+                            insertIndex = (index+1)-num;
+                            $frag.children().insertBefore($csdnDl.eq(insertIndex));
+                            count = 0;
+                        }
+                    }else if((index+1) >= baiduLen){
+                        //insertIndex = csdnLen - 1;
+                        $csdnDl.eq(0).parent().append($frag.children())
+                        //$frag.children().insertBefore($csdnDl.eq(insertIndex));
+                    }
+                }else{ //csdn在前
+                    if(count == num){
+                        if((index+1)>=csdnLen){
+                            insertIndex = csdnLen - 1;
+                        }else {
+                            insertIndex = index;
+                        }
+                        $frag.children().insertAfter($csdnDl.eq(insertIndex));
+                        count = 0;
+                    }else if((index+1) >= csdnLen){
+                        insertIndex = csdnLen-1;
+                        $frag.children().insertAfter($csdnDl.eq(insertIndex));
+                    }
+                }
+            }else { //去重以后csdn的搜索结果 大于 百度搜索结果条数相同
+                if(!order){
+                    if(count == num){
+                        insertIndex = (index+1)-num;
+                        $frag.children().insertBefore($csdnDl.eq(insertIndex));
+                        count = 0;
+                    }else if((index+1) == baiduLen){
+                        insertIndex =(index+1)-count;
+                        $frag.children().insertBefore($csdnDl.eq(insertIndex));
+                    }
+                }else{
+                    if(count == num){
+                        insertIndex = index;
+                        $frag.children().insertAfter($csdnDl.eq(insertIndex));
+                        count = 0;
+                    }else if((index+1) == baiduLen){
+                        insertIndex = index+num-count;
+                        $frag.children().insertAfter($csdnDl.eq(insertIndex));
+                    }
+                }
+            }
+
+
+        })
+    }
+    csdnObj.postBaiduData = function(data){
+        $.ajax({
+            type: "POST",
+            dataType:'text',
+            url: csdnObj.configs.postBaiduDataUrl+csdnObj.configs.keyWord+'&type=so',
+            data:JSON.stringify(data),
+            success: function(msg){
+                //console.log('success')
+                //csdnObj.reportPattern('success');
+            },
+            error:function(err){
+                //console.log(err)
+                //csdnObj.reportPattern('error');
+            }
+        });
+    }
+    csdnObj._types=_types;
+    window.loadBaiduData = csdnObj.loadBaiduData;
+    csdnObj.init = function(opts){
+        csdnObj.getSearchProps();
+        //referrer 为blog站点时在url中解析author
+
+        if(document.getElementById('user_get')){
+            csdnObj.configs.author = document.getElementById('user_get').value;
+        }
+        if(csdnObj.configs.exceptSites.indexOf(csdnObj.configs.type)>-1){
+            return false;
+        }
+        // csdnObj.loadScript();
+        csdnObj.setCurPatternID();
+    }
+    window.csdnObj = window.csdnObj || {};
+    window.csdnObj.init = csdnObj.init;
+    window.csdnObj.init();
+    window.csdnObj=csdnObj;
+    insertBlog();
+    updateCompanyFocusStatus();
+})(window)
+
+
+if (window.csdn === undefined) {
+    window.csdn = {};
+}
+//重新定义百度Cas对象初始化操作
+csdn.afterCasInit=function (keyword,cse) {
+    var domain="";
+    if(csdnObj.configs.type !== 'all'){
+        domain=csdnObj._types[csdnObj.configs.type];
+    }
+    if(csdnObj.configs.author){
+        domain="/"+csdnObj.configs.author;
+    }
+    if(blogUn=="" && (isContainBaidu=="" || isContainBaidu=="0") ){
+        //获取百度站内搜索结果
+        csdn.baiduSearch(keyword,function(data){
+            csdnObj.display(data,domain);
+        },domain,csdnObj.configs.curPage)
+    }else{
+        resultListAdInsert();
+    }
+}
+
+//重新定义百度Cas对象初始化操作
+csdn.baiduSearchInstallError=function () {
+    resultListAdInsert();
+}
+
+
+function resultListAdInsert(){
+    //console.log('csdnObj.configs.keyWord====',csdnObj.configs.keyWord)
+
+    //非vip 添加广告
+
+    if(isVip!="1" || isVip=="0"){
+        var url="/search/so/vipUserNameInfo.do";
+        var username=getCookie("UserName");
+        var $list=$(".J_search");
+        // var startIndex=2;
+        // var step=5;
+        // var adArray=[];
+        // $list.each(function(i){
+        //     if(i==startIndex||(i-startIndex)%step==0){
+        //         var id="_yd_ad_"+(adArray.length+1);
+        //         var adTpl='<dl class="search-list yd_a_d_so" id="'+id+'"></dl>';
+        //         $(this).after(adTpl);
+        //         // 当前元素的后面插入一个广告
+        //         adArray.push(id);
+        //         //有道的代码是后插入的 所以找不到这个class的box进不去 得去插入的地方执行这段代码
+        //     }
+        // });
+        // kunpeng 流量分发广告
+        //没有数据
+        if($list.length==0){
+            // $("#nodata").after('<div class=\'search-list-con\'><dl class=\'search-list J_search\'></dl></div>');
+            var id ="_yd_ad_1";
+            var adTpl='<dl class="search-list yd_a_d_so" id="'+id+'"></dl>';
+            $("#nodata").after(adTpl);
+            adArray.push(id)
+        }
+        // $("#ydajs").attr("data-insert-nodes",adArray.join(","));
+        // $("#ydajs").attr("src","//shared.ydstatic.com/js/yatdk/3.0.0/stream.js");
+        //console.log('charuLE ====',$("#ydajs").attr('src'))
+        var lists = $('.search-list');
+        var dataList = Array.prototype.slice.call(lists);
+        dataList.length&&dataList.map(function(item){
+            if($(item).find('iframe').length ==0 && $(item).is('.yd_a_d_so')){
+                // 是广告box 但不包含广告代码
+                // console.log('是广告box 但不包含广告代码===')
+                $(item).css('border-bottom','none')
+            }
+            return item
+        })
+
+    }
+}
+
+/*
+ *更新企业博客关注状态
+ */
+function updateCompanyFocusStatus() {
+    var isFollowed = "关注";
+    var username=$(".companyIsFollow").attr("_un")&&$(".companyIsFollow").attr("_un").toLowerCase()
+    if(loginname!=null){
+        $.ajax({
+            url: 'https://my.csdn.net/index.php/follow/check_is_followed_m/'+loginname+'/'+username,
+            dataType: "jsonp",
+            data: "_=1544771299113",
+            jsonp: "jsonpcallback",
+            success:function (data) {
+                if("1"==data[username]){
+                    isFollowed="已关注";
+                    $(".companyIsFollow").addClass("btn-gray-hollow").removeClass("btn-red-hollow");
+                }else{
+                    $(".companyIsFollow").addClass("btn-red-hollow").removeClass("btn-gray-hollow");
+                    isFollowed="关注"
+                }
+                $(".companyIsFollow").text(isFollowed)
+            }
+        });
+    }
+}
+//添加博主到页面
+function insertBlog() {
+    if(userObj==""){
+        return false;
+    }
+    //console.log(userObj);
+    // var url="https://blog.csdn.net/"+userName;
+    var username = userObj["username"];
+    var nickname = userObj["nickname"];
+    var url="https://me.csdn.net/"+username;
+    var pic = userObj["picAdress"];
+    var desc = userObj["abstract1"];
+    var originalcount = userObj["originalcount"];
+    var translatedcount = userObj["translatedcount"];
+    var originalNum=0;
+    var translateNum=0;
+    if(originalcount!=null){
+        originalNum= parseInt(originalcount);
+    }
+    if(translatedcount!=null){
+        translateNum=parseInt(translatedcount);
+    }
+    var blogNum = originalNum+translateNum;
+    var topiccount = userObj["topiccount"];
+    var topicNum =0
+    if(topiccount!=null){
+        topicNum= parseInt(topiccount);
+    }
+    var isexpert = userObj["isexpert"];
+    var isCourseLecturer = userObj["isCourseLecturer"];
+    username=username&&username.toLowerCase();
+    var isFollowed = "关注";
+    if(loginname!=null){
+        //https://my.csdn.net/index.php/follow/check_is_followed_m/cpongo4/ysqu,duanzi_peng,Sandy945,bzszp?jsonpcallback=jQuery111106344348416643617_1544771299112&_=1544771299113
+        $.ajax({
+            url: 'https://my.csdn.net/index.php/follow/check_is_followed_m/'+loginname+'/'+username,
+            dataType: "jsonp",
+            data: "_=1544771299113",
+            jsonp: "jsonpcallback",
+            // jsonpCallback: 'jQuery111106344348416643617_1544771299112'
+            success:function (data) {
+                //  console.log("data:"+data);
+                if("1"==data[username] || "101"==data[username]){
+                    isFollowed="已关注";
+                }else{
+                    isFollowed="关注"
+                }
+                addBlogHtml(isexpert,isCourseLecturer,url,pic,nickname,username,blogNum,topicNum,isFollowed,desc);
+            }
+        });
+    }else{
+        addBlogHtml(isexpert,isCourseLecturer,url,pic,nickname,username,blogNum,topicNum,isFollowed,desc);
+    }
+
+}
+function addBlogHtml(isexpert,isCourseLecturer,url,pic,nickname,username,blogNum,topicNum,isFollowed,desc){
+    if(desc.length>48){
+        desc=desc.substr(0,48)+"...";
+    }
+    var focus="btn-gray-hollow"
+    if("关注"==isFollowed.trim()){
+        focus="btn-red-hollow"
+    }
+    var isExpertStr="";
+    if("true"==isexpert){
+        isExpertStr="<span style=\"border: 1px solid #F7737A;text-align: center;margin-right: 5px;width:63px;height:24px;display:block;float:left;color:#8D080F;font-size: 12px;\">\n" +
+            "                            博客专家\n" +
+            "                        </span>";
+    }
+    var isCourseLecturerStr="";
+    if(isCourseLecturer!="" && isCourseLecturer!=null && isCourseLecturer!=undefined){
+        isCourseLecturerStr="<span style=\"border: 1px solid #F7737A;text-align: center;margin-right: 5px;width:63px;height:24px;display:block;float:left;color:#8D080F;font-size: 12px;\">\n" +
+            "                            学院讲师\n" +
+            "                        </span>"
+    }
+    var isUser = ''
+    if(!(("true"==isexpert) || (isCourseLecturer!="" && isCourseLecturer!=null && isCourseLecturer!=undefined))){
+        isUser="<span style=\"border: 1px solid #E0E0E0;text-align: center;width:40px;height:24px;display:block;color:#6B6B6B;;font-size: 12px;\">\n" +
+            "                            用户\n" +
+            "                        </span>"
+    }
+    var dataClick={"mod":"popu_739","con":""+url+""};
+    var dataClickObj = JSON.stringify(dataClick);
+    var dataClick1={"mod":"popu_754","con":""+url+""};
+    var dataClickObj1 = JSON.stringify(dataClick1);
+    var htmlStr=
+        "            <dl id=\"\" class=\"search-list J_search person-list\" data-track-click="+dataClickObj+" data-track-view="+dataClickObj+" >\n" +
+        "                <dd class=\"person_pic\">\n" +
+        "                    <a href=\""+url+"\" style=\"width:75px;height:75px\" target=\"_blank\"><img\n" +
+        "                            src=\""+pic+"\" style='width:80px;height:80px;border-radius: 2px;'></a>\n" +
+        "                </dd>\n" +
+        "                <dd class=\"singup_detail\">\n" +
+        "                    <a href=\""+url+"\" target=\"_blank\" style='font-size:18px;color:#CA0C16;display:block;float:left;margin-top:7px;'>"+nickname+"</a>\n" +
+        "                    <a href=\"javascript:;\" style='width:56px;height:24px;' class=\"btn-focus btn-focus-sm "+focus+"\" target=\"_blank\"  _un=\""+username+"\" data-track-click="+dataClickObj1+" data-track-view="+dataClickObj1+" >"+isFollowed+" </a>\n" +
+        "                    <span class=\"tag-info\" style=\"float:right;\">\n" +
+        isExpertStr+
+        isCourseLecturerStr+
+        isUser+
+        "                    </span>\n" +
+        "\n" +
+        "                </dd>\n" +
+        "               <dd style='font-size:14px;color:#999999;margin-bottom:8px;'>"+desc+"</dd>"+
+        "                <dd class=\"singup_boke\" style='color:#4D4D4D;font-size:14px;'>发表博客:"+blogNum+" &nbsp;&nbsp;&nbsp;&nbsp; 发表帖子:"+topicNum+"</dd>\n" +
+        "            </dl>" ;
+    if($(".J_search").length>=5){
+        $($(".J_search")[4]).after(htmlStr);
+    }else if($(".J_search").length>1 && $(".J_search").length<5){
+        $($(".J_search")[$(".J_search").length-1]).after(htmlStr);
+    }else{
+        $(".search-list-con").after(htmlStr);
+        $("#nodata").hide()
+    }
+}
+// function jQuery111106344348416643617_1544771299112(data) {
+//     console.log(data);
+// }
+$(document).on("click",".btn-focus",function () {
+    var that=this
+    var focus = $(".btn-focus").text();
+    if("已关注"==focus.trim()){
+        return false;
+    }
+    var username = $(that).attr("_un");
+    var data={};
+    data["username"]=username&&username.toLowerCase()
+    $.ajax({
+        type: "POST",
+        // url: CFG.API_URL+"search/toFocus.do",
+        url:"https://my.csdn.net/index.php/follow/do_follow",
+        data: data,
+        // dataType: "json",
+        xhrFields:{withCredentials:true},
+        success:function (data) {
+            var parse = JSON.parse(data);
+            if(parse.succ==1 || parse.succ==101){
+                $(that).text("已关注");
+                $(that).addClass("btn-gray-hollow").removeClass("btn-red-hollow");
+            }else{
+                location.href="https://passport.csdn.net/account/login";
+            }
+        }
+    });
+})

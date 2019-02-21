@@ -1,0 +1,29 @@
+adv.AdBase.extend('Ad17173YeyouRankRecom', {
+  init: function (options) {
+    this.base(options);
+    this.emit(adv.ENUM.EVENTS.inited);
+  },
+  setup: function (data) {
+    this.data = data;
+    var advEl = this.advEl = $('.' + this.options.advid);
+    this.emit(adv.ENUM.EVENTS.setuped);
+  },
+  template: function () {/*@preserve
+    <li class="item top">
+      <div class="c1" style="margin-top:2px;background:none;"><img src="//ue.17173cdn.com/a/www/index/2016v2/img/ico-tg-hot.gif" alt=""></div>
+      <div class="c2 con">
+        <div class="con-c2">
+          <p class="tit"><a href="@link" target="_blank">@gameName<span style="position: absolute;top:2px;min-width:1.3em;height:16px;margin: 0 0 2px 6px;padding:0 3px;color:#ff5c00;line-height:16px;text-align:center;border:1px solid #ff5c00;border-radius:2px;background:#fff;vertical-align:middle;text-decoration:none;cursor:pointer;"><i style="position:absolute;top:1px;left:-5px;overflow:hidden;width:5px;height:14px;background:url(//ue.17173cdn.com/a/www/index/2016v2/img/tg-2.png) no-repeat 0 50%"></i>@desc</span></a></p>
+        </div>
+      </div>
+      <a href="@link" target="_blank" class="c-orange" style="clear:both;position:absolute;top:0;right:6px;">试玩</a>
+   </li>
+  */},
+  play: function () {
+    var advEl = $('#' + this.options.advid).find('ul');
+    var html = adv.razor(this.template,this.data)
+    advEl.find('li:last').remove()
+    advEl.prepend(html)
+    this.emit(adv.ENUM.EVENTS.played);
+  }
+});

@@ -1,0 +1,427 @@
+/**
+* @(#)naver.tlist.layer.CreateList.js 
+*@since 2014. 7. 28.
+*
+* Copyright NAVER Corp. All rights Reserved.
+* NAVER PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
+*/
+
+/**
+* @author tod2
+* @since 2014. 7. 28.
+* @description
+* 
+* 지식리스트 생성 레이어 및 기능
+*/
+
+window.naver.tlist.layer = window.naver.tlist.layer || {};
+
+window.naver.tlist.layer.CreateList = tljindo.$Class({
+	init : function(option) {
+		this.option(option);
+		this._initVar(this.option);
+		this._setTemplate();
+		this._setWrapperElement();
+		this._makeLayer();		
+		this._setWrapperLayerElement();
+		this._setAPIUrl();
+		this._attachEvent();
+	},
+	// 인스턴스 변수 초기화
+	_initVar : function(el) {
+		this._htWElement = {};
+		this._htEvent = {};
+		this._htAPIUrl = {};
+		this._oTemplate = {};
+		this._sServiceCode = "";
+		this._sContentsId = "";
+		this._sIsPublic = "Y";
+		this._sJoinType = "RESTRICT";
+	},
+	// 템플릿 매핑
+	_setTemplate : function() {
+		this._oTemplate["create"] = new tljindo.$Template(naver.tlist.TEMPLATE_CREATE_LIST);	// 리스트 만들기
+	},
+	// 기본 객체 매핑
+	_setWrapperElement : function() {
+		this._htWElement["base"] = tljindo.$Element(this.option("layerBaseId"));
+	},
+	// 생성 UI에 사용되는 Layer 생성
+	_makeLayer : function() {
+		this._htWElement["base"].appendHTML(this._oTemplate["create"].process({layerBaseId : this.option("layerBaseId"), layerListCreateId : this.option("layerListCreateId")}));
+	},
+	// 레이어 관련 객체 매핑
+	_setWrapperLayerElement : function() {
+		this._htWElement["listCreateLayer"] = tljindo.$Element(this.option("layerListCreateId"));	// 리스트 생성 레이어
+
+		this._htWElement["listCreateCloseBtn"] = this._htWElement["listCreateLayer"].query(".__BTN_CANCEL");	// 닫기 버튼
+		this._htWElement["listCreateSaveBtn"] = this._htWElement["listCreateLayer"].query(".__BTN_CONFIRM");	// 저장 버튼
+		
+		this._htWElement["listCreateTitle"] = this._htWElement["listCreateLayer"].query(".__TITLE");	// 리스트 생성 시 제목 입력 박스
+		this._htWElement["listCreateTitleLabel"] = this._htWElement["listCreateLayer"].query(".__TITLE_LABEL");	// 리스트 생성 시 제목 label
+		this._htWElement["listCreateTitleCnt"] = this._htWElement["listCreateLayer"].query(".__TITLE_CNT");	// 리스트 생성 시 제목 글자수 노출 영역 
+		this._htWElement["listCreateTitleALERT"] = this._htWElement["listCreateLayer"].query(".__TITLE_ALERT");	// 리스트 생성 시 제목 글자수 노출 영역
+		
+		this._htWElement["listCreateDesc"] = this._htWElement["listCreateLayer"].query(".__DESC");	// 리스트 생성 시 설명 입력 박스
+		this._htWElement["listCreateDescLable"] = this._htWElement["listCreateLayer"].query(".__DESC_LABEL");	// 리스트 생성 시 설명 label
+		this._htWElement["listCreateDescCnt"] = this._htWElement["listCreateLayer"].query(".__DESC_CNT");	// 리스트 생성 시 설명 글자수 노출 영역
+		this._htWElement["listCreateDescALERT"] = this._htWElement["listCreateLayer"].query(".__DESC_ALERT");	// 리스트 생성 시 설명 글자수 노출 영역
+		
+		this._htWElement["listCreateOpenCheckBtn"] = this._htWElement["listCreateLayer"].query(".__OPEN_CHECK");	// 공개 설정 버튼
+		this._htWElement["listCreateOpenCheckUL"] = this._htWElement["listCreateLayer"].query(".__OPEN_CHECK_UL");	// 공개 설정 버튼
+		this._htWElement["listCreateCloseCheckBtn"] = this._htWElement["listCreateLayer"].query(".__CLOSE_CHECK");	// 비공개 설정 버튼
+		this._htWElement["listCreateAllCheckBtn"] = this._htWElement["listCreateLayer"].query(".__ALL_CHECK");	// 모두 참여  버튼
+		this._htWElement["listCreateRestrictCheckBtn"] = this._htWElement["listCreateLayer"].query(".__RESTRICT_CHECK");	// 제한 참여  버튼
+		this._htWElement["listCreatePrivateCheckBtn"] = this._htWElement["listCreateLayer"].query(".__PRIVATE_CHECK");	// 참여 미허용  버튼
+		
+	},
+	// API Url 설정
+	_setAPIUrl : function() {
+		this._htAPIUrl["domain"] = this.option("domain");
+		this._htAPIUrl["create"] = this.option("apiUrl")["create"];
+	},
+	// 기본 이벤트 binding
+	_attachEvent : function() {
+		if (this._htWElement["listCreateCloseBtn"]) {
+			this._htEvent["listCreateCloseBtn_click"] = {
+				fn : this._htWElement["listCreateCloseBtn"].attach("click", tljindo.$Fn(function(oEvent) {oEvent.stop(tljindo.$Event.CANCEL_DEFAULT);this.fireEvent("cancel", {oEvent : oEvent});}, this).bind()),
+				el : this._htWElement["listCreateCloseBtn"].$value()
+			};
+		}
+		
+		if (this._htWElement["listCreateSaveBtn"]) {
+			this._htEvent["listCreateSaveBtn_click"] = {
+				fn : this._htWElement["listCreateSaveBtn"].attach("click", tljindo.$Fn(function(oEvent) {oEvent.stop(tljindo.$Event.CANCEL_DEFAULT);this._createList(oEvent);}, this).bind()),
+				el : this._htWElement["listCreateSaveBtn"].$value()
+			};
+		}
+		
+		// 실제 글자수 카운트 시는 keyup 타이밍에 진행
+		if (this._htWElement["listCreateTitle"]) {
+			this._htEvent["listCreateTitle_keyup"] = {
+				fn : this._htWElement["listCreateTitle"].attach("keyup", tljindo.$Fn(function(oEvent) {if (this._htWElement["listCreateTitle"].attr("value").length == 0) {this._htWElement["listCreateTitleLabel"].show();}this._countListCreateTitle(oEvent)}, this).bind()),
+				el : this._htWElement["listCreateTitle"].$value()
+			};
+			this._htEvent["listCreateTitle_keypress"] = {
+					fn : this._htWElement["listCreateTitle"].attach("keydown", tljindo.$Fn(function(oEvent) {if (this._checkKeyCode(oEvent)) {this._htWElement["listCreateTitleLabel"].hide();}}, this).bind()),
+					el : this._htWElement["listCreateTitle"].$value()
+			};
+			this._htEvent["listCreateTitle_focusout"] = {
+				fn : this._htWElement["listCreateTitle"].attach("focusout", tljindo.$Fn(function(oEvent) {if (this._htWElement["listCreateTitle"].attr("value").length == 0) {this._htWElement["listCreateTitleLabel"].show();}}, this).bind()),
+				el : this._htWElement["listCreateTitle"].$value()
+			};
+		}
+		
+		if (this._htWElement["listCreateDesc"]) {
+			this._htEvent["listCreateDesc_keyup"] = {
+				fn : this._htWElement["listCreateDesc"].attach("keyup", tljindo.$Fn(function(oEvent) {if (this._htWElement["listCreateDesc"].attr("value").length == 0) {this._htWElement["listCreateDescLable"].show();}this._countListCreateDesc(oEvent)}, this).bind()),
+				el : this._htWElement["listCreateDesc"].$value()
+			};
+			
+			this._htEvent["listCreateDesc_keydown"] = {
+					fn : this._htWElement["listCreateDesc"].attach("keydown", tljindo.$Fn(function(oEvent) {if (this._checkKeyCode(oEvent)) { this._htWElement["listCreateDescLable"].hide();}}, this).bind()),
+					el : this._htWElement["listCreateDesc"].$value()
+			};
+			
+			this._htEvent["listCreateDesc_focusout"] = {
+				fn : this._htWElement["listCreateDesc"].attach("focusout", tljindo.$Fn(function(oEvent) { if (this._htWElement["listCreateDesc"].attr("value").length == 0) {this._htWElement["listCreateDescLable"].show();}}, this).bind()),
+				el : this._htWElement["listCreateDesc"].$value()
+			};
+		}
+		
+		if (this._htWElement["listCreateOpenCheckBtn"]) {
+			this._htEvent["listCreateOpenCheck_click"] = {
+				fn : this._htWElement["listCreateOpenCheckBtn"].attach("click", tljindo.$Fn(function(oEvent) {this._publicCheck("Y")}, this).bind()),
+				el : this._htWElement["listCreateOpenCheckBtn"].$value()
+			};
+		}
+		
+		if (this._htWElement["listCreateCloseCheckBtn"]) {
+			this._htEvent["listCreateCloseCheck_click"] = {
+				fn : this._htWElement["listCreateCloseCheckBtn"].attach("click", tljindo.$Fn(function(oEvent) {
+					oEvent.stop(tljindo.$Event.CANCEL_DEFAULT);
+					if (confirm("비공개 시 공동 참여 기능을 사용할 수 없습니다.")) {
+						this._publicCheck("N");
+					}
+				}, this).bind()),
+				el : this._htWElement["listCreateCloseCheckBtn"].$value()
+			};
+		}
+		
+		if (this._htWElement["listCreateAllCheckBtn"]) {
+			this._htEvent["listCreateALLCheck_click"] = {
+				fn : this._htWElement["listCreateAllCheckBtn"].attach("click", tljindo.$Fn(function(oEvent) {this._joinCheck("ALL")}, this).bind()),
+				el : this._htWElement["listCreateAllCheckBtn"].$value()
+			};
+		}
+		
+		if (this._htWElement["listCreateRestrictCheckBtn"]) {
+			this._htEvent["listCreateRESTRICTCheck_click"] = {
+				fn : this._htWElement["listCreateRestrictCheckBtn"].attach("click", tljindo.$Fn(function(oEvent) {this._joinCheck("RESTRICT")}, this).bind()),
+				el : this._htWElement["listCreateRestrictCheckBtn"].$value()
+			};
+		}
+		
+		if (this._htWElement["listCreatePrivateCheckBtn"]) {
+			this._htEvent["listCreateREJECTCheck_click"] = {
+				fn : this._htWElement["listCreatePrivateCheckBtn"].attach("click", tljindo.$Fn(function(oEvent) {this._joinCheck("PRIVATE")}, this).bind()),
+				el : this._htWElement["listCreatePrivateCheckBtn"].$value()
+			};
+		}
+		
+	},
+	// 쓰기부분 실제 입력하는 key 여부 확인
+	_checkKeyCode : function(oEvent) {
+		var key = oEvent.key().keyCode;
+		if (key == 0) {
+			return true;
+		}
+		var KC_ENTER = 13;
+		var KC_BACKSPACE = 8;
+		var KC_TAB = 9;
+		var KC_ENG_KOR = 21;
+		var KC_SPACE = 32;
+		var KC_PAGEUP = 33;
+		var KC_PAGEDN = 34;
+		var KC_END = 35;
+		var KC_HOME = 36;
+		var KC_LARROW = 37;
+		var KC_UARROW = 38;
+		var KC_RARROW = 39;
+		var KC_DARROW = 40;
+		var KC_INSERT = 45;
+		var KC_DELETE = 46;
+		var KC_MINUS = 189;
+		var KC_NUM_0 = 48;
+		var KC_NUM_9 = 57;
+		var KC_ALPHA_A = 65;
+		var KC_ALPHA_V = 86;
+		var KC_ALPHA_Z = 90;
+		var KC_WINDOW = 91;
+		var KC_F1 = 112;
+		var KC_F12 = 123;
+		if (key == 224 || oEvent.key().meta || key == KC_BACKSPACE || (key > KC_SPACE && key <= KC_DARROW) || (key != KC_ENG_KOR && key < KC_SPACE) || oEvent.key().alt || (oEvent.key().ctrl && key != KC_ALPHA_V) || key == KC_WINDOW || (KC_F1 <= key && key <= KC_F12)) {
+			return false;
+		}
+		return true;
+	},
+	// 공개 여부 클릭 
+	_publicCheck: function(isPublic) {
+		this._removeOnClass(true);
+		
+		if (isPublic == "Y") {
+			if (this._htWElement["listCreateOpenCheckBtn"]) {
+				this._htWElement["listCreateOpenCheckBtn"].addClass("on");
+			}
+			if (this._htWElement["listCreateOpenCheckUL"]) {
+				this._htWElement["listCreateOpenCheckUL"].show();
+			}
+		} else {
+			this._joinCheck("RESTRICT")
+			if (this._htWElement["listCreateCloseCheckBtn"]) {
+				this._htWElement["listCreateCloseCheckBtn"].addClass("on");
+			}
+			if (this._htWElement["listCreateOpenCheckUL"]) { 
+				this._htWElement["listCreateOpenCheckUL"].hide();
+			}
+		}
+		this._sIsPublic = isPublic;
+	},
+	// 참여 여부 클릭 
+	_joinCheck: function(joinType) {
+		if (this._sIsPublic == "N") {
+			return;
+		}
+		this._removeOnClass(false);
+		
+		if (joinType == "ALL") {
+			if (this._htWElement["listCreateAllCheckBtn"]) {
+				this._htWElement["listCreateAllCheckBtn"].addClass("on");
+			}
+		} else if (joinType == "RESTRICT") {
+			if (this._htWElement["listCreateRestrictCheckBtn"]) {
+				this._htWElement["listCreateRestrictCheckBtn"].addClass("on");
+			}
+		} else {
+			if (this._htWElement["listCreatePrivateCheckBtn"]) {
+				this._htWElement["listCreatePrivateCheckBtn"].addClass("on");
+			}
+		}
+		
+		this._sJoinType = joinType;
+	},
+	// 공개,참여 여부 하이라이팅 제거 
+	_removeOnClass : function(isPublicCheck) {
+		if (isPublicCheck) {
+			if (this._htWElement["listCreateOpenCheckBtn"]) {
+				this._htWElement["listCreateOpenCheckBtn"].removeClass("on");
+			}
+			
+			if (this._htWElement["listCreateCloseCheckBtn"]) {
+				this._htWElement["listCreateCloseCheckBtn"].removeClass("on");
+			}
+		} else {
+			if (this._htWElement["listCreateAllCheckBtn"]) {
+				this._htWElement["listCreateAllCheckBtn"].removeClass("on");
+			}
+
+			if (this._htWElement["listCreateRestrictCheckBtn"]) {
+				this._htWElement["listCreateRestrictCheckBtn"].removeClass("on");
+			}
+
+			if (this._htWElement["listCreatePrivateCheckBtn"]) {
+				this._htWElement["listCreatePrivateCheckBtn"].removeClass("on");
+			}
+		}
+	},
+	// 기본 이벤트 unbinding
+	_detachEvent : function() {
+		for (p in this._htEvent) {
+			var ht = this._htEvent[p];
+			ht.fn.detach(ht.el, p.substring(p.lastIndexOf("_")));
+		}
+	},
+	// 지식리스트 객체 제거. 중복 init 시 기존의 객체를 제거할 때 등 사용 
+	_destory : function() {
+		if (this._htWElement["listCreateLayer"]) {
+			this._htWElement["listCreateLayer"].leave();
+			this._detachEvent();
+			this._htWElement = this._htEvent = this._htAPIUrl = this._oTemplate = null;
+		}
+	},
+	// 생성 완료 후 동작
+	_afterConfirm : function(oEvent, sTitle, nListId) {
+		this.fireEvent("afterConfirm", {oEvent : oEvent, sTitle: sTitle, nListId: nListId});
+	},
+	// 레이어 노출
+	show : function(oEvent, sServiceCode, sTitle) {
+		oEvent.stop(tljindo.$Event.CANCEL_DEFAULT);
+		this._sServiceCode = sServiceCode;
+		
+		if (this._htWElement["listCreateTitleALERT"]) {
+			this._htWElement["listCreateTitleALERT"].hide();
+		}
+		if (this._htWElement["listCreateDescALERT"]) {
+			this._htWElement["listCreateDescALERT"].hide();
+		}
+		
+		if (sTitle) {
+			this._htWElement["listCreateTitle"].text(sTitle);
+		} else {
+			this._htWElement["listCreateTitle"].text("");
+		}
+		this._htWElement["listCreateDesc"].text("");
+		this._htWElement["listCreateLayer"].show();
+		
+		if (sTitle) {
+			this._htWElement["listCreateDesc"].$value().focus();
+		} else {
+			this._htWElement["listCreateTitle"].$value().focus();
+		}
+		
+	},
+	// 레이어 숨기기
+	hide : function(oEvent) {
+		oEvent.stop(tljindo.$Event.CANCEL_DEFAULT);
+		this._publicCheck("Y");
+		this._joinCheck("RESTRICT");
+		this._htWElement["listCreateLayer"].hide();
+		this._htWElement["listCreateTitle"].attr("value");
+		this._htWElement["listCreateTitleLabel"].show();
+		
+	},
+	// 리스트 생성 시 입력 값 체크
+	_validationCreateListInputText : function() {
+		if (naver.tlist.trim(this._htWElement["listCreateTitle"].text()) == "") {
+			alert("제목은 필수 입력값입니다.");
+			this._htWElement["listCreateTitle"].$value().focus();
+			return false;
+		}
+		
+		/*
+		if (naver.tlist.trim(this._htWElement["listCreateDesc"].text()) == "") {
+			alert("설명은 필수 입력값입니다.");
+			this._htWElement["listCreateDesc"].$value().focus();
+			return false;
+		}
+		*/
+		
+		return true;
+	},
+	// 리스트 생성
+	_createList : function(oEvent) {
+		htParam = {};
+		
+		if (!this._validationCreateListInputText()) {
+			return false;
+		}
+		
+		var url = this._htAPIUrl["domain"] + this._htAPIUrl["create"] + "&serviceCode=" + this._sServiceCode;
+		url += "&title=" + encodeURIComponent(this._htWElement["listCreateTitle"].text());
+		url += "&description=" + encodeURIComponent(this._htWElement["listCreateDesc"].text());
+		url += "&isPublic=" + encodeURIComponent(this._sIsPublic);
+		url += "&joinType=" + encodeURIComponent(this._sJoinType);
+		
+		var fnAfterConfirm = tljindo.$Fn(this._afterConfirm, this).bind(oEvent);
+		
+		window.naver.tlist.ajaxRequest(url, {
+			sReqType: "jsonp",
+			method : "get",
+			fnSuccess : function(oRes) {
+				var htData = oRes.json().message.result;
+				
+				var sStatus = htData.status.code;
+				var sTitle = htData.item ? htData.item.titleEscaped : "";
+                var nListId = htData.item ? htData.item.listId: "";
+				
+				// 로그인 체크
+				if (window.naver.tlist.isLoginError(sStatus)) {
+					if (confirm("로그인이 필요한 서비스 입니다.\n로그인 하시겠습니까?")) {
+						location.href = window.naver.tlist.loginUrl;
+					}
+					return false;
+				} else {
+					window.naver.tlist.isLogin = true;
+				}
+
+				if (window.naver.tlist.isOverflowStringLengthError(sStatus)) {
+					alert("입력 가능한 최대 글자 수를 초과하였습니다.");
+					return false;
+				}
+				
+				if (window.naver.tlist.isBlockError(sStatus)) {
+					alert("사용이 제한된 단어가 있습니다. 다시 시도해 주세요.");
+					return false;
+				}
+				
+				if (window.naver.tlist.isAPIError(sStatus)) {
+					alert("오류가 발생했습니다. 다시 시도해 주세요.");
+					return false;
+				}
+				
+				fnAfterConfirm(sTitle, nListId);
+			},
+			fnError : function(oRes) {
+			},
+			fnTimeout : function(oRes) {
+				alert("Timeout 오류가 발생했습니다. 다시 시도해 주세요");
+			}
+		}, htParam);
+	},
+	// 공개 여부 설정 
+	_selectOpenCheck : function(oEvent) {
+		
+	},
+	// 참여 여부 설정 
+	_selectJoinCheck : function(oEvent) {
+		
+	},
+	// 리스트 생성 시 제목 글자 수 세기 
+	_countListCreateTitle : function(oEvent) {
+		naver.tlist.countListFieldForText(this._htWElement["listCreateTitle"], "제목", 40, this._htWElement["listCreateTitleALERT"]);
+	},
+	// 리스트 생성 시 설명 글자 수 세기
+	_countListCreateDesc : function(oEvent) {
+		naver.tlist.countListFieldForText(this._htWElement["listCreateDesc"], "설명", 500, this._htWElement["listCreateDescALERT"]);
+	}
+}).extend(tljindo.UIComponent || tljindo.m.UIComponent);

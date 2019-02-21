@@ -1,0 +1,1215 @@
+window["ru"] = window["ru"] || {}; window["ru"]["mail"] = window["ru"]["mail"] || {}; window["ru"]["mail"]["mpf"] = window["ru"]["mail"]["mpf"] || {}; window["ru"]["mail"]["mpf"]["utils"] = window["ru"]["mail"]["mpf"]["utils"] || {}; window["ru"]["mail"]["mpf"]["utils"]["PushNotifications"] =
+/******/ (function(modules) { // webpackBootstrap
+/******/ 	// The module cache
+/******/ 	var installedModules = {};
+
+/******/ 	// The require function
+/******/ 	function __webpack_require__(moduleId) {
+
+/******/ 		// Check if module is in cache
+/******/ 		if(installedModules[moduleId])
+/******/ 			return installedModules[moduleId].exports;
+
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = installedModules[moduleId] = {
+/******/ 			exports: {},
+/******/ 			id: moduleId,
+/******/ 			loaded: false
+/******/ 		};
+
+/******/ 		// Execute the module function
+/******/ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+
+/******/ 		// Flag the module as loaded
+/******/ 		module.loaded = true;
+
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
+
+
+/******/ 	// expose the modules object (__webpack_modules__)
+/******/ 	__webpack_require__.m = modules;
+
+/******/ 	// expose the module cache
+/******/ 	__webpack_require__.c = installedModules;
+
+/******/ 	// __webpack_public_path__
+/******/ 	__webpack_require__.p = "";
+
+/******/ 	// Load entry module and return exports
+/******/ 	return __webpack_require__(0);
+/******/ })
+/************************************************************************/
+/******/ ([
+/* 0 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+
+	var _client = __webpack_require__(1);
+
+	Object.defineProperty(exports, 'init', {
+	  enumerable: true,
+	  get: function get() {
+	    return _client.init;
+	  }
+	});
+
+	var _env = __webpack_require__(9);
+
+	Object.keys(_env).forEach(function (key) {
+	  if (key === "default" || key === "__esModule") return;
+	  Object.defineProperty(exports, key, {
+	    enumerable: true,
+	    get: function get() {
+	      return _env[key];
+	    }
+	  });
+	});
+
+/***/ }),
+/* 1 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+
+	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+	exports.init = init;
+
+	var _events = __webpack_require__(2);
+
+	var _events2 = _interopRequireDefault(_events);
+
+	var _error = __webpack_require__(3);
+
+	var _store = __webpack_require__(4);
+
+	var _sync = __webpack_require__(5);
+
+	var _platform = __webpack_require__(8);
+
+	var _sw = __webpack_require__(13);
+
+	var _settings = __webpack_require__(6);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	var _window = window,
+	    Notification = _window.Notification;
+
+	var emitter = new _events2['default']();
+
+	var appStore = (0, _store.createStore)(function (state) {
+	  var action = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+	  switch (action.type) {
+	    case _settings.EVENTS.CHANGE:
+	      {
+	        return _extends({}, state, action.state);
+	      }
+
+	    case _settings.EVENTS.SUBSCRIBE:
+	      {
+	        return _extends({}, state, {
+	          isSubscribed: true,
+	          subscription: action.subscription
+	        });
+	      }
+
+	    case _settings.EVENTS.UNSUBSCRIBE:
+	      {
+	        var s = _extends({}, state, {
+	          isSubscribed: false
+	        });
+	        delete s.subscription;
+	        return s;
+	      }
+
+	    case _settings.EVENTS.READY:
+	      {
+	        return _extends({}, state, action.state, {
+	          isReady: true
+	        });
+	      }
+
+	    default:
+	      {
+	        return state;
+	      }
+	  }
+	}, {
+	  settings: {},
+	  isSubscribed: undefined,
+	  isReady: false
+	});
+
+	appStore.subscribe(function (state) {
+	  emitter.emit(_settings.EVENTS.CHANGE, state);
+	});
+
+	function checkPlatformSupport(settings) {
+	  return new Promise(function (resolve, reject) {
+	    var platforms = settings.allowedPlatforms.map(function (s) {
+	      return s.toLowerCase();
+	    });
+	    var platform = settings.platform.PLATFORM.toLowerCase();
+
+	    if (!(0, _platform.isSupported)() || platforms.indexOf(platform) === -1) {
+	      reject(new _error.PushNotificationsError(_settings.ERRORS.UNSUPPORTED));
+	    } else {
+	      resolve();
+	    }
+	  });
+	}
+
+	function checkNotificationPermission() {
+	  for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+	    args[_key] = arguments[_key];
+	  }
+
+	  return new Promise(function (resolve, reject) {
+	    switch (Notification.permission) {
+	      case 'granted':
+	        resolve.apply(undefined, args);
+	        break;
+
+	      case 'denied':
+	        reject(new _error.PushNotificationsError(_settings.ERRORS.PERMISSION_DENIED));
+	        break;
+
+	      case 'default':
+	        resolve.apply(undefined, args);
+	        break;
+
+	      default:
+	        resolve.apply(undefined, args);
+	        break;
+	    }
+	  });
+	}
+
+	function requestNotificationPermission() {
+	  for (var _len2 = arguments.length, args = Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
+	    args[_key2] = arguments[_key2];
+	  }
+
+	  return new Promise(function (resolve, reject) {
+	    if (Notification.permission === 'granted') {
+	      resolve.apply(undefined, args);
+	    } else {
+	      Notification.requestPermission(function (permission) {
+	        if (permission === 'granted') {
+	          resolve.apply(undefined, args);
+	        } else {
+	          reject(new _error.PushNotificationsError(_settings.ERRORS.PERMISSION_DENIED));
+	        }
+	      });
+	    }
+	  });
+	}
+
+	function _unsubscribe(notify) {
+	  return (0, _sw.ready)().then(_sw.removeSubscription).then(function (oldSubscription) {
+	    return notify(-1, oldSubscription);
+	  }).then(function () {
+	    return appStore.dispatch({ type: _settings.EVENTS.UNSUBSCRIBE });
+	  }).then(function () {
+	    return emitter.emit(_settings.EVENTS.UNSUBSCRIBE);
+	  })['catch'](function (err) {
+	    emitter.emit(_settings.EVENTS.ERROR, err);
+	  });
+	}
+
+	function _subscribe(notify) {
+	  return (0, _sw.ready)().then(requestNotificationPermission).then(_sw.getOrCreateSubscription).then(function (subscription) {
+	    return notify(0, subscription)['catch'](function (err) {
+	      emitter.emit(_settings.EVENTS.ERROR, err);
+	    }).then(function () {
+	      return subscription;
+	    });
+	  }).then(function (subscription) {
+	    return appStore.dispatch({
+	      type: _settings.EVENTS.SUBSCRIBE,
+	      subscription: (0, _sync.getPayload)(subscription.toJSON())
+	    });
+	  }).then(function (state) {
+	    emitter.emit(_settings.EVENTS.SUBSCRIBE, state.subscription);
+	  })['catch'](function (err) {
+	    emitter.emit(_settings.EVENTS.ERROR, err);
+	  });
+	}
+
+	function createNotify(settings) {
+	  return (0, _sync.notifyServer)({
+	    application: settings.application,
+	    url: settings.serverUrl
+	  });
+	}
+
+	function getInstance(settings) {
+	  var notify = createNotify(settings);
+
+	  var instance = {
+	    getState: appStore.getState,
+	    toggle: function toggle() {
+	      var _appStore$getState = appStore.getState(),
+	          isSubscribed = _appStore$getState.isSubscribed;
+
+	      return isSubscribed ? _unsubscribe(notify).then(function () {
+	        return instance;
+	      }) : _subscribe(notify).then(function () {
+	        return instance;
+	      });
+	    },
+	    subscribe: function subscribe() {
+	      return _subscribe(notify).then(function () {
+	        return instance;
+	      });
+	    },
+	    unsubscribe: function unsubscribe() {
+	      return _unsubscribe(notify).then(function () {
+	        return instance;
+	      });
+	    }
+	  };
+
+	  return instance;
+	}
+
+	function init() {
+	  var opts = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+
+	  var settings = _extends({}, _settings.APP_DEFAULTS, opts);
+
+	  var notify = createNotify(settings);
+	  var scope = '' + (0, _platform.getLocation)().origin + settings.workerScope;
+
+	  appStore.dispatch({
+	    type: _settings.EVENTS.CHANGE,
+	    state: {
+	      settings: settings
+	    }
+	  });
+
+	  var isReady = new Promise(function (resolve) {
+	    checkPlatformSupport(settings).then(checkNotificationPermission).then(function () {
+	      return (0, _sw.installWorker)(settings);
+	    }).then(_sw.ready).then(function (swr) {
+	      return (0, _sw.getSubscription)(swr).then(function (subscription) {
+	        return notify(0, subscription)['catch'](function (err) {
+	          emitter.emit(_settings.EVENTS.ERROR, err);
+	        }).then(function () {
+	          var state = subscription ? {
+	            isSubscribed: true,
+	            subscription: (0, _sync.getPayload)(subscription.toJSON())
+	          } : { isSubscribed: false };
+	          return appStore.dispatch({ type: _settings.EVENTS.READY, state: state });
+	        }).then(function (state) {
+	          emitter.emit(_settings.EVENTS.READY, getInstance(state.settings), state);
+	        });
+	      })['catch'](function () {
+	        return appStore.dispatch({
+	          type: _settings.EVENTS.READY,
+	          state: { isSubscribed: false }
+	        }).then(function (state) {
+	          emitter.emit(_settings.EVENTS.READY, getInstance(state.settings), state);
+	        });
+	      });
+	    })['catch'](function (err) {
+	      emitter.emit(_settings.EVENTS.ERROR, err);
+	    }).then(function () {
+	      resolve(getInstance(settings));
+	    });
+	  });
+
+	  var instance = {
+	    on: function on(name, f) {
+	      emitter.on(name, f);
+	      return instance;
+	    },
+	    ready: function ready() {
+	      return isReady;
+	    }
+	  };
+
+	  return instance;
+	}
+
+	exports['default'] = init;
+
+/***/ }),
+/* 2 */
+/***/ (function(module, exports) {
+
+	// Copyright Joyent, Inc. and other Node contributors.
+	//
+	// Permission is hereby granted, free of charge, to any person obtaining a
+	// copy of this software and associated documentation files (the
+	// "Software"), to deal in the Software without restriction, including
+	// without limitation the rights to use, copy, modify, merge, publish,
+	// distribute, sublicense, and/or sell copies of the Software, and to permit
+	// persons to whom the Software is furnished to do so, subject to the
+	// following conditions:
+	//
+	// The above copyright notice and this permission notice shall be included
+	// in all copies or substantial portions of the Software.
+	//
+	// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+	// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+	// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+	// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+	// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+	// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+	// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+	function EventEmitter() {
+	  this._events = this._events || {};
+	  this._maxListeners = this._maxListeners || undefined;
+	}
+	module.exports = EventEmitter;
+
+	// Backwards-compat with node 0.10.x
+	EventEmitter.EventEmitter = EventEmitter;
+
+	EventEmitter.prototype._events = undefined;
+	EventEmitter.prototype._maxListeners = undefined;
+
+	// By default EventEmitters will print a warning if more than 10 listeners are
+	// added to it. This is a useful default which helps finding memory leaks.
+	EventEmitter.defaultMaxListeners = 10;
+
+	// Obviously not all Emitters should be limited to 10. This function allows
+	// that to be increased. Set to zero for unlimited.
+	EventEmitter.prototype.setMaxListeners = function(n) {
+	  if (!isNumber(n) || n < 0 || isNaN(n))
+	    throw TypeError('n must be a positive number');
+	  this._maxListeners = n;
+	  return this;
+	};
+
+	EventEmitter.prototype.emit = function(type) {
+	  var er, handler, len, args, i, listeners;
+
+	  if (!this._events)
+	    this._events = {};
+
+	  // If there is no 'error' event listener then throw.
+	  if (type === 'error') {
+	    if (!this._events.error ||
+	        (isObject(this._events.error) && !this._events.error.length)) {
+	      er = arguments[1];
+	      if (er instanceof Error) {
+	        throw er; // Unhandled 'error' event
+	      } else {
+	        // At least give some kind of context to the user
+	        var err = new Error('Uncaught, unspecified "error" event. (' + er + ')');
+	        err.context = er;
+	        throw err;
+	      }
+	    }
+	  }
+
+	  handler = this._events[type];
+
+	  if (isUndefined(handler))
+	    return false;
+
+	  if (isFunction(handler)) {
+	    switch (arguments.length) {
+	      // fast cases
+	      case 1:
+	        handler.call(this);
+	        break;
+	      case 2:
+	        handler.call(this, arguments[1]);
+	        break;
+	      case 3:
+	        handler.call(this, arguments[1], arguments[2]);
+	        break;
+	      // slower
+	      default:
+	        args = Array.prototype.slice.call(arguments, 1);
+	        handler.apply(this, args);
+	    }
+	  } else if (isObject(handler)) {
+	    args = Array.prototype.slice.call(arguments, 1);
+	    listeners = handler.slice();
+	    len = listeners.length;
+	    for (i = 0; i < len; i++)
+	      listeners[i].apply(this, args);
+	  }
+
+	  return true;
+	};
+
+	EventEmitter.prototype.addListener = function(type, listener) {
+	  var m;
+
+	  if (!isFunction(listener))
+	    throw TypeError('listener must be a function');
+
+	  if (!this._events)
+	    this._events = {};
+
+	  // To avoid recursion in the case that type === "newListener"! Before
+	  // adding it to the listeners, first emit "newListener".
+	  if (this._events.newListener)
+	    this.emit('newListener', type,
+	              isFunction(listener.listener) ?
+	              listener.listener : listener);
+
+	  if (!this._events[type])
+	    // Optimize the case of one listener. Don't need the extra array object.
+	    this._events[type] = listener;
+	  else if (isObject(this._events[type]))
+	    // If we've already got an array, just append.
+	    this._events[type].push(listener);
+	  else
+	    // Adding the second element, need to change to array.
+	    this._events[type] = [this._events[type], listener];
+
+	  // Check for listener leak
+	  if (isObject(this._events[type]) && !this._events[type].warned) {
+	    if (!isUndefined(this._maxListeners)) {
+	      m = this._maxListeners;
+	    } else {
+	      m = EventEmitter.defaultMaxListeners;
+	    }
+
+	    if (m && m > 0 && this._events[type].length > m) {
+	      this._events[type].warned = true;
+	      console.error('(node) warning: possible EventEmitter memory ' +
+	                    'leak detected. %d listeners added. ' +
+	                    'Use emitter.setMaxListeners() to increase limit.',
+	                    this._events[type].length);
+	      if (typeof console.trace === 'function') {
+	        // not supported in IE 10
+	        console.trace();
+	      }
+	    }
+	  }
+
+	  return this;
+	};
+
+	EventEmitter.prototype.on = EventEmitter.prototype.addListener;
+
+	EventEmitter.prototype.once = function(type, listener) {
+	  if (!isFunction(listener))
+	    throw TypeError('listener must be a function');
+
+	  var fired = false;
+
+	  function g() {
+	    this.removeListener(type, g);
+
+	    if (!fired) {
+	      fired = true;
+	      listener.apply(this, arguments);
+	    }
+	  }
+
+	  g.listener = listener;
+	  this.on(type, g);
+
+	  return this;
+	};
+
+	// emits a 'removeListener' event iff the listener was removed
+	EventEmitter.prototype.removeListener = function(type, listener) {
+	  var list, position, length, i;
+
+	  if (!isFunction(listener))
+	    throw TypeError('listener must be a function');
+
+	  if (!this._events || !this._events[type])
+	    return this;
+
+	  list = this._events[type];
+	  length = list.length;
+	  position = -1;
+
+	  if (list === listener ||
+	      (isFunction(list.listener) && list.listener === listener)) {
+	    delete this._events[type];
+	    if (this._events.removeListener)
+	      this.emit('removeListener', type, listener);
+
+	  } else if (isObject(list)) {
+	    for (i = length; i-- > 0;) {
+	      if (list[i] === listener ||
+	          (list[i].listener && list[i].listener === listener)) {
+	        position = i;
+	        break;
+	      }
+	    }
+
+	    if (position < 0)
+	      return this;
+
+	    if (list.length === 1) {
+	      list.length = 0;
+	      delete this._events[type];
+	    } else {
+	      list.splice(position, 1);
+	    }
+
+	    if (this._events.removeListener)
+	      this.emit('removeListener', type, listener);
+	  }
+
+	  return this;
+	};
+
+	EventEmitter.prototype.removeAllListeners = function(type) {
+	  var key, listeners;
+
+	  if (!this._events)
+	    return this;
+
+	  // not listening for removeListener, no need to emit
+	  if (!this._events.removeListener) {
+	    if (arguments.length === 0)
+	      this._events = {};
+	    else if (this._events[type])
+	      delete this._events[type];
+	    return this;
+	  }
+
+	  // emit removeListener for all listeners on all events
+	  if (arguments.length === 0) {
+	    for (key in this._events) {
+	      if (key === 'removeListener') continue;
+	      this.removeAllListeners(key);
+	    }
+	    this.removeAllListeners('removeListener');
+	    this._events = {};
+	    return this;
+	  }
+
+	  listeners = this._events[type];
+
+	  if (isFunction(listeners)) {
+	    this.removeListener(type, listeners);
+	  } else if (listeners) {
+	    // LIFO order
+	    while (listeners.length)
+	      this.removeListener(type, listeners[listeners.length - 1]);
+	  }
+	  delete this._events[type];
+
+	  return this;
+	};
+
+	EventEmitter.prototype.listeners = function(type) {
+	  var ret;
+	  if (!this._events || !this._events[type])
+	    ret = [];
+	  else if (isFunction(this._events[type]))
+	    ret = [this._events[type]];
+	  else
+	    ret = this._events[type].slice();
+	  return ret;
+	};
+
+	EventEmitter.prototype.listenerCount = function(type) {
+	  if (this._events) {
+	    var evlistener = this._events[type];
+
+	    if (isFunction(evlistener))
+	      return 1;
+	    else if (evlistener)
+	      return evlistener.length;
+	  }
+	  return 0;
+	};
+
+	EventEmitter.listenerCount = function(emitter, type) {
+	  return emitter.listenerCount(type);
+	};
+
+	function isFunction(arg) {
+	  return typeof arg === 'function';
+	}
+
+	function isNumber(arg) {
+	  return typeof arg === 'number';
+	}
+
+	function isObject(arg) {
+	  return typeof arg === 'object' && arg !== null;
+	}
+
+	function isUndefined(arg) {
+	  return arg === void 0;
+	}
+
+
+/***/ }),
+/* 3 */
+/***/ (function(module, exports) {
+
+	"use strict";
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+	var PushNotificationsError = exports.PushNotificationsError = function (_Error) {
+	  _inherits(PushNotificationsError, _Error);
+
+	  function PushNotificationsError(_ref) {
+	    var message = _ref.message,
+	        code = _ref.code;
+
+	    _classCallCheck(this, PushNotificationsError);
+
+	    var _this = _possibleConstructorReturn(this, (PushNotificationsError.__proto__ || Object.getPrototypeOf(PushNotificationsError)).call(this, message));
+
+	    _this.name = _this.constructor.name;
+	    _this.code = code;
+
+	    if (Error.captureStackTrace) {
+	      Error.captureStackTrace(_this, _this.constructor.name);
+	    } else {
+	      _this.stack = new Error().stack;
+	    }
+	    return _this;
+	  }
+
+	  return PushNotificationsError;
+	}(Error);
+
+	exports["default"] = PushNotificationsError;
+
+/***/ }),
+/* 4 */
+/***/ (function(module, exports) {
+
+	"use strict";
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+
+	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+	exports.createStore = createStore;
+
+	function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+
+	function wrap(f) {
+	  return function wrapped(state, action) {
+	    return Promise.resolve(f(state, action));
+	  };
+	}
+
+	function createStore(reducer) {
+	  var initial = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+	  var state = _extends({}, initial);
+	  var listeners = [];
+
+	  function getState() {
+	    return _extends({}, state);
+	  }
+
+	  function dispatch(action) {
+	    state = reducer(getState(), action);
+	    var resolvers = listeners.map(function (l) {
+	      return l(state, action);
+	    });
+	    return Promise.all(resolvers).then(function () {
+	      return state;
+	    });
+	  }
+
+	  function subscribe(listener) {
+	    listeners = [].concat(_toConsumableArray(listeners), [wrap(listener)]);
+	    var isSubscribed = true;
+
+	    return function () {
+	      if (isSubscribed) {
+	        isSubscribed = false;
+	        var index = listeners.indexOf(listener);
+	        var _ref = [listeners.slice(0, index), listeners.slice(index + 1)],
+	            left = _ref[0],
+	            right = _ref[1];
+
+	        listeners = left.concat(right);
+	      }
+	      return !isSubscribed;
+	    };
+	  }
+
+	  dispatch({});
+
+	  return {
+	    getState: getState,
+	    dispatch: dispatch,
+	    subscribe: subscribe
+	  };
+	}
+
+	exports["default"] = createStore;
+
+/***/ }),
+/* 5 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+
+	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+	exports.getPayload = getPayload;
+	exports.notifyServer = notifyServer;
+
+	var _settings = __webpack_require__(6);
+
+	var _error = __webpack_require__(3);
+
+	var _platform = __webpack_require__(8);
+
+	var _provider = __webpack_require__(10);
+
+	var _provider2 = _interopRequireDefault(_provider);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	function getPayload(subscription) {
+	  var provider = (0, _provider2['default'])((0, _platform.getBrowser)().name);
+	  return provider.getPayload(subscription);
+	}
+
+	function notifyServer() {
+	  var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+
+	  return function notify(status, subscription) {
+	    var payload = getPayload(subscription.toJSON());
+	    var body = _extends({}, _settings.SERVER_PAYLOAD, {
+	      status: status,
+	      application: options.application,
+	      token: payload.token
+	    });
+
+	    return fetch(options.url, {
+	      method: 'post',
+	      headers: {
+	        Accept: 'application/json',
+	        'Content-Type': 'application/json'
+	      },
+	      body: JSON.stringify(body)
+	    }).then(function (response) {
+	      if (response.status !== 200) {
+	        throw new _error.PushNotificationsError(_settings.ERRORS.SERVER_SYNC);
+	      }
+	      return response.json();
+	    })['catch'](function () {
+	      throw new _error.PushNotificationsError(_settings.ERRORS.SERVER_SYNC);
+	    });
+	  };
+	}
+
+/***/ }),
+/* 6 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.SERVER_PAYLOAD = exports.WORKER_PAYLOAD = exports.APP_DEFAULTS = exports.ERRORS = exports.EVENTS = undefined;
+
+	var _datetime = __webpack_require__(7);
+
+	var _platform = __webpack_require__(8);
+
+	var _env = __webpack_require__(9);
+
+	var TIMEZONE = (0, _datetime.getTimeZoneMark)();
+	var PLATFORM = (0, _platform.getPlatform)({
+	  chrome: 'android' // (」゜ロ゜)」
+	});
+	var PLATFORM_MOBILE_PREFIX = 'm';
+
+	var EVENTS = exports.EVENTS = {
+	  READY: 'ready',
+	  CHANGE: 'change',
+	  ERROR: 'error',
+	  SUBSCRIBE: 'subscribe',
+	  UNSUBSCRIBE: 'unsubscribe'
+	};
+
+	var ERRORS = exports.ERRORS = {
+	  SUBSCRIBE: {
+	    code: 'subscribe',
+	    message: 'Ошибка при попытке подписаться на пуш-уведомления'
+	  },
+	  UNSUBSCRIBE: {
+	    code: 'unsubscribe',
+	    message: 'Ошибка при попытке отписаться от пуш-уведомлений'
+	  },
+	  GET_SUBSCRIPTION: {
+	    code: 'get_subscription',
+	    message: 'Ошибка при попытке получения объекта пуш-уведомлений'
+	  },
+	  PERMISSION_DENIED: {
+	    code: 'permission_denied',
+	    message: 'Пользователь запретил доставку уведомлений'
+	  },
+	  UNSUPPORTED: {
+	    code: 'unsupported',
+	    message: 'Не поддерживается браузером'
+	  },
+	  TIME_MARK: {
+	    code: 'time_mark',
+	    message: 'Установлена временная отметка'
+	  },
+	  SERVER_SYNC: {
+	    code: 'server_sync',
+	    message: 'Ошибка синхронизации с сервером'
+	  },
+	  UNKNOWN_PLATFORM: {
+	    code: 'unknown_platform',
+	    message: 'Неизвестный браузер или платформа'
+	  }
+	};
+
+	var APP_DEFAULTS = exports.APP_DEFAULTS = {
+	  version: _env.version,
+	  allowedPlatforms: ['Chrome', 'Firefox'],
+	  application: 'mailrupush',
+	  platform: PLATFORM.BROWSER,
+	  workerPath: '/push-worker.js',
+	  workerScope: '/',
+	  serverUrl: '/push-api/subscription/'
+	};
+
+	var WORKER_PAYLOAD = exports.WORKER_PAYLOAD = {
+	  location: (0, _platform.getLocation)().pathname,
+	  platform: PLATFORM,
+	  timezone: TIMEZONE
+	};
+
+	var SERVER_PAYLOAD = exports.SERVER_PAYLOAD = {
+	  application: null, // константа
+	  platform: PLATFORM.BROWSER.NAME, // константа
+	  status: null, // 0 - подписаться, -1 отписаться
+	  token: null, // push_token (google reg id)
+	  settings: {
+	    capabilities: {
+	      geo_id: [0], // рассылка пушей по гео
+	      push_delivery_time_range: '00:00-23:59' // время доставки пушей
+	    },
+	    client: {
+	      os_version: PLATFORM.BROWSER.VERSION,
+	      version: PLATFORM.BROWSER.IS_MOBILE ? PLATFORM_MOBILE_PREFIX + '-' + _env.version : _env.version // версия софта на фронте
+	    },
+	    client_time_zone: TIMEZONE
+	  }
+	};
+
+/***/ }),
+/* 7 */
+/***/ (function(module, exports) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.getTimeZoneMark = getTimeZoneMark;
+	function getTimeZoneMark() {
+	  var offset = new Date().getTimezoneOffset();
+	  var value = Math.abs(offset);
+	  var prefix = 'GMT' + (offset < 0 ? '+' : '-');
+
+	  return prefix + ('00' + Math.floor(value / 60)).slice(-2) + ('00' + value % 60).slice(-2);
+	}
+
+/***/ }),
+/* 8 */
+/***/ (function(module, exports) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.isSupported = isSupported;
+	exports.getBrowser = getBrowser;
+	exports.isMobile = isMobile;
+	exports.getPlatform = getPlatform;
+	exports.getLocation = getLocation;
+	function isSupported() {
+	  return !!window.fetch && !!window.navigator.serviceWorker && !!window.Notification && !!window.PushManager && !!window.ServiceWorkerRegistration;
+	}
+
+	function getBrowser() {
+	  var _navigator = navigator,
+	      userAgent = _navigator.userAgent;
+	  // дратути
+
+	  if (window.opera | window.opr | userAgent.indexOf(' OPR/') > -1 | userAgent.indexOf(' Coast/') > -1 | userAgent.indexOf(' OPiOS/') > -1) {
+	    var _src = userAgent.match(/(opr(?=\/))\/?\s*(\d+)/i) || [];
+	    // дотвиданиня
+	    return {
+	      name: 'Opera',
+	      version: _src[2] ? _src[2] : ''
+	    };
+	  }
+
+	  var src = userAgent.match(/(opera|chrome|safari|firefox|msie|trident(?=\/))\/?\s*(\d+)/i) || [];
+	  return {
+	    name: src[1] ? src[1] : '',
+	    version: src[2] ? src[2] : ''
+	  };
+	}
+
+	function isMobile() {
+	  var src = navigator.userAgent.match(/(android|blackBerry|iphone|ipad|ipod|opera|iemobile|mobile)/i) || [];
+	  return src.length > 0;
+	}
+
+	function getPlatform() {
+	  var overrides = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+
+	  var browser = getBrowser();
+	  var browserMobile = isMobile();
+	  var browserLower = browser.name.toLowerCase();
+
+	  return {
+	    BROWSER: {
+	      NAME: overrides[browserLower] ? overrides[browserLower] : browserLower,
+	      PLATFORM: browser.name,
+	      VERSION: browser.version,
+	      IS_MOBILE: browserMobile
+	    }
+	  };
+	}
+
+	function getLocation() {
+	  return window.location;
+	}
+
+/***/ }),
+/* 9 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	"use strict";
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	var version = exports.version = ("2.2.3");
+
+/***/ }),
+/* 10 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports['default'] = getProvider;
+
+	var _settings = __webpack_require__(6);
+
+	var _error = __webpack_require__(3);
+
+	var _chrome = __webpack_require__(11);
+
+	var _chrome2 = _interopRequireDefault(_chrome);
+
+	var _firefox = __webpack_require__(12);
+
+	var _firefox2 = _interopRequireDefault(_firefox);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	function getProvider(name) {
+	  switch (name.toLowerCase()) {
+	    case 'chrome':
+	      return _chrome2['default'];
+
+	    case 'firefox':
+	      return _firefox2['default'];
+
+	    default:
+	      throw new _error.PushNotificationsError(_settings.ERRORS.UNKNOWN_PLATFORM);
+	  }
+	}
+	module.exports = exports['default'];
+
+/***/ }),
+/* 11 */
+/***/ (function(module, exports) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.getPayload = getPayload;
+	function getPayload(subscription) {
+	  var chunks = subscription.endpoint.split('/');
+	  return {
+	    endpoint: subscription.endpoint,
+	    token: chunks.slice(-1)[0]
+	  };
+	}
+
+	exports['default'] = {
+	  getPayload: getPayload
+	};
+
+/***/ }),
+/* 12 */
+/***/ (function(module, exports) {
+
+	"use strict";
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.getPayload = getPayload;
+	function getPayload(subscription) {
+	  return {
+	    endpoint: subscription.endpoint,
+	    token: subscription.endpoint
+	  };
+	}
+
+	exports["default"] = {
+	  getPayload: getPayload
+	};
+
+/***/ }),
+/* 13 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.installWorker = installWorker;
+	exports.getWorkerList = getWorkerList;
+	exports.uninstallAll = uninstallAll;
+	exports.uninstallAllInScope = uninstallAllInScope;
+	exports.ready = ready;
+	exports.getSubscription = getSubscription;
+	exports.removeSubscription = removeSubscription;
+	exports.createSubscription = createSubscription;
+	exports.getOrCreateSubscription = getOrCreateSubscription;
+
+	var _settings = __webpack_require__(6);
+
+	var _error = __webpack_require__(3);
+
+	var _window = window,
+	    navigator = _window.navigator;
+	function installWorker(_ref) {
+	  var workerPath = _ref.workerPath,
+	      workerScope = _ref.workerScope;
+
+	  return navigator.serviceWorker.register(workerPath, { scope: workerScope });
+	}
+
+	function getWorkerList() {
+	  var pred = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : function () {
+	    return true;
+	  };
+
+	  return navigator.serviceWorker.getRegistrations().then(function (swrList) {
+	    return swrList.filter(pred);
+	  });
+	}
+
+	function uninstallAll() {
+	  return getWorkerList().then(function (swrList) {
+	    return Promise.all(swrList.map(function (swr) {
+	      return swr.unregister();
+	    }));
+	  });
+	}
+
+	function uninstallAllInScope(scope) {
+	  return getWorkerList(function (swr) {
+	    return swr.scope !== scope;
+	  }).then(function (swrList) {
+	    return Promise.all(swrList.map(function (s) {
+	      return s.unregister();
+	    }));
+	  });
+	}
+
+	function ready() {
+	  return navigator.serviceWorker.ready;
+	}
+
+	function getSubscription(swr) {
+	  return new Promise(function (resolve, reject) {
+	    swr.pushManager.getSubscription().then(function (subscription) {
+	      if (subscription) {
+	        resolve(subscription);
+	      } else {
+	        reject(new _error.PushNotificationsError(_settings.ERRORS.GET_SUBSCRIPTION));
+	      }
+	    });
+	  });
+	}
+
+	function removeSubscription(swr) {
+	  return getSubscription(swr).then(function (subscription) {
+	    return subscription.unsubscribe().then(function (isSuccess) {
+	      if (isSuccess) {
+	        return Promise.resolve(subscription);
+	      }
+	      return Promise.reject(new _error.PushNotificationsError(_settings.ERRORS.UNSUBSCRIBE));
+	    });
+	  });
+	}
+
+	function createSubscription(swr) {
+	  return new Promise(function (resolve, reject) {
+	    swr.pushManager.subscribe({ userVisibleOnly: true }).then(function (subscription) {
+	      if (subscription) {
+	        resolve(subscription);
+	      } else {
+	        reject(new _error.PushNotificationsError(_settings.ERRORS.SUBSCRIBE));
+	      }
+	    });
+	  });
+	}
+
+	function getOrCreateSubscription(swr) {
+	  return getSubscription(swr)['catch'](function () {
+	    return createSubscription(swr);
+	  });
+	}
+
+/***/ })
+/******/ ]);

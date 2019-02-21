@@ -1,0 +1,64 @@
+$(document).ready(function () {
+
+	$.urlParam = function(name){
+		var results = new RegExp('[\\?&]' + name + '=([^&#]*)').exec(window.location.href);
+		if(results) {
+			return results[1] || 0;
+		}
+	}
+
+	var partnerid = $.urlParam('partnerid'),
+		mrchrome = $.urlParam('mrchrome');
+
+	if (mrchrome) {
+		partnerid = '1059';
+	}
+
+	if(partnerid) {
+		$("a").not(".footer a, [target=_blank], [href^='#'], [href^='mailto'], [href^='javascript'], [href^='https://www.mail.ru/agent?message'], [href^='http://www.macromedia.com/']").each(function() {
+			var $this = $(this);
+			var link = $this.attr("href");
+
+			//$(this).attr('href', link + '?partnerid=' + partnerid);
+
+			if ((link != undefined && !link.match('r.mail.ru')) || (link != undefined && link.match('magentsetup.exe'))){
+
+//				expClb = new RegExp('http:\/\/r.mail.ru/cls([0-9]+)','g');
+//				link = link.match('magentsetup.exe') ? 'https://r.mail.ru/cls'+expClb.exec(link)[1]+'/rfr.agent.mail.ru/magentsetup_rfr'+partnerid+'.exe' : link + '?partnerid=' + partnerid;
+
+				if (link.match('magentsetup.exe')) {
+					var expClb = /http:\/\/r.mail.ru\/clb([0-9]+)/g.exec(link);
+					link = 'https://' + (expClb ? 'r.mail.ru/cls' + expClb[1] + '/' : '') + 'rfr.agent.mail.ru/magentsetup_rfr' + partnerid + '.exe';
+				} else if (link.match('rfr.agent.mail.ru/magent.exe')) {
+					/* default rfr */
+					var defaultRfr = $this.data('default-rfr');
+					if (typeof defaultRfr != 'undefined') {
+						link = 'https://rfr.agent.mail.ru/magent_rfr' + defaultRfr + partnerid + '.exe';
+						$this.data('url-checkbox-on', link);
+						$this.data('url-checkbox-off', 'https://rfr.agent.mail.ru/magent_rfr' + partnerid + '.exe' );
+					} else {
+						link = 'https://rfr.agent.mail.ru/magent_rfr' + partnerid + '.exe';
+					}
+					/* default rfr */
+				} else {
+					var parts = link.split('#');
+					var appendChar = link.match(/[^#]\?/) ? '&' : '?';
+
+					if (parts.length === 1) {
+						link = link + appendChar + 'partnerid=' + partnerid;
+					} else {
+						link = parts[0] + appendChar + 'partnerid=' + partnerid + '#' + parts.slice(1).join('#');
+					}
+				}
+				$this.attr('href', link);
+			}
+		});
+	}
+
+	$("#partner").add(".partner-click").click(function() {
+		if (partnerid && partnerid.match(/^\d+$/)) {
+			$('<div style="position:absolute; top:0; left;0; width:1px; height:1px; overflow:hidden;"><img src="https://rs.mail.ru/g'+partnerid+'.gif" alt="'+partnerid+'" /></div>').prependTo("body");
+		}
+	});
+
+});

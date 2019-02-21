@@ -1,0 +1,393 @@
+/**
+ * @method: ProductSeller Info - productSellerInfo
+ * @dependency: requireJS, jQuery, prdVar
+ */
+(function(root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define([
+            'jquery',
+            'productCommon'
+        ], factory);
+    } else {
+        root.productSellerInfo = factory(
+            root.jQuery,
+            root.productCommon
+        );
+    }
+}(window || this, function($, productCommon) {
+	'use strict';	
+	var prdVar = productPrdInfo;
+	
+	var productSellerinfo = {
+		
+		init : function() {
+			var _this = this;
+			
+			if(!prdVar.isSohoPrd) {
+				_this.initExpand();			
+			}
+			
+			$('#btnCSSeller').mouseover(function (e) {
+			    var btn_position = $(this).position();
+			    var ly_top = $(this).height()+btn_position.top+1;
+			    var ly_left = btn_position.left+5;
+			    $('.btn_laycls').parent('div').css('display','none');
+			    $('#prdcInfoColumn1').removeClass('prdc_zindex');
+			    $('#prdcInfoColumn2').addClass('prdc_zindex');
+			    $('#layerSeller').css({'display':'block', 'top':ly_top, 'left':ly_left});
+			});
+			
+			$('#btnCSSeller').mouseout(function (e) {		        	  
+			    $('#layerSeller').children(".btn_laycls").trigger("click");
+			});
+			
+			$('.seller_nickname').click(function (e) {
+			    _this.fnGoMinimall();
+			});	
+			  
+			$('#goMinimall').click(function (e) {
+			    _this.fnGoMinimall();
+			});	
+			
+			$('.btn_book_more').click(function (e) {
+				var seriesNo = $(this).attr("data-seriesNo");
+				_this.visibleController(seriesNo);
+			});	
+			  
+			$('#favorShop').click(function (e) {
+				var cunsumerMemNo = $(this).attr("data-cunsumerMemNo");
+				var memNO = $(this).attr("data-memNO");
+				var sellerHmpgNo = $(this).attr("data-sellerHmpgNo");			
+			      _this.insertFavorShopPopup(cunsumerMemNo,memNO,sellerHmpgNo);
+			});	
+			  
+			$('.otherPrd').click(function (e) {
+				var prdNo = $(this).attr("data-prdNo");
+			    _this.redirectOtherPrdDetail(prdNo);
+			});	 
+			
+			$('#redirectCart').click(function(e) {
+				_this.redirectCartPage($("#seriesCartUrl").val());
+			});
+			  
+			$('#hideCartLayer').click(function(e) {
+				_this.hideCartLayer();
+			});
+			  
+			$('#deleverySave').click(function(e) {
+				_this.fnGoDelivery();
+			});
+			
+			$('#seriesAllChk').click(function(e) {
+				_this.allCheckAction();
+			});
+			
+			$('#funcMultiCart').click(function(e) {
+				_this.funcMultiCart();
+			});
+			
+			$('.seriesListView').click(function (e) {
+				var gubun = $(this).attr("data-select");
+			    _this.seriesListView(gubun);
+			});	 
+			
+			$('#selMiniCtgr').click(function (e) {
+				var url = $('#shopCtgrUrl').val() + "?&lctgrNo=" + prdVar.ldispCtgrNo + "&mctgrNo=" + prdVar.mdispCtgrNo + "&dispCtgrType=DP";
+				if($('#shopCtgrUrl').val() != "#"){
+					doCommonStat('PDP0792');
+					return window.open(url);
+				}else{
+					HeaderComm.MiniMall.goHome.prdNo(prdVar.prdNo, HeaderComm.link.target.newWindow);
+				}	
+			});	 	
+			
+			$('#selOtherCtgr').click(function (e) {
+				location.href = "/browsing/DisplayCategory.tmall?method=getDisplayCategory2Depth&dispCtgrNo=" + prdVar.mdispCtgrNo;
+			});	 
+			
+			/* 배송비 영역 배송비 절약하기 삭제 - hankpj
+			if("true" == prdVar.isShowDlvBtn && "" != prdVar.newSellerHmpgUrl ) {
+				$("#letsDlvSave").css("display","");
+				$("#letsDlvSaveBtn").click(function(){
+					doCommonStat('PDP0797');
+					HeaderComm.MiniMall.goDelivery.prdNo(prdVar.prdNo, HeaderComm.link.target.newWindow);
+					return false;
+				});
+			} */     
+		}, 
+		
+		hideLayer : function(){
+			$("#SellerPlan").hide();
+		}, 
+		
+		hideCartLayer : function(){
+			$('#miniCartLayer').css('display','none');
+		}, 
+		
+		seriesListView : function(gubun){
+			if(gubun == "left"){
+				$("#leftLi").addClass("selected");
+				$("#rightLi").removeClass("selected");
+				$("#leftSeriesList").css('display','block');
+				$("#rightSeriesList").css('display','none');
+				$("#seriesGubun").val("left");
+				$("#leftBtn").show();
+				$("#rightBtn").hide();
+
+			}else if(gubun == "right"){
+				$("#rightLi").addClass("selected");
+				$("#leftLi").removeClass("selected");
+				$("#leftSeriesList").css('display','none');
+				$("#rightSeriesList").css('display','block');
+				$("#seriesGubun").val("right");
+				$("#leftBtn").hide();
+				$("#rightBtn").show();
+			}
+
+			this.initExpand();
+		}, 
+		
+		allCheckAction : function(){
+			
+/*			var allCheckYn = document.getElementById("seriesAllChk");*/
+			
+			if($("#seriesAllChk").val() == "Y"){
+				$("#seriesAllChk").val("N");
+				this.funcAllCheck(false);
+			}else{
+				$("#seriesAllChk").val("Y");
+				this.funcAllCheck(true);
+			}
+			
+/*			if(allCheckYn.checked){
+				this.funcAllCheck(true);
+			}else{
+				this.funcAllCheck(false);
+			}*/
+		},
+		
+		funcAllCheck : function(checkYn){
+			
+			var formObj = document.frmSeries;
+			var checkObj;
+			var checkKeyLength;
+			if($("#seriesGubun").val()== "" || $("#seriesGubun").val()== "left"){
+				checkObj = eval("formObj.seriesPrdChkA_");
+
+				checkKeyLength = formObj.leftSize.value;
+			}else{
+				checkObj = eval("formObj.seriesPrdChkB_");
+				checkKeyLength = formObj.rightSize.value;
+			}
+			if(checkKeyLength > 0){
+				for(var i=0;i<checkKeyLength;i++) {
+					checkObj[i].checked = checkYn;
+				}
+			}
+		},
+		
+		funcMultiCart : function(){
+			var obj = document.frmSeries;
+			var arrPrdNo = "";
+			var prdNoList = "";
+			
+			prdNoList = this.funcReturnPrdNo();
+			if(prdNoList != undefined){
+				this.seriesCatrProduct(prdNoList, 'N');			
+			}else{
+				alert("장바구니에 담을 상품을 선택해주세요");
+			}			
+			
+		},
+		
+		funcReturnPrdNo : function(){
+			var formObj = document.frmSeries;
+			var arrPrdNo;
+			var checkKeyLength;
+			var checkObj;
+			var firstCheckNum = 0;
+
+			if($("#seriesGubun").val() == "" || $("#seriesGubun").val()== "left"){
+				checkObj = eval("formObj.seriesPrdChkA_");
+				checkKeyLength = formObj.leftSize.value;
+			}else{
+				checkObj = eval("formObj.seriesPrdChkB_");
+				checkKeyLength = formObj.rightSize.value;
+			}
+			for(var i=0;i<checkKeyLength;i++) {
+				if(checkObj[i].checked) {
+					if(firstCheckNum == 0) {
+						arrPrdNo = checkObj[i].value;
+					} else {
+						arrPrdNo = arrPrdNo + "," + checkObj[i].value;
+					}
+					firstCheckNum++;
+				}				
+			}
+			return arrPrdNo;
+		},
+		
+		visibleController : function(seriesNo){
+						
+			if($("#leftSeriesList").css("display") != "none"){
+				if ($('.box_serise').hasClass('open')) {
+					$('.box_serise').removeClass('open');
+					$("#leftControllBtn .txt").html("더보기");
+					document.frmSeries.leftSize.value = $("#seriesMoreL>li").length;
+					document.frmSeries.leftSize.value = 10;
+				}else{
+					$('.box_serise').addClass('open');
+					$("#leftControllBtn .txt").html("닫기");
+					if($("#seriesMoreL>li").length == 10 ){
+						this.funSeriesPrdMore(seriesNo,"left");
+					}
+					document.frmSeries.leftSize.value = $("#seriesMoreL>li").length;
+				}	
+			}else if($("#rightSeriesList").css("display") != "none"){
+				$("#rightSeriesList").toggleClass('open');
+				if ($('.box_serise').hasClass('open')) {
+					$('.box_serise').removeClass('open');
+					$("#rightSeriesList .txt").html("더보기");
+					if($("#seriesMoreR>li").length == 10 ){
+						this.funSeriesPrdMore(seriesNo,"right");
+					}
+					document.frmSeries.rightSize.value =  $("#seriesMoreR>li").length;
+				}else{
+					$('.box_serise').addClass('open');
+					$("#rightSeriesList .txt").html("닫기");
+					document.frmSeries.rightSize.value = $("#seriesMoreR>li").length;
+					document.frmSeries.rightSize.value = 10;
+				}
+			}
+		},
+		
+		initExpand : function(){
+			
+			$('.box_serise').removeClass('open');
+			$("#leftControllBtn .txt").html("더보기");
+			$("#rightControllBtn .txt").html("더보기");
+
+			if($("#leftSize").val() > 10){
+				document.frmSeries.leftSize.value = 10;
+			}else{
+				document.frmSeries.leftSize.value = $("#leftSize").val();
+			}
+
+			if($("#rightSize").val() > 10){
+				document.frmSeries.rightSize.value = 10;
+			}else{
+				document.frmSeries.rightSize.value = $("#rightSize").val();
+			}
+
+			$("#seriesAllChk").attr("checked", false);
+			this.funcAllCheck(false);
+		}, 
+		
+		funSeriesPrdMore : function(seriesNo, gubun){
+			var seriesPrdChk;
+			if(gubun == "left"){
+				seriesPrdChk = 'seriesPrdChkA_';
+			}else if(gubun == "right"){
+				seriesPrdChk = 'seriesPrdChkB_';
+			}
+			var url = "/product/SellerProductDetail.tmall?method=getSeriesProductList&seriesNo="+seriesNo;
+			$.ajax({
+		        url: url,
+		        async: false,
+		        type: "GET",
+				dataType: "jsonp",
+				jsonp: "callback",
+				scriptCharset : 'UTF-8',
+		        success: function(data) {
+					var dataObj = eval(data);
+					if(dataObj && dataObj.seriesPrdList){
+						var content = "";
+						for(var index=0; index < dataObj.seriesPrdList.length; index++){
+							var prdLst = dataObj.seriesPrdList[index];
+							content += "<li><input type='checkbox' id="+seriesPrdChk+" name="+seriesPrdChk+" class='chk' value='"+ prdLst.prdNo +"'>";
+							content += "<label for='bookPrd1'>";
+							content += "<a href=/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo="+ prdLst.prdNo +" target=_blank><em>"+ prdLst.prdNm + "</em></a>";
+							content += "</label></li>";
+						}
+						if(gubun == "left"){
+							$("#seriesMoreL").append(content);
+						}else if(gubun == "right"){
+							$("#seriesMoreR").append(content);
+						}
+					}
+		        },
+				error: function(request,status,error) {
+					alert("시리즈상품 더보기 에러 : " + error);
+				}
+		 	});
+		},
+		
+		fnPrdDetail : function(prdNo){
+			productCommon.launchCenter("/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=" + prdNo, "", 1024, 768, "yes");
+		},
+		
+		fnGoMinimall : function(){
+			HeaderComm.MiniMall.goHome.prdNo(prdVar.prdNo, HeaderComm.link.target.newWindow);
+		},
+		
+		fnGoDelivery : function(){
+			HeaderComm.MiniMall.goDelivery.prdNo(prdVar.prdNo, HeaderComm.link.target.newWindow);
+		},
+		
+		insertFavorShopPopup : function(memNo, sellerMemNo, sellerHmpgNo) {
+			if (memNo == 0 || memNo == "") { // 로그인안한 경우
+				alert("로그인하셔야 등록 가능합니다.");
+				openLogin(1);
+				return;
+			}
+			var url = "/jsp/marketing/sellerzone/insertFavorShopPopup.jsp?memNo="
+				+ memNo + "&sellerMemNo=" + sellerMemNo + "&sellerHmpgNo="
+				+ sellerHmpgNo;
+
+			var height = 207;
+			var width = 397;
+			productCommon.launchCenter(url, 'insertFavorShopPopup', width, height);
+		},
+		
+		redirectOtherPrdDetail : function(prdNo) {
+			doCommonStat("PDP0707");
+			//top.location.href = "/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=" + prdNo;
+			location.href = "/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=" + prdNo;
+		},
+		
+		layOpen : function() {
+			$('.lay_nw_def').css('display','block');
+		},
+		
+		seriesCatrProduct : function(prdNoList, gblDlvYn){
+			//장바구니 제외 여부를 판단 - 레이어에서 장바구니에 담는 경우, 장바구니 버튼은 노출한 채 alert으로 차단
+			if($("#isCartUnusableSellerYN").val() == "Y") {
+				alert("즉시 구매만 가능합니다.");
+				return;
+			}
+			var obj = document.frmSeries;
+
+			obj.action = "/cart/CartActionMulti.tmall?method=getRegMultiCart&arrPrdNo="+prdNoList+"&accountBar=B&gblDlvYn=" + gblDlvYn;
+			obj.target = "hiddenCartProcessId";
+			obj.submit();
+		},
+		
+		redirectCartPage : function(url) {
+			
+			var obj = document.frmMain;
+			var bcktType = "";
+			
+			if($(obj).find("[name=gblDlvYn]").val() == "Y"){
+				bcktType = "02";
+			}else if($(obj).find("[name=gblDlvYn]").val() == "N"){
+				bcktType = "";
+			}
+
+			url = url + "&bcktType=" + bcktType;
+			//top.location.href = url;
+			location.href = url;
+		}
+		
+	};	
+	return productSellerinfo;
+}));

@@ -1,0 +1,2 @@
+YAHOO = typeof YAHOO !== "undefined" ? YAHOO : {};YAHOO.JP = typeof YAHOO.JP !== "undefined" ? YAHOO.JP : {};YAHOO.JP.MF = typeof YAHOO.JP.MF !== "undefined" ? YAHOO.JP.MF : {};YAHOO.JP.MF.API = typeof YAHOO.JP.MF.API !== "undefined" ? YAHOO.JP.MF.API : {};YAHOO.JP.MF.API.version = "1.0.0";;YAHOO.JP.MF["mf_2283"] = {Status:"400",Code:"101",Message:"bad request parameter",Detail:"experimentid not found"
+};

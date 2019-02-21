@@ -1,0 +1,39 @@
+'use strict';
+require.config({
+	baseUrl: '/js',
+	paths: {
+		'productTotalReview': 'service/product/module/productTotalReview',
+		'showMore': 'service/product/module/product.showMore',			
+		'jquery': 'lib/jquery/jquery-1.12.4.min',
+		'tooltip': 'service/common/modules/ui.tooltip',
+		'googleAnalytics'  : 'service/product/module/googleAnalytics',	 //googleAnalytics
+		'productCommon': 'service/product/module/productCommon'	 //공통function	
+	}
+});
+
+
+	require([
+	    'showMore',
+	    'tooltip',
+	    'jquery'
+	], function (ShowMore, ToolTip, $) {
+		var showMore, toolTip;
+
+	    require(['productTotalReview'], function(ProductTotalReview) {
+	    	ProductTotalReview.init();
+	    });
+		// GA
+		require(['googleAnalytics'], function(googleAnalytics) {
+			googleAnalytics.init();
+		});
+	    
+		//showMore
+		showMore = new ShowMore();
+		showMore.init();
+
+		// 툴팁 기능 활성화
+		toolTip = new ToolTip();
+		toolTip.init();
+	    
+	});
+

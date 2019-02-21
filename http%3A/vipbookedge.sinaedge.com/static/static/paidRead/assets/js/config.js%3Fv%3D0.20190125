@@ -1,0 +1,42 @@
+/**
+ * Created by Spook on 15/12/14.
+ */
+var require;
+var staticPath = _cfg.static.slice(-1) == '/' ? _cfg.static : _cfg.static + '/';
+require = {
+    baseUrl: staticPath + 'paidRead/dist/assets/js/',
+    //baseUrl: staticPath + 'paidRead/assets/js/',
+    waitSeconds: 0,
+    paths: {
+        jquery: 'jquery/jquery.1.7.2.min',
+        jqueryMousewheel: 'jquery.mousewheel',
+        common: 'play/p.common.min',
+        underscore: 'underscore/underscore.1.8.3.min',
+        base: 'base',
+        tabFn: 'tabFn',
+        pin: 'play/jquery.pin',
+        buy: 'play/sr.buy',
+        scroll: 'scroll',
+        ScrollPic: "ScrollPic",
+        comment: 'comment'
+        // guide:"guide",
+        // task:"my_task"
+    },
+    shim: {
+        pin: {
+            deps: ['jquery'],
+            exports: 'jQuery.fn.pin'
+        },
+        buy: {
+            deps: ['common']
+        },
+        common: {
+            deps: ['jquery'],
+            exports: 'SMK'
+        }
+    },
+
+    urlArgs: 'version=42'
+     //urlArgs: 'version='+(+new Date())
+
+}

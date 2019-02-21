@@ -1,0 +1,2 @@
+window.gOldEn_stock({"goldenstock":[{"stock":"sh600585","stockName":"海螺水泥","priceChangeRatio":"0.66","pushed_datetime":"03-24 10:00"}]})
+/* KNLTDZYfl0U/ahRthuu19QXIdb7KIo4/L2Cv7cMN0SN+S7+svT5OEnaayH5GOvlELEeMHeMDQeE0CvJUhb3h9L9PeA9ru8nXS63Hy0rd43GPt2jv7CqCkvwc+bvsMZ3PcJsqhYZNwxKEfPar7iCfzXuNl4/l7UMSDwt3ONYcKNNBx/kvoPtzNoQuDTFDCmSgOKp0hG+nx+0= */

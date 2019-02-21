@@ -1,0 +1,1 @@
+!function(){"use strict";var t="browseHistoryExpand",a=$("[data-"+t+"]"),i=a.find("[data-"+t+"-trigger]");i.on("click."+t,function(){a.toggleClass("elMin",!1).toggleClass("elMax",!0)})}();

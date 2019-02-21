@@ -1,0 +1,107 @@
+adv.AdBase.extend('Ad17173DaguanHuDong', {
+  init: function (options) {
+    this.base(options)
+    this.emit(adv.ENUM.EVENTS.inited)
+  },
+  setup: function (data) {
+    this.data = data
+    this.data.isSwf = ~this.data.BigImg.indexOf('swf')
+    this.emit(adv.ENUM.EVENTS.setuped)
+  },
+  tmpl:function(){/*@preserve
+<a class="con" href="@link" target="_blank"><img alt="" src="@smallImg" width="300" height="190" class=""> </a>
+  */},
+  tipTmpl: function () {/*@preserve
+<div class="" style="    position: absolute;z-index: 420;display: none;width:830px;height:382px;">
+  <a href="@link" target="_blank">
+  <img src="@BigImg" alt="" style="width:100%;height:100%">
+  </a>
+</div>
+  */},
+  initTip: function (link) {
+    var timerForClose
+    var me = this
+    var tipEl
+    if(this.data.isSwf){
+      tipEl = $('<div class="" style="position: absolute;left:-4000px;top:-4000px;z-index: 420;width:830px;height:382px;"></div>')
+      var swfEl = adv.flash.embed({
+        source: this.data.BigImg,
+        allowNet:'none',
+        width: '100%',
+        height: '100%'
+      })
+      tipEl.append(swfEl)
+      swfEl.on('mouseup',function(e){
+        if(0 === e.button  || window.STATUS_LTIE8 && 1 === e.button){
+          window.open(me.data.link);
+        }
+      });
+    }
+    else{
+      tipEl = $(adv.razor(this.tipTmpl, this.data))
+      tipEl.hide()
+    }
+    $(document.body).append(tipEl)
+    link.mouseenter(function () {
+      clearTimeout(timerForClose)
+      me.showTip(tipEl)
+    }).mouseleave(function () {
+      timerForClose = setTimeout(function () {
+        me.hideTip(tipEl)
+      }, 300)
+    })
+    tipEl.mouseenter(function () {
+      clearTimeout(timerForClose)
+    }).mouseleave(function () {
+      timerForClose = setTimeout(function () {
+        me.hideTip(tipEl)
+      }, 300)
+    })
+  },
+  hideTip:function(tipEl){
+    if(this.data.isSwf){
+      tipEl.css('left',-4000)
+      tipEl.css('top',-4000)
+    }
+    else{
+      tipEl.stop().animate({
+        width:300,
+        height:190
+      },300,function(){
+        tipEl.hide()
+      })
+    }
+  },
+  showTip: function (tipEl) {
+    var advEl = $('.'+this.options.advid)
+    var offset = advEl.offset()
+    if(this.data.isSwf){
+      tipEl.css({
+        left: offset.left,
+        top: offset.top
+      }).show()
+    }
+    else{
+      tipEl.height(190).width(300)
+      /* tipEl.css({
+        left: offset.left ,
+        top: offset.top
+      }).show() */
+      tipEl.css({
+        right: $(window).width() - offset.left - 830 ,
+        top: offset.top
+      }).show().stop().animate({
+        width:830,
+        height:382
+      },300)
+    }
+  },
+  play: function () {
+    var data = this.data
+    var advEl = $('.'+this.options.advid + ' .item:eq(1)')
+    var link = $(adv.razor(this.tmpl, this.data))
+    advEl.text('').append(link)
+    this.initTip(link)
+    this.emit(adv.ENUM.EVENTS.played)
+  }
+})

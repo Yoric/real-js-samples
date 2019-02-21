@@ -1,0 +1,1 @@
+function popupLoginAndReloadTarget(c,b){var a=c+"/popupLogin.help?tgtype="+b;var d=c+"/authenticate.help?authType=popup&eurl="+a;window.open(d,"popLoginWin","width=390, height=220")};

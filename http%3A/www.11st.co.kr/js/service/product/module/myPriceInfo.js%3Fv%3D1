@@ -1,0 +1,108 @@
+/**
+ * @method: myPriceInfo : 맞춤가 정보
+ * @dependency: requireJS, jQuery
+ */
+(function(root, factory) {
+	'use strict';
+    if (typeof define === 'function' && define.amd) {
+        define([
+            'jquery'
+        ], factory);
+    } else {
+        root.myPriceInfo = factory(
+            root.jQuery
+        );
+    }
+}(window || this, function($) {
+	'use strict';
+	var myPriceInfo = {
+		
+		enableSearch : true,
+		
+		skMemberDscRt : 0,
+		
+		pluYN : "N",
+		
+		totalAddCompPrc : 0,
+		
+		basicInfo : null,
+		
+		currentInfo : null,
+		
+		isApplicableMyPrice : function(){
+			return shockDeal.isShockingDealPrdYn == "Y" && funcCheckIsLogin() && isSwitchMyPrice && isSwitchMyPricePc;
+		},
+		
+		openMyPriceDetailPopup : function(type){
+			var isOpen = false;
+			var $form = $('<form></form>');
+			if(type == "final" && this.currentInfo){
+				this.addInput($form, "totalAmount", productPrice.ordPrdCnt);
+				for(var v in this.currentInfo){
+					this.addInput($form, v, this.currentInfo[v]);
+				}
+
+				isOpen = true;
+			}else if(type == "basic" && this.basicInfo){
+				this.addInput($form, "totalAmount", 1);
+				for(var v in this.basicInfo){
+					this.addInput($form, v, this.basicInfo[v]);
+				}
+
+				isOpen = true;
+			}
+
+			if(isOpen){
+				var dummyPop;
+				try{
+					dummyPop = window.open("", "dummyPop", "top=10,left=20,width=435,height=595,scrollbars=yes,status=yes");
+				}catch(e){
+					alert("이미 다른 상품의 고객 맞춤가 상세 정보 팝업이 열려있습니다.");
+					return;
+				}
+
+				$form.hide();
+				$form.attr('action', 'http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getMyPriceDetailPopup');
+				$form.attr('method', 'post');
+				$form.attr('target', 'dummyPop');
+				$form.appendTo('body');
+				$form.submit();
+				$form.remove();
+
+				dummyPop.focus();
+			}
+		},
+		
+		addInput : function (fm,nm,vu){
+			if(nm == "bonusCupnList" && typeof vu === "object" && vu.length > 0){
+				var optionCnt = 0;
+				for(var idx=0; idx<vu.length; idx++){
+					if(vu[idx].couponName == "" || vu[idx].couponName == null) continue;
+
+					var input = $('<input type="hidden">');
+					input.attr("name", "couponName");
+					input.attr("value", vu[idx].couponName);
+					fm.append(input);
+					if($("#stckNo_"+vu[idx].optNo) && $("#stckNo_"+vu[idx].optNo).html()){
+						optionCnt++;
+						var input = $('<input type="hidden">');
+						input.attr("name", "optionName");
+						input.attr("value", $("#stckNo_"+vu[idx].optNo).html()+" ("+optionSelect.getStckQtyByPrdStckNo(vu[idx].optNo)+"개)");
+						fm.append(input);
+					}
+				}
+				var input = $('<input type="hidden">');
+				input.attr("name", "optionCnt");
+				input.attr("value", optionCnt);
+				fm.append(input);
+			}else{
+				var input = $('<input type="hidden">');
+				input.attr("name", nm);
+				input.attr("value", vu);
+				fm.append(input);
+			}
+			return fm;
+		}
+	};
+	return myPriceInfo;
+}));

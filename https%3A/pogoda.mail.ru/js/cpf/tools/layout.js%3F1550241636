@@ -1,0 +1,105 @@
+/**
+ * Процедуры для получения геометрических параметров окна и элементов.
+ * Created by a.koperskiy on 24.05.15.
+ */
+(function ($, window, cpf) {
+	'use strict';
+	// var body = document.body;
+	var docElem = document.documentElement;
+
+	function getBody () {
+		return document.body;
+	}
+
+	/**
+	 * Возвращает значение вертикального и горизонтального скрола.
+	 * @private
+	 * @param {HTMLElement|jQuery.Wrapper} [elem] Элемент, для которого вычисляется значение скрола.
+	 *   Если не указан, вычисляется скролл окна.
+	 * @returns {object}
+	 */
+	function getScroll (elem) {
+		var scroll = {top: 0, left: 0};
+
+		if (elem && typeof elem.get === 'function' && typeof elem.eq === 'function') {
+			elem = elem.get(0);
+		}
+		if (elem === document.body || !elem) {
+			scroll.top = window.pageYOffset || docElem.scrollTop || getBody().scrollTop;
+			scroll.left = window.pageXOffset || docElem.scrollLeft || getBody().scrollLeft;
+		} else {
+			scroll.top = elem.scrollTop;
+			scroll.left = elem.scrollLeft;
+		}
+		return scroll;
+	}
+
+	/**
+	 * Устанавливает значение вертикального и горизонтального скрола.
+	 * @private
+	 * @param {object} scroll Значение скрола.
+	 * @param {number} scroll.top
+	 * @param {number} scroll.left
+	 * @param {HTMLElement|jQuery.Wrapper} [elem] Элемент, для которого устанавливается скрол.
+	 *   Если не указан, устонавливается скролл окна.
+	 */
+	function setScroll (scroll, elem) {
+		if (!scroll) {
+			return;
+		}
+		var body = getBody();
+
+		if (elem && typeof elem.get === 'function' && typeof elem.eq === 'function') {
+			elem = elem.get(0);
+		}
+
+		if (!isNaN(scroll.top)) {
+			if (!elem || elem === body) {
+				docElem.scrollTop = body.scrollTop = scroll.top;
+			} else {
+				elem.scrollTop = scroll.top;
+			}
+		}
+
+		if (!isNaN(scroll.left)) {
+			if (!elem || elem === body) {
+				docElem.scrollLeft = body.scrollLeft = scroll.left;
+			} else {
+				elem.scrollLeft = scroll.left;
+			}
+		}
+	}
+
+	/**
+	 * Возвращает размер элемента и позицию относительно верхнего левого угла окна.
+	 * В Opera 12 не ребатает, если элемент имеет css-свойство display: inline или inline-block.
+	 * @param {HTMLElement|jQuery.Wrapper} elem
+	 * @returns {Object}
+	 */
+	function getClientRect (elem) {
+		if (typeof elem.get === 'function' && typeof elem.eq === 'function') {
+			elem = elem.get(0);
+		}
+		var bounds = elem.getBoundingClientRect();
+
+		// Сделать копию объекта, поскольку он имеет особенности в разных версиях IE
+		// и в современных браузерах: где-то immutable, где-то свойства предоставляются
+		// через прототип. IE 8 не предоставляет width и height.
+		return {
+			left: bounds.left,
+			top: bounds.top,
+			width: bounds.width || $(elem).width(),
+			height: bounds.height || $(elem).height()
+		}
+	}
+
+	cpf.Basic.Extend(true, cpf, {
+		Tools: {
+			Layout: {
+				getScroll: getScroll,
+				setScroll: setScroll,
+				getClientRect: getClientRect
+			}
+		}
+	});
+}(this.jQuery || this.$ || this.$f, this, this.ru.mail.cpf));

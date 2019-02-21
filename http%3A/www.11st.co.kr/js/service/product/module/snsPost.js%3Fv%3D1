@@ -1,0 +1,85 @@
+/**
+ * @method: SNS POST- snsPost
+ * @dependency: requireJS, jQuery, Kakao
+ */
+(function(root, factory) {
+	'use strict';
+    if (typeof define === 'function' && define.amd) {
+        define([
+            'jquery',
+            'kakao'
+        ], factory);
+    } else {
+        root.snsPost = factory(
+            root.jQuery,
+            root.kakao
+        );
+    }
+}(window || this, function($, Kakao) {
+	'use strict';
+	var prdVar = productPrdInfo;
+	
+    var snsPost = {
+    		
+		facebook : function() {
+			var link = 'http://www.facebook.com/sharer/sharer.php?u=http%3A%2F%2Fwww.11st.co.kr%2Fproduct%2FSellerProductDetail.tmall%3Fmethod%3DgetSellerProductDetail%26prdNo%3D' + encodeURIComponent( prdVar.prdNo );
+			var popwin = window.open( link );
+			if(popwin) popwin.focus();
+		},
+		
+		twitter : function( ) {
+			postArticle('twitter', prdVar.prdNo);
+		},
+		
+		kakaostory : function() {
+			Kakao.Story.share({
+				url : "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo="+ encodeURIComponent( prdVar.prdNo ),
+				text : "[11번가] "+ prdVar.prdNm + " http://11st.kr/QR/P/" + prdVar.prdNo
+			});	
+		},
+
+		copyurl  : function() {
+			var url = $("#prd_url").val();
+			var agent = navigator.userAgent.toLowerCase();
+			if (agent.indexOf("trident") != -1 || agent.indexOf("msie") != -1) {
+				window.clipboardData.setData("Text", url);
+				alert("주소가 복사되었습니다.\n원하는 곳에 붙여넣기(Ctrl+V)해주세요");
+			} else {
+				prompt("Ctrl+C를 눌러 클립보드로 복사하세요", url);
+			}
+		},
+				
+		init : function() {
+
+			var _this = this;
+
+			// 페이스북 공유
+			$('.sns_type .facebook').on('click', function(e) {
+				_this.facebook();
+				$(window).trigger("callGaEvent","0;6;페이스북 공유하기");
+				return false;
+			});
+			// 트위터 공유
+			$('.sns_type .twitter').on('click', function(e) {
+				_this.twitter();
+				$(window).trigger("callGaEvent","0;6;트위터 공유하기");
+				return false;
+			});
+			// 카카오스토리 공유
+			Kakao.init('.sns_type .kakao');
+			$('.sns_type .kakao').on('click', function(e) {
+				_this.kakaostory();
+				$(window).trigger("callGaEvent","0;6;카카오스토리 공유하기");
+				return false;
+			});
+			// URL 복사
+			$('.sns_url .sbtn_lay').on('click', function(e) {
+				_this.copyurl();
+				$(window).trigger("callGaEvent","0;6;url 복사하기");
+				return false;
+			});		
+		}
+	};
+
+	return snsPost;
+}));

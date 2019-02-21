@@ -1,0 +1,2183 @@
+function page$Redi$ectionUrl(){
+    var getPage$URl=location.href;
+    if(((getPage$URl.indexOf('/i/') > -1) && (getPage$URl.indexOf('ur-lp') > -1)) || ((getPage$URl.indexOf('/i/') > -1) && (getPage$URl.indexOf('students-and-graduates') > -1)) || ((getPage$URl.indexOf('/i/') > -1) && (getPage$URl.indexOf('universityinternship') > -1)) || ((getPage$URl.indexOf('/i/') > -1) && (getPage$URl.indexOf('exploremicrosoftprogram') > -1)) || ((getPage$URl.indexOf('/i/') > -1) && (getPage$URl.indexOf('phdandresearch') > -1)) || ((getPage$URl.indexOf('/i/') > -1) && (getPage$URl.indexOf('machprogram') > -1)) || ((getPage$URl.indexOf('/i/') > -1) && (getPage$URl.indexOf('highschoolprogram') > -1)) || ((getPage$URl.indexOf('/i/') > -1) && (getPage$URl.indexOf('scholarshipprogram') > -1))){
+        var Redirect$mainUrl=phApp.baseUrl;
+        location.href=Redirect$mainUrl + "404";
+    }
+}
+page$Redi$ectionUrl();
+var ph$Msft$Custom = ph$Msft$Custom || {};
+(function(oGlobal){
+    oGlobal.oMenuOptions = {};
+    oGlobal.handleMultiLanguageCookieBanner = function(){
+        var getUser="";
+        var getCookies=document.cookie.split(';');
+        for (i=0;i<getCookies.length;i++){
+            if(getCookies[i].indexOf('phM$ftl$ngu$ge') != -1 ){
+                getUser=getCookies[i].split('=')[1];
+                break;
+            }
+        }
+        if(getUser == ""){
+            var data = {
+                menu: [{
+                    ref_no:1,
+                    dis_name: "Austria",
+                    language_name:"German",
+                    local_code:"GER",
+                    lang_attr:'de',
+                    learn_more: "Erfahren Sie mehr",
+                    close_text: "Schließen",
+                    value_en: "I agree that this page uses cookies for analysis, personalized content and advertising. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"Ich stimme zu, dass diese Seite Cookies für Analysen, personalisierten Inhalt und Werbung verwendet. <a href='http://www.microsoft.com/privacystatement/de-at/EUCookiecompliance/Default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Erfahren Sie mehr' role='link'>Erfahren Sie mehr</a>."
+                },{
+                    ref_no:2,
+                    dis_name: "Belgium",
+                    language_name:"Dutch",
+                    local_code:"DUT",
+                    lang_attr:'nl',
+                    learn_more: "Lees meer",
+                    close_text: "Sluiten",
+                    value_en: "By visiting and using this site, you consent to the placing of cookies by Microsoft and its partners. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"Door het bezoek en gebruik van deze site geeft u toestemming voor het plaatsen van cookies door Microsoft en haar partners. <a href='http://www.microsoft.com/privacystatement/nl-be/EUCookiecompliance/Default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Lees meer' role='link'>Lees meer</a>."
+                },{
+                    ref_no:3,
+                    dis_name: "Belgium",
+                    language_name:"French",
+                    lang_attr:'fr',
+                    learn_more: "En savoir plus",
+                    close_text: "Fermer",
+                    local_code:"FRE",
+                    value_en: "By using this site, you allow cookies for purposes of analysis, relevance and advertising. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"En utilisant ce site, vous autorisez les cookies à des fins d'analyse, de pertinence et de publicité. <a href='http://www.microsoft.com/privacystatement/fr-be/EUCookiecompliance/Default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='En savoir plus' role='link'>En savoir plus</a>."
+                    },{
+                    ref_no:4,
+                    dis_name: "Bulgaria",
+                    language_name:"Bulgarian",
+                    learn_more: "Научете повече",
+                    lang_attr:'bg',
+                    close_text: "Изход",
+                    local_code:"BUL",
+                    value_en: "I agree this site uses cookies for the Analytics, customized content and advertising. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"Съгласен съм този сайт да използва „бисквитките” за анализ, персонализирано съдържание и реклама. <a href='http://www.microsoft.com/privacystatement/bg-bg/EUCookiecompliance/Default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Научете повече' role='link'>Научете повече</a>."
+                },{
+                    ref_no:5,
+                    dis_name: "Croatia",
+                    language_name:"Croatian",
+                    local_code:"CRO",
+                    lang_attr:'hr',
+                    learn_more: "Saznajte više",
+                    close_text: "Zatvori",
+                    value_en: "I agree this site uses cookies for the Analytics, customized content and advertising. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"Slažem se da ovo web-mjesto upotrebljava kolačiće za analizu, personalizirane sadržaje i oglase. <a href='http://www.microsoft.com/privacystatement/hr-hr/EUCookiecompliance/Default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Saznajte više' role='link'>Saznajte više</a>."
+                },{
+                    ref_no:6,
+                    dis_name: "Cyprus",
+                    language_name:"English",
+                    lang_attr:'en',
+                    learn_more: "Learn more",
+                    close_text: "close",
+                    local_code:"ENG",
+                    value_en: "This site uses cookies for analytics, personalized content and ads. By continuing to browse this site, you agree to this use. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"This site uses cookies for analytics, personalized content and ads. By continuing to browse this site, you agree to this use. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>."
+                },{
+                    ref_no:7,
+                    dis_name: "Cyprus",
+                    language_name:"Greek",
+                    learn_more: "Μάθετε περισσότερα",
+                    close_text: "Κλείσιμο",
+                    local_code:"GRE",
+                    lang_attr:'el',
+                    value_en: "With your visit to the site, you consent to the use of cookies for content, stats and ads. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"Με την πλoήγηση στο site, συναινείτε στη χρήση cookies για περιεχόμενο, στατιστικά και διαφημίσεις. <a href='http://www.microsoft.com/privacystatement/en-ie/EUCookiecompliance/Default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Μάθετε περισσότερα' role='link'>Μάθετε περισσότερα</a>."
+                },{
+                    ref_no:8,
+                    dis_name: "Czech Republic",
+                    language_name:"Czech",
+                    learn_more: "Další informace",
+                    close_text: "Zavřít",
+                    local_code:"CZ",
+                    lang_attr:'cs',
+                    value_en: "By using this site you agree to the use of cookies for analytics, customized content and advertising. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"Používáním tohoto webu souhlasíte s použitím cookies pro analýzy, přizpůsobený obsah a reklamy. <a href='http://www.microsoft.com/privacystatement/cs-cz/EUCookiecompliance/Default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Další informace' role='link'>Další informace</a>."
+                },{
+                    ref_no:9,
+                    dis_name: "Denmark",
+                    language_name:"Danish",
+                    learn_more: "Lær mere",
+                    close_text: "Luk",
+                    lang_attr:'da',
+                    local_code:"DAN",
+                    value_en: "By use of this site you approve of using cookies for analysis, personalization of content and ads. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"Ved brug af dette site godkendes brug af cookies til analyse, personalisering af indhold og annoncer. <a href='http://www.microsoft.com/privacystatement/da-dk/EUCookiecompliance/Default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Lær mere' role='link'>Lær mere</a>."
+                },{
+                    ref_no:10,
+                    lang_attr:'et',
+                    dis_name: "Estonia",
+                    language_name:"Estonian",
+                    learn_more: "Loe lisaks",
+                    close_text: "Sulge",
+                    local_code:"EST",
+                    value_en: "You agree to the pages using cookies for analysis, personalized content and advertising. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"Lehekülge kasutades nõustute küpsistega analüüsi, isikustatud sisu ja reklaami näitamise tarveks. <a href='http://www.microsoft.com/privacystatement/et-ee/EUCookiecompliance/Default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Loe lisaks' role='link'>Loe lisaks</a>."
+                },{
+                    ref_no:11,
+                    lang_attr:'fi',
+                    dis_name: "Finland",
+                    language_name:"Finnish",
+                    learn_more: "Lisätietoja",
+                    close_text: "Sulje",
+                    local_code:"FIN",
+                    value_en: "By using the site, you consent to our use of cookies for analytics, custom content and ads. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"Käyttämällä sivustoa hyväksyt evästeiden käytön analytiikkaan, muokattuun sisältöön ja mainoksiin. <a href='http://www.microsoft.com/privacystatement/FI-FI/EUCookiecompliance/default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Lisätietoja' role='link'>Lisätietoja</a>."
+                },{
+                    ref_no:12,
+                    lang_attr:'fr',
+                    dis_name: "France",
+                    language_name:"French",
+                    learn_more: "En savoir plus",
+                    close_text: "Fermer",
+                    local_code:"FRE",
+                    value_en: "By using this site, you allow cookies for purposes of analysis, relevance and advertising. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"En utilisant ce site, vous autorisez les cookies à des fins d'analyse, de pertinence et de publicité. <a href='http://www.microsoft.com/privacystatement/fr-fr/eucookiecompliance/default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='En savoir plus' role='link'>En savoir plus</a>."
+                },{
+                    ref_no:13,
+                    lang_attr:'de',
+                    dis_name: "Germany",
+                    language_name:"German",
+                    learn_more: "Erfahren Sie mehr",
+                    close_text: "Schließen",
+                    local_code:"GER",
+                    value_en: "This page uses cookies for analysis, personalized content and advertising. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"Diese Seite verwendet Cookies für die Analyse, personenbezogene Inhalte und Werbung. <a href='http://www.microsoft.com/privacystatement/de-de/eucookiecompliance/default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Erfahren Sie mehr' role='link'>Erfahren Sie mehr</a>."
+                },{
+                    ref_no:14,
+                    lang_attr:'el',
+                    dis_name: "Greece",
+                    language_name:"Greek",
+                    learn_more: "Μάθετε περισσότερα",
+                    close_text: "Κλείσιμο",
+                    local_code:"GRE",
+                    value_en: "With your visit to the site, you consent to the use of cookies for content, stats and ads. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"Με την πλoήγηση στο site, συναινείτε στη χρήση cookies για περιεχόμενο, στατιστικά και διαφημίσεις. <a href='http://www.microsoft.com/privacystatement/el-gr/EUCookiecompliance/Default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Μάθετε περισσότερα' role='link'>Μάθετε περισσότερα</a>."
+                },{
+                    ref_no:15,
+                    lang_attr:'hu',
+                    dis_name: "Hungary",
+                    language_name:"Hungarian",
+                    learn_more: "Tudjon meg többet",
+                    close_text: "Bezár",
+                    local_code:"HUN",
+                    value_en: "You accept the use of cookies for analytics, personalized content and advertisements. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"Elfogadja a sütik analízis, személyes tartalom és reklámok érdekében való használatát. <a href='http://www.microsoft.com/privacystatement/hu-hu/EUCookiecompliance/Default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Tudjon meg többet' role='link'>Tudjon meg többet</a>."
+                },{
+                    ref_no:16,
+                    lang_attr:'is',
+                    dis_name: "Iceland",
+                    language_name:"Icelandic",
+                    learn_more: "Frekari upplýsingar",
+                    close_text: "Loka",
+                    local_code:"ICE",
+                    value_en: "By using the website you agree to the use of cookies for analytics and personalization and advertising. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"Með því að nota vefsvæðið samþykkir þú notkun á kökum við greiningu og sérsnið og fyrir auglýsingar. <a href='http://www.microsoft.com/privacystatement/is-is/EUCookiecompliance/Default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Frekari upplýsingar' role='link'>Frekari upplýsingar</a>."
+                },{
+                    ref_no:17,
+                    lang_attr:'en',
+                    dis_name: "Ireland",
+                    language_name:"English",
+                    learn_more: "Learn More",
+                    close_text: "close",
+                    local_code:"ENG",
+                    value_en: "This site uses cookies for analytics, personalized content and ads. By continuing to browse this site, you agree to this use. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"This site uses cookies for analytics, personalized content and ads. By continuing to browse this site, you agree to this use. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>."
+                },{
+                    ref_no:18,
+                    lang_attr:'ga',
+                    dis_name: "Ireland",
+                    language_name:"Gaelic",
+                    learn_more: "Foghlaim Tuilleadh",
+                    close_text: "Dún",
+                    local_code:"GAE",
+                    value_en: "By using this site, you agree to use cookies for analytics, relevance and advertisements. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"Tríd an suíomh seo a úsáid, aontaíonn tú le húsáid chuach d’anailísíocht, ábharthacht agus fógraí. <a href='http://www.microsoft.com/privacystatement/ga-ie/EUCookiecompliance/Default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Foghlaim Tuilleadh' role='link'>Foghlaim Tuilleadh</a>."
+                },{
+                    ref_no:19,
+                    lang_attr:'it',
+                    dis_name: "Italy",
+                    language_name:"Italian",
+                    learn_more: "Ulteriori informazioni",
+                    close_text: "Chiudi",
+                    local_code:"IT",
+                    value_en: "By using the site you accept the use of cookies for personalized results, analysis and advertising. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"Utilizzando il sito si accetta l’uso di cookies per analisi, risultati personalizzati e pubblicità. <a href='http://www.microsoft.com/privacystatement/it-it/eucookiecompliance/default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Ulteriori informazioni' role='link'>Ulteriori informazioni</a>."
+                },{
+                    ref_no:20,
+                    lang_attr:'lv',
+                    dis_name: "Latvia",
+                    language_name:"Latvian",
+                    learn_more: "Uzzināt vairāk",
+                    close_text: "Aizvērt",
+                    local_code:"LV",
+                    value_en: "By using this site, you agree to the use of cookies for analytics, personalized content and advertising. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"Izmantojot šo vietni, jūs piekrītat sīkfailu izmantošanai analītikai, pers. saturam un reklāmai. <a href='http://www.microsoft.com/privacystatement/lv-lv/EUCookiecompliance/Default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Uzzināt vairāk' role='link'>Uzzināt vairāk</a>."
+                },{
+                    ref_no:21,
+                    lang_attr:'de',
+                    dis_name: "Liechtenstein",
+                    language_name:"German",
+                    learn_more: "Erfahren Sie mehr",
+                    close_text: "Schließen",
+                    local_code:"GER",
+                    value_en: "I agree that this page uses cookies for analysis, personalized content and advertising. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"Ich stimme zu, dass diese Seite Cookies für Analysen, personalisierten Inhalt und Werbung verwendet. <a href='http://www.microsoft.com/privacystatement/de-de/eucookiecompliance/default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Erfahren Sie mehr' role='link'>Erfahren Sie mehr</a>."
+                },{
+                    ref_no:22,
+                    lang_attr:'lt',
+                    dis_name: "Lithuania",
+                    language_name:"Lithuanian",
+                    learn_more: "Sužinokite daugiau",
+                    close_text: "Uždaryti",
+                    local_code:"LT",
+                    value_en: "By opening up the site, you agree to accept cookies for analysis, customized content and advertising purposes. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"Atverdami svetainę, sutinkate priimti slapukus analizės, pritaikyto turinio ir reklamos tikslais. <a href='http://www.microsoft.com/privacystatement/lt-lt/EUCookiecompliance/Default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Sužinokite daugiau' role='link'>Sužinokite daugiau</a>."
+                },{
+                    ref_no:23,
+                    lang_attr:'fr',
+                    dis_name: "Luxembourg",
+                    language_name:"French",
+                    learn_more: "En savoir plus",
+                    close_text: "Fermer",
+                    local_code:"FRE",
+                    value_en: "By using this site, you allow cookies for purposes of analysis, relevance and advertising. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"En utilisant ce site, vous autorisez les cookies à des fins d'analyse, de pertinence et de publicité. <a href='http://www.microsoft.com/privacystatement/fr-lu/EUCookiecompliance/Default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='En savoir plus' role='link'>En savoir plus</a>."
+                },{
+                    ref_no:24,
+                    lang_attr:'de',
+                    dis_name: "Luxembourg",
+                    language_name:"German",
+                    learn_more: "Erfahren Sie mehr",
+                    close_text: "Schließen",
+                    local_code:"GER",
+                    value_en: "I agree that this page uses cookies for analysis, personalized content and advertising. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"Ich stimme zu, dass diese Seite Cookies für Analysen, personalisierten Inhalt und Werbung verwendet. <a href='http://www.microsoft.com/privacystatement/de-de/eucookiecompliance/default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Erfahren Sie mehr' role='link'>Erfahren Sie mehr</a>."
+                },{
+                    ref_no:25,
+                    lang_attr:'mt',
+                    dis_name: "Malta",
+                    language_name:"Maltese",
+                    learn_more: "Tgħallem iżjed",
+                    close_text: "Għalaq",
+                    local_code:"MT",
+                    value_en: "By using this site, you agree to the use of cookies for analytics, personal content and advertising. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"Bl-użu tas-sit, inti taqbel ma’ l-użu ta' cookies għall-analytics, kontenut personali u riklamar. <a href='http://www.microsoft.com/privacystatement/mt-mt/EUCookiecompliance/Default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Tgħallem iżjed' role='link'>Tgħallem iżjed</a>."
+                },{
+                    ref_no:26,
+                    lang_attr:'nl',
+                    dis_name: "Netherlands",
+                    language_name:"Dutch",
+                    learn_more: "Lees meer",
+                    close_text: "Sluiten",
+                    local_code:"NL",
+                    value_en: "By visiting and using this site, you consent to the placing of cookies by Microsoft and its partners. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"Door het bezoek en gebruik van deze site geeft u toestemming voor het plaatsen van cookies door Microsoft en haar partners. <a href='http://www.microsoft.com/privacystatement/nl-nl/eucookiecompliance/default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Lees meer' role='link'>Lees meer</a>."
+                },{
+                    ref_no:27,
+                    lang_attr:'no',
+                    dis_name: "Norway",
+                    language_name:"Norwegian",
+                    learn_more: "Lær mer",
+                    close_text: "Lukk",
+                    local_code:"NB",
+                    value_en: "By using this site you agree to the use of cookies for analytics, custom content and ads. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"Ved å bruke dette nettstedet godtar du at cookies brukes til analyse, tilpasset innhold og annonser. <a href='http://www.microsoft.com/privacystatement/nb-no/EUCookiecompliance/Default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Lær mer' role='link'>Lær mer</a>."
+                },{
+                    ref_no:28,
+                    lang_attr:'pl',
+                    dis_name: "Poland",
+                    language_name:"Polish",
+                    learn_more: "Więcej tutaj",
+                    close_text: "Zamknij",
+                    local_code:"PL",
+                    value_en: "This website uses cookies. It is possible to block them. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"Ta strona używa plików cookie. Istnieje możliwość zablokowania ich instalowania. <a href='http://www.microsoft.com/privacystatement/pl-pl/EUCookiecompliance/Default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Więcej tutaj' role='link'>Więcej tutaj</a>."
+                },{
+                    ref_no:29,
+                    lang_attr:'pt',
+                    dis_name: "Portugal",
+                    language_name:"Portuguese",
+                    learn_more: "Saber mais",
+                    close_text: "Fechar",
+                    local_code:"PT",
+                    value_en: "By using this site you accept the use of cookies for analysis, custom content and ads. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"Ao usar este site aceita a utilização de cookies para análise, conteúdo personalizado e anúncios. <a href='http://www.microsoft.com/privacystatement/pt-pt/EUCookiecompliance/Default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Saber mais' role='link'>Saber mais</a>."
+                },{
+                    ref_no:30,
+                    lang_attr:'ro',
+                    dis_name: "Romania",
+                    language_name:"Romanian",
+                    learn_more: "Detalii",
+                    close_text: "Închidere",
+                    local_code:"RO",
+                    value_en: "I accept the fact that this site uses cookies for statistics, content and personalized ads. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"Accept faptul că acest site foloseşte cookies pentru statistici, conţinut şi reclame personalizate. <a href='http://www.microsoft.com/privacystatement/ro-ro/EUCookiecompliance/Default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Detalii' role='link'>Detalii</a>."
+                },{
+                    ref_no:31,
+                    lang_attr:'sk',
+                    dis_name: "Slovakia",
+                    language_name:"Slovak",
+                    learn_more: "Viac informácií",
+                    close_text: "Zavrieť",
+                    local_code:"SK",
+                    value_en: "By using the site, you agree to the use of cookies, personalized content and advertising. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"Použitím stránky súhlasíte s využitím cookies na analýzu, prispôsobený obsah a reklamy. <a href='http://www.microsoft.com/privacystatement/sk-sk/EUCookiecompliance/Default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Viac informácií' role='link'>Viac informácií</a>."
+                },{
+                    ref_no:32,
+                    lang_attr:'sl',
+                    dis_name: "Slovenia",
+                    language_name:"Slovenian",
+                    learn_more: "Spoznaj več",
+                    close_text: "Zapri",
+                    local_code:"SL",
+                    value_en: "If you are using this site, you agree to the use of cookies for analysis, personalized content and ads. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"Če uporabljate to stran se strinjate z uporabo piškotkov za analize, prilagoditev vsebine in oglasov. <a href='http://www.microsoft.com/privacystatement/sl-si/EUCookiecompliance/Default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Spoznaj več' role='link'>Spoznaj več</a>."
+                },{
+                    ref_no:33,
+                    lang_attr:'es',
+                    dis_name: "Spain",
+                    language_name:"Spanish",
+                    learn_more: "Saber más",
+                    close_text: "Cerrar",
+                    local_code:"ES",
+                    value_en: "By using this site you accept the use of cookies for analysis, personalized content and advertising. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"Al usar este sitio acepta el uso de cookies para análisis, contenido personalizado y publicidad. <a href='http://www.microsoft.com/privacystatement/es-es/EUCookiecompliance/Default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Saber más' role='link'>Saber más</a>."
+                },{
+                    ref_no:34,
+                    lang_attr:'sv',
+                    dis_name: "Sweden",
+                    language_name:"Swedish",
+                    learn_more: "Läs mer",
+                    close_text: "Stäng",
+                    local_code:"SE",
+                    value_en: "This site uses cookies for statistics, customized content and ads. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"Denna webbplatsen använder cookies för statistik, anpassat innehåll och annonser. <a href='http://www.microsoft.com/privacystatement/sv-se/EUCookiecompliance/Default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Läs mer' role='link'>Läs mer</a>."
+                },{
+                    ref_no:35,
+                    lang_attr:'fr',
+                    dis_name: "Switzerland",
+                    language_name:"French",
+                    learn_more: "En savoir plus",
+                    close_text: "Fermer",
+                    local_code:"FRE",
+                    value_en: "By using this site, you allow cookies for purposes of analysis, relevance and advertising. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"En utilisant ce site, vous autorisez les cookies à des fins d'analyse, de pertinence et de publicité. <a href='http://www.microsoft.com/privacystatement/fr-ch/EUCookiecompliance/Default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='En savoir plus' role='link'>En savoir plus</a>."
+                },{
+                    ref_no:36,
+                    lang_attr:'de',
+                    dis_name: "Switzerland",
+                    language_name:"German",
+                    learn_more: "Erfahren Sie mehr",
+                    close_text: "Schließen",
+                    local_code:"GER",
+                    value_en: "I agree that this page uses cookies for analysis, personalized content and advertising. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"Ich stimme zu, dass diese Seite Cookies für Analysen, personalisierten Inhalt und Werbung verwendet. <a href='http://www.microsoft.com/privacystatement/de-ch/EUCookiecompliance/Default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Erfahren Sie mehr' role='link'>Erfahren Sie mehr</a>."
+                },{
+                    ref_no:37,
+                    lang_attr:'it',
+                    dis_name: "Switzerland",
+                    language_name:"Italian",
+                    learn_more: "Ulteriori informazioni",
+                    close_text: "Chiudi",
+                    local_code:"IT",
+                    value_en: "By using the site you accept the use of cookies for personalized results, analysis and advertising. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"Utilizzando il sito si accetta l’uso di cookies per analisi, risultati personalizzati e pubblicità. <a href='http://www.microsoft.com/privacystatement/it-it/eucookiecompliance/default.aspx' target='_blank' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Ulteriori informazioni' role='link'>Ulteriori informazioni</a>."
+                },{
+                    ref_no:38,
+                    lang_attr:'en',
+                    dis_name: "United Kingdom",
+                    language_name:"English",
+                    learn_more: "Learn More",
+                    close_text: "Close",
+                    local_code:"ENG",
+                    value_en: "This site uses cookies for analytics, personalized content and ads. By continuing to browse this site, you agree to this use. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>.",
+                    value_multy:"This site uses cookies for analytics, personalized content and ads. By continuing to browse this site, you agree to this use. <a href='javascript:void(0);' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='def-multy-lang-en' ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more.</a>"
+                }]
+            };
+            var str="";
+            for(var ik=0; ik<data.menu.length;ik++){
+                var menuItem=data.menu[ik];
+                // refObj[menuItem.ref_no]=menuItem;
+
+                str += "<option value=" + menuItem.dis_name + '' + menuItem.local_code +">" + menuItem.dis_name + "-" +menuItem.local_code +"</option>";
+                str1="<option value='' slected>Language</option>";
+            }
+            // oGlobal.oMenuOptions = data.menu;
+            // refObj = 
+            oGlobal.oMenuOptions = data.menu;
+            document.getElementById("multy-lang-combo").innerHTML = str1.concat(str);
+            var getParentNode=document.getElementById('multy-para-list');
+            var getCountryList=document.getElementById('multy-para-list-country');
+        }
+    };
+    oGlobal.student_location_dropdown = function(){
+        var getUrl=location.href.indexOf('/students-and-graduates');
+        if(getUrl != -1){
+            var data = {
+                menu: [{
+                    ref_no:1,
+                    location_name:"Australia & New Zealand",
+                    location_url:"ur-lp-australia"
+                },{
+                    ref_no:2,
+                    location_name:"Brazil",
+                    location_url:"ur-lp-brazil"
+                },{
+                    ref_no:3,
+                    location_name:"Canada",
+                    location_url:"ur-lp-canada"
+                },{
+                    ref_no:4,
+                    location_name:"Central & Eastern Europe",
+                    location_url:"ur-lp-central"
+                },{
+                    ref_no:5,
+                    location_name:"China, Hong Kong SAR & Taiwan",
+                    location_url:"ur-lp-china"
+                },{
+                    ref_no:6,
+                    location_name:"France",
+                    location_url:"ur-lp-france"
+                },{
+                    ref_no:7,
+                    location_name:"Germany",
+                    location_url:"ur-lp-germany"
+                },{
+                    ref_no:8,
+                    location_name:"India",
+                    location_url:"ur-lp-india"
+                },{
+                    ref_no:9,
+                    location_name:"Israel",
+                    location_url:"ur-lp-israel"
+                },
+                {
+                    ref_no:10,
+                    location_name:"Japan",
+                    location_url:"ur-lp-japan"
+                },{
+                    ref_no:11,
+                    location_name:"Korea",
+                    location_url:"ur-lp-korea"
+                },{
+                    ref_no:12,
+                    location_name:"Latin America",
+                    location_url:"ur-lp-latin-america"
+                },{
+                    ref_no:13,
+                    location_name:"Mexico",
+                    location_url:"ur-lp-mexico"
+                },{
+                    ref_no:14,
+                    location_name:"Middle East & Africa",
+                    location_url:"ur-lp-middle-east"
+                },{
+                    ref_no:15,
+                    location_name:"Southeast Asia",
+                    location_url:"ur-lp-southeast-asia"
+                },{
+                    ref_no:16,
+                    location_name:"United Kingdom",
+                    location_url:"ur-lp-united-kingdom"
+                },{
+                    ref_no:17,
+                    location_name:"United States",
+                    location_url:"ur-lp-united-states"
+                },{
+                    ref_no:18,
+                    location_name:"Western Europe",
+                    location_url:"ur-lp-western-europe"
+                }]
+            };
+            var location_str="";
+            for(var ik=0; ik<data.menu.length;ik++){
+               var menuItem=data.menu[ik];
+                // refObj[menuItem.ref_no]=menuItem;
+
+                location_str += '<option value='+'"' + menuItem.location_url +'"'+' ph-tevent="location_selector" data-ph-tevent-attr-trait144='+'"' + menuItem.location_name +'"'+'>' + menuItem.location_name +'</option>';
+                location_default="<option value='' selected>Press enter key to select location</option>";
+            }
+            // oGlobal.oMenuOptions = data.menu;
+            // refObj = 
+            oGlobal.oLocations = data.menu;
+            var getGetdropdown=document.getElementById("list-dropdown-pages");
+            if(getGetdropdown){
+                getGetdropdown.innerHTML = location_default.concat(location_str);
+            }
+            
+        }
+    };
+    oGlobal.comboBoxMultyLocal = function(){
+        document.getElementById('multy-lang-combo').addEventListener('change',function(e){
+            var ptagsContainer=document.getElementById('multy-para-list'); 
+            ptagsContainer.innerHTML="";
+            var seletedValue = e.target.selectedIndex -1;
+            var getCountryList=document.getElementById('multy-para-list-country');
+            getCountryList.innerHTML="";
+            var getBetabannerEng=document.querySelector('.ref-class');
+            var getSelectEng=document.querySelector('.new-p-group');
+            var geturl=phApp.baseDomain;
+            // var geturl=location.href;
+            // var getSplitArray=geturl.split('/us/en');
+            // var getArrayUrl=getSplitArray[0];
+            var setVal="/us/en/privacyandcookies";
+            var concatinatedUrl=geturl.concat(setVal);    
+            if(oGlobal.oMenuOptions && seletedValue>=0){
+                var selectedItem = oGlobal.oMenuOptions[seletedValue];
+                if(selectedItem.local_code == "ENG"){
+                    var creat_para_en=document.createElement("p");
+                    creat_para_en.setAttribute('lang',selectedItem.lang_attr);
+                    creat_para_en.setAttribute('id','multy-lang-en');
+                    ptagsContainer.appendChild(creat_para_en);
+                    var multyLangPara=document.getElementById("multy-lang-en")
+                    document.getElementById("multy-lang-en").innerHTML = selectedItem.value_en;
+                    var getAnchorTagMultyLangdefault=document.getElementById('def-multy-lang-en');
+                    getAnchorTagMultyLangdefault.setAttribute('href',concatinatedUrl);
+                    if(getSelectEng.classList.contains('adding-bottom') == false){
+                        getSelectEng.classList.add('adding-bottom');
+                    } 
+                    
+                }else{
+                    var creat_para_en=document.createElement("p");
+                    creat_para_en.setAttribute('lang','en');
+                    creat_para_en.setAttribute('id','multy-lang-en');
+                    var creat_para_multy=document.createElement("p");
+                    creat_para_multy.setAttribute('lang',selectedItem.lang_attr);
+                    creat_para_multy.setAttribute('id','multy-lang-Other');
+                    ptagsContainer.appendChild(creat_para_en);
+                    getCountryList.appendChild(creat_para_multy);                   
+                    document.getElementById("multy-lang-en").innerHTML = selectedItem.value_en;
+                    var getAnchorTagMultyLangdefault=document.getElementById('def-multy-lang-en');
+                    getAnchorTagMultyLangdefault.setAttribute('href',concatinatedUrl);
+                    document.getElementById("multy-lang-Other").classList.add('gap-top');
+                    document.getElementById("multy-lang-Other").innerHTML = selectedItem.value_multy;
+                    if(getSelectEng.classList.contains('adding-bottom') == true){
+                        getSelectEng.classList.remove('adding-bottom');
+                    }
+                }        
+            }else if(seletedValue == -1){
+                var creat_para_def=document.createElement("p");
+                creat_para_def.innerHTML="This site uses cookies for analytics, personalized content and ads. By continuing to browse this site, you agree to this use. <a ph-href='privacyandcookies' target='_blank' aria-label='Learn more about cookies and Microsoft Privacy policy opens in a new tab' id='default-link'  ph-tevent='goto_click' data-ph-tevent-attr-trait256='Learn more' role='link'>Learn more</a>."
+                creat_para_def.setAttribute('id','multy-lang-def');
+                creat_para_def.setAttribute('lang','en');
+                ptagsContainer.appendChild(creat_para_def);
+                var getAnchorTagdefault=document.getElementById('default-link');                     
+                getAnchorTagdefault.setAttribute('href',concatinatedUrl);
+                if(getSelectEng.classList.contains('adding-bottom') == true){
+                    getSelectEng.classList.remove('adding-bottom');
+                }
+            }
+        });
+    };
+    oGlobal.redirect_Fun_travelpolacy_page = function(){
+        if(document.getElementById('travelPolicy')){
+            document.getElementById('travelPolicy').addEventListener('click',function(){
+                if(document.referrer.endsWith('actravelrequest')==true){
+                    var getPath=location.href;
+                    var setPath=getPath.replace('actravelpolicy','actravelrequest');
+                    this.setAttribute('href',setPath);
+                }else{
+                    var getPath=location.href;
+                    var setPath=getPath.replace('actravelpolicy','acexpensereimbursement');
+                    this.setAttribute('href',setPath);
+                }
+            });
+        }
+    };
+    oGlobal.setHIdeClass=function(setTimer){
+        setTimeout(function(){
+            var getArrow=document.querySelector('header .nav-arrow-right');
+            if(getArrow){
+                getArrow.classList.add('hide');
+            }else{
+                oGlobal.setHIdeClass(100);
+            }
+        },setTimer);
+    }
+    // code for search result page facets check box
+    // oGlobal.checkBox_Onchange_Announce = function(){
+        //     if (window.navigator.userAgent < -1 || !!navigator.userAgent.match(/Trident.*rv\:11\./) == false){
+        //         var getAnnounceEle=document.getElementById('jobsview');      
+        //         var setValue;
+        //         if (navigator.userAgent.search("Chrome") != -1) {
+        //             var setValue=3000;
+        //         }else if (navigator.userAgent.search("Firefox") != -1) {
+        //             var setValue=3000;
+        //         }else if (navigator.userAgent.search("Safari") != -1) {
+        //             var setValue=3000;
+        //         }else{
+        //             var setValue=3000;
+        //         }
+        //         setTimeout(function(){          
+        //             var getElementList=document.getElementById('announce-text');
+        //             var getInnerHtml=getElementList.innerHTML;              
+        //             getAnnounceEle.innerHTML=getInnerHtml;   
+        //         },setValue);
+        //         getAnnounceEle.innerHTML="";
+        //     }        
+    // };
+    // code for header navbar top
+    oGlobal.top_Header_Mainnav = function(getCurrentval){
+        var getCount=document.getElementById('top-navbar').childElementCount;
+        var gettonavUl=getCurrentval.nextElementSibling;
+            for (var i = 0; i < getCount; i++) {
+                var topmenuLi=getCurrentval.parentElement.parentElement.children[i];
+        
+                if(topmenuLi.children[0].nodeName=="BUTTON"){
+                    var subchild=topmenuLi.children[1].childElementCount;
+                    for (var j = 0; j < subchild; j++) {
+                    if(topmenuLi.children[1].children[j].children[0].nodeName=="BUTTON"){
+                                topmenuLi.children[1].children[j].children[1].classList.remove('show');
+                                topmenuLi.children[1].style.height="auto";
+                                topmenuLi.children[1].children[j].children[0].classList.remove('active');
+                    }
+                    }
+                    if(topmenuLi.children[1].nodeName=="UL"){
+                        if(gettonavUl.classList.contains('show')==false){                        
+                            if(topmenuLi.children[1].classList.contains('show')==true){
+                                topmenuLi.children[0].setAttribute("aria-expanded", "false");
+                                topmenuLi.children[1].setAttribute("aria-hidden", "true");
+                                topmenuLi.children[1].classList.remove('show');                            
+                                topmenuLi.children[0].classList.remove('active');                            
+                            }
+                        }
+                    }
+                }
+            }
+            var topNavulclass=gettonavUl.classList;
+            if(topNavulclass.contains('show')==false){
+                getCurrentval.setAttribute("aria-expanded","true");
+                gettonavUl.setAttribute("aria-hidden", "false");
+                topNavulclass.add('show');
+                getCurrentval.classList.add("active");
+            }else{
+                getCurrentval.setAttribute("aria-expanded", "false");
+                gettonavUl.setAttribute("aria-hidden", "true");
+                topNavulclass.remove('show');
+                getCurrentval.classList.remove("active");
+            }
+    };
+    // code for main header sub nav
+    oGlobal.top_Header_Subnav = function(getBtn){
+        var parentUl= getBtn.parentElement.parentElement;
+        var liCount = parentUl.childElementCount;
+        if(getBtn.parentElement.children[1].classList.contains('show')==false){
+            for (i = 0; i < liCount; i++) {
+                var toSubnavLi=parentUl.children[i];
+                if(toSubnavLi.children[1]==undefined){
+                }else{
+                    toSubnavLi.children[1].classList.remove('show');
+                    toSubnavLi.children[0].classList.remove('active');
+                    toSubnavLi.children[0].setAttribute('aria-expanded','false');
+                    toSubnavLi.children[1].setAttribute('aria-hidden','true');
+                    toSubnavLi.children[1].style.height="auto";                       
+                }
+            }
+        }
+        var getsubUl=getBtn.parentElement.children[1];
+        if(getsubUl.classList.contains('show')==true){
+            getsubUl.classList.remove('show');
+            getsubUl.setAttribute('aria-hidden','true');
+            getBtn.classList.remove('active');
+            // getBtn.parentElement.parentElement.style.height="auto"
+            getBtn.parentElement.children[0].setAttribute('aria-expanded','false');
+        }else{            
+            getBtn.parentElement.children[0].setAttribute('aria-expanded','true');
+            getBtn.classList.add('active');
+            getsubUl.classList.add('show');
+            getsubUl.setAttribute('aria-hidden','false');
+        }
+        if(innerWidth>=899){
+            var getSubbtn=getsubUl.offsetHeight;
+            var getMainBtn=parentUl.offsetHeight;
+            if(getsubUl.classList.contains('show')==true){
+                if(getMainBtn>=getSubbtn){
+                    getsubUl.style.height=getMainBtn+"px";
+                }
+                if(getMainBtn<=getSubbtn){
+                    parentUl.style.height=getSubbtn+"px";
+                }
+            }else{
+                getBtn.parentElement.parentElement.style.height="auto";
+            }
+        }
+    };
+    // code for header navbar second
+    oGlobal.second_Header_Mainnav = function(getCurrentval){
+        var getCount=document.getElementById('mobiletab').childElementCount;
+        var getUls=getCurrentval.nextElementSibling;
+        for (var i = 0; i < getCount; i++) {
+            var secondNavLi=getCurrentval.parentElement.parentElement.children[i];
+            if(secondNavLi.children[0].nodeName=="BUTTON"){
+                if(secondNavLi.children[1].nodeName=="UL"){
+                    if(getUls.classList.contains('show')==false){
+                        if(secondNavLi.children[1].classList.contains('show')==true){
+                            secondNavLi.children[0].setAttribute("aria-expanded", false);
+                            secondNavLi.children[1].setAttribute("aria-hidden", true);
+                            secondNavLi.children[1].classList.remove('show');
+                            secondNavLi.children[0].classList.remove('active');
+                        }
+                    }
+                }
+            }
+        }
+        if(getUls.classList.contains('show')==false){
+            getCurrentval.setAttribute("aria-expanded","true");
+            getUls.setAttribute("aria-hidden", false);
+            getUls.classList.add('show');
+            getCurrentval.classList.add("active");
+        }else{
+            getCurrentval.setAttribute("aria-expanded", false);
+            getUls.setAttribute("aria-hidden", true);
+            getUls.classList.remove('show');
+            getCurrentval.classList.remove("active");
+        }
+    };
+    // top header mobile nav code goes here
+    oGlobal.top_Header_Mobile_Nav = function(getBtnval){
+        var navClslist=document.querySelector('.main-header-nav').classList;
+        if (navClslist.contains('hidden-tab') == true) {
+            navClslist.add('show-tab');
+            getBtnval.setAttribute('aria-expanded',"true");
+            navClslist.remove('hidden-tab');
+        } else {
+            navClslist.add('hidden-tab');
+            getBtnval.setAttribute('aria-expanded',"false");
+            navClslist.remove('show-tab');
+
+        }
+    };
+    // second header mobile nav code goes here
+    oGlobal.second_Header_Mobile_Nav = function(getVal){
+        var getMenu=document.getElementById("mobiletab");
+        if(getMenu.classList.contains('click-show')==false){
+                getMenu.classList.add('click-show');
+                getVal.setAttribute('aria-expanded',"true");
+        
+        }else{
+                getMenu.classList.remove('click-show');
+                getVal.setAttribute('aria-expanded',"false");
+        }
+    };
+    // after login user details button code goes here
+    oGlobal.login_User_Details_Menu = function(getDetails){
+        if(getDetails.nextElementSibling.classList.contains('show')){
+            getDetails.nextElementSibling.classList.remove('show');
+            getDetails.setAttribute('aria-expanded','false');         
+            
+        }else{
+            getDetails.nextElementSibling.classList.add('show');
+            getDetails.setAttribute('aria-expanded','true'); 
+        }
+    };
+    //on focus function for top header sub nav goes here 
+    oGlobal.top_Header_Subnav_onfocus = function(getCloseval){
+        var element=getCloseval.parentElement.parentElement;
+        var liCount=element.childElementCount;
+        for (var i = 0; i < liCount; i++) {
+            if(getCloseval.nextElementSibling.classList.contains('show')){
+                getCloseval.nextElementSibling.classList.add('show');
+            }else{
+                if(element.children[i].children[0].nodeName=="BUTTON"){
+                    if(element.children[i].children[1].classList.contains('show')){
+                        element.children[i].children[1].classList.remove('show');
+                        element.children[i].children[0].setAttribute('aria-expanded','false');
+                        element.children[i].children[0].classList.remove('active');
+                        element.style.height="auto";
+                    }
+                }
+            }
+        }
+    };
+    // header menu buttons focus code goes here
+    oGlobal.header_mainButtons_onFocus = function(getCloseTopheaderval){
+        var getTopnav=document.getElementById('top-navbar');
+        var getSecnav=document.getElementById('mobiletab');
+        if(getCloseTopheaderval.nextElementSibling.classList.contains('show')){
+            getCloseTopheaderval.nextElementSibling.classList.add('show');
+        }else{
+            if(getTopnav){
+                for (var i = 0; i < getTopnav.childElementCount; i++) {
+                    var getBtnval=getTopnav.children[i].children[0];
+                    var getUlval=getTopnav.children[i].children[1];    
+                    if(getBtnval.nodeName=="BUTTON"){
+                        if(getUlval.classList.contains('show')==true){
+                            getUlval.classList.remove('show');
+                            getBtnval.classList.remove('active');
+                            getUlval.setAttribute('aria-hidden','true');
+                            getBtnval.setAttribute('aria-expanded','false');               
+                        }
+                    }
+                }
+            }
+            if(getSecnav){
+                for (var i = 0; i < getSecnav.childElementCount; i++) {
+                    if(getSecnav.children[i].children[0].nodeName=="BUTTON"){
+                        if(getSecnav.children[i].children[1].classList.contains('show')==true){
+                            getSecnav.children[i].children[1].classList.remove('show');
+                            getSecnav.children[i].children[0].classList.remove('active');
+                            getSecnav.children[i].children[1].setAttribute('aria-hidden','true');
+                            getSecnav.children[i].children[0].setAttribute('aria-expanded','false');              
+                        }
+                    }
+                }
+            }
+        } 
+    };
+    // mobile header menu buttons focus code goes here
+    oGlobal.header_mobileButtons_onFocus = function(currentbtnValue){
+        var getmobileTopnav=document.getElementById('top-navbar');
+        var getmobileSecnav=document.getElementById('mobiletab');
+        if(getmobileTopnav){
+                if(getmobileTopnav.classList.contains('show-tab')==true){
+
+                }else{
+                    var getTopmobileNav=document.getElementById('mobiletab').classList;
+                    if(getTopmobileNav.contains('click-show')==true && currentbtnValue.classList.contains('icon-menu') == true){
+                        getTopmobileNav.remove('click-show');
+                        var getBtn=document.querySelector('.mobile-btn');
+                            getBtn.setAttribute('aria-expanded','false');
+                    }
+                }
+        }
+        if(getmobileSecnav){
+            if(getmobileSecnav.classList.contains('click-show')==true){
+
+                }else{
+                    var getSecmobileNav=document.getElementById('top-navbar').classList;
+                    if(getSecmobileNav.contains('show-tab')==true && currentbtnValue.classList.contains('mobile-btn') == true){
+                        getSecmobileNav.remove('show-tab');
+                        getSecmobileNav.add('hidden-tab');
+                        var getBtn=document.querySelector('.icon-menu');
+                            getBtn.setAttribute('aria-expanded','false');
+                    }
+                }
+        }
+    };
+    // header menu anchor focus code goes here
+    oGlobal.header_mainAnchors_onFocus = function(){
+        var getTopnav=document.getElementById('top-navbar');
+        var getSecnav=document.getElementById('mobiletab');
+        var getCandidate=document.getElementById('candidate-details');
+        if(getTopnav){
+            for (var i = 0; i < getTopnav.childElementCount; i++) {
+                var getBtnval=getTopnav.children[i].children[0];
+                var getUlval=getTopnav.children[i].children[1];    
+                if(getBtnval.nodeName=="BUTTON"){
+                    if(getUlval.classList.contains('show')==true){
+                        getUlval.classList.remove('show');
+                        getBtnval.classList.remove('active');
+                        getUlval.setAttribute('aria-hidden','true');
+                        getBtnval.setAttribute('aria-expanded','false');               
+                    }
+                }
+            }
+        }
+        if(getSecnav){
+            for (var i = 0; i < getSecnav.childElementCount; i++) {
+                if(getSecnav.children[i].children[0].nodeName=="BUTTON"){
+                    if(getSecnav.children[i].children[1].classList.contains('show')==true){
+                        getSecnav.children[i].children[1].classList.remove('show');
+                        getSecnav.children[i].children[0].classList.remove('active');
+                        getSecnav.children[i].children[1].setAttribute('aria-hidden','true');
+                        getSecnav.children[i].children[0].setAttribute('aria-expanded','false');              
+                    }
+                }
+            }
+        }
+        if(getCandidate){
+            if(getCandidate.classList.contains('show')==true){
+                getCandidate.classList.remove('show');
+                getCandidate.previousElementSibling.setAttribute('aria-expanded','false');
+            }
+        }
+    };
+    // on focus function for sign in anchor code goes here
+    oGlobal.header_signinAnchor_onFocus = function(){
+        if(innerWidth <= 899){
+            if(document.getElementById("mobiletab").classList.contains('click-show')==true){
+                document.getElementById("mobiletab").classList.remove('click-show');
+                document.getElementById("main-navigation").setAttribute('aria-expanded','false');
+            }
+        }
+    };
+    // user details on focus fun for mobile code goes here
+    oGlobal.header_userDetails_Menu_onFocus = function(){
+        if(innerWidth >= 900){
+            var getLisList=document.getElementById('mobiletab');
+            var lisCount=getLisList.childElementCount;
+            for (var i = 0; i < lisCount; i++) {
+                var element=getLisList.children[i];
+                if(element.children[0].nodeName == "BUTTON"){
+                    if(element.children[1].classList.contains('show') == true){
+                        element.children[1].classList.remove('show');
+                        element.children[0].setAttribute('aria-expanded','false');
+                        element.children[0].classList.remove('active');
+                        element.children[1].setAttribute('aria-hidden','true');
+                    }
+                }
+            }
+        }else if(innerWidth <= 899){
+            if(document.getElementById("mobiletab").classList.contains('click-show')==true){
+                document.getElementById("mobiletab").classList.remove('click-show');
+                document.getElementById("main-navigation").setAttribute('aria-expanded','false');
+            }
+        } 
+    };
+    // footer menu button function code goe here
+    oGlobal.footer_Menu_open = function(getFooterval){
+        var getCount=document.getElementById('footer-nav');
+        for (var i = 0; i < getCount.childElementCount; i++) {
+            if(getFooterval.nextElementSibling.classList.contains('show')==false){
+                getCount.children[i].children[2].setAttribute('aria-hidden',true);
+                getCount.children[i].children[1].setAttribute('aria-expanded',false);
+                if(getCount.children[i].children[2].classList.contains('show')==true){
+                    getCount.children[i].children[2].classList.remove('show');            
+                }
+            }
+        }
+        if(getFooterval.nextElementSibling.classList.contains('show')==false){
+                getFooterval.setAttribute('aria-expanded',true);
+                getFooterval.nextElementSibling.classList.add("show");
+                getFooterval.nextElementSibling.setAttribute('aria-hidden',false);
+        }else{
+                getFooterval.setAttribute('aria-expanded',false);
+                getFooterval.nextElementSibling.classList.remove("show");
+                getFooterval.nextElementSibling.setAttribute('aria-hidden',true);
+        }
+    };
+    // on focus code for footer menu goes here
+    oGlobal.footer_Menu_onFocus = function(getHoverval){
+        var getCount=document.getElementById('footer-nav');
+        if(getHoverval.nextElementSibling.classList.contains('show')==false){
+            for (var i = 0; i < getCount.childElementCount; i++) {        
+                    getCount.children[i].children[2].setAttribute('aria-hidden',true);
+                    getCount.children[i].children[1].setAttribute('aria-expanded',false);            
+                        if(getCount.children[i].children[2].classList.contains('show')==true){
+                            getCount.children[i].children[2].classList.remove('show');            
+                        }
+            }
+        }
+    };
+    // menu overflow right code goes here
+    oGlobal.header_overFlow_menu_right = function(){
+        var leftArrow = document.getElementsByClassName('nav-arrow-left');
+        var rightArrow = document.getElementsByClassName('nav-arrow-right');
+        var middleContent = document.getElementById("mobiletab");
+        if(leftArrow[0].classList.contains('hide')==true){
+            leftArrow[0].classList.remove('hide')
+            leftArrow[0].classList.add('show-arrow');
+        }
+        if(rightArrow[0].classList.contains('show-arrow')==true){
+            rightArrow[0].classList.remove('show-arrow');
+            rightArrow[0].classList.add('hide');
+        }
+        rightArrow[0].classList.add('hide');
+        var a = document.getElementsByClassName("main-nav-links-block")[0].offsetWidth;
+        var b = document.getElementsByClassName("nav-container")[0].offsetWidth;
+        var c = 240;
+        if(window.innerWidth < 1100){
+            c=400
+        }
+        var e = document.getElementsByClassName("main-nav-links-block")[0];
+        e.style.marginLeft = -c + 'px';
+        var getFirstelement=document.getElementById('linkedin-link-id');
+        if(getFirstelement){
+            getFirstelement.focus();
+        }
+    };
+    // menu overflow left code goes here
+    oGlobal.header_overFlow_menu_left = function(){
+        var leftArrow = document.getElementsByClassName('nav-arrow-left');
+        var rightArrow = document.getElementsByClassName('nav-arrow-right');
+        var middleContent = document.getElementById("mobiletab");
+        if(leftArrow[0].classList.contains('show-arrow')==true){
+            leftArrow[0].classList.remove('show-arrow');
+            leftArrow[0].classList.add('hide');
+        }
+        if(rightArrow[0].classList.contains('hide')==true){
+            rightArrow[0].classList.remove('hide');
+            rightArrow[0].classList.add('show-arrow');
+        }
+        var e = document.getElementsByClassName("main-nav-links-block")[0];
+        if(window.innerWidth < 1100){
+            e.style.marginLeft="-400px";
+        }
+        e.style.marginLeft = -0.8 + 'rem';
+        var getFirstelement=document.getElementById('Lam-navigation');
+        if(getFirstelement){
+            getFirstelement.focus();
+        }
+    };
+    // verifying cookie  code goes here
+    oGlobal.check_Multy_Lang_Cookie = function(){
+        var getUser="";
+        var getCookies=document.cookie.split(';');
+        for (i=0;i<getCookies.length;i++){
+            if(getCookies[i].indexOf('phM$ftl$ngu$ge') != -1 ){
+                getUser=getCookies[i].split('=')[1];
+                break;
+            }
+        }
+        var betanotifier = document.getElementById("multy-lang-betanotifier");
+        if(betanotifier){
+            if (getUser == "msftjobs") { 
+                if(betanotifier.classList.contains('hide') == false){
+                    betanotifier.classList.add('hide');
+                }  
+            } else {
+                betanotifier.classList.remove('hide');
+                betanotifier.classList.add('show');
+            }
+        }
+    };
+    // set muty language cookie code goes here
+    oGlobal.set_Multy_Lang_Cookie = function(){
+        var date = new Date();
+        var days = 183;
+        var oneDay = 1000 * 3600 * 24;
+        date.setTime(date.getTime() + (days * oneDay)); //24 * 60 * 60 * 1000 
+        document.cookie = "phM$ftl$ngu$ge=msftjobs;expires="+date.toUTCString()+";path=/";
+        var getBetaCookie=document.getElementById("multy-lang-betanotifier");
+        getBetaCookie.classList.add('hide');
+        getBetaCookie.classList.remove('show');
+        var skipContent=document.querySelector('.skip-content');
+        skipContent.focus();
+    };
+    //check cookie for feedback
+    // oGlobal.check_Cookie_For_FeedBack = function(){
+        //     var getUser="";
+        //     var getCookies=document.cookie.split(';');
+        //     for (i=0;i<getCookies.length;i++){
+        //         if(getCookies[i].indexOf('headercookie') != -1 ){
+        //             getUser=getCookies[i].split('=')[1];
+        //             break;
+        //         }
+        //     }
+        //     var betanotifier = document.getElementById("betaNotifier");
+        //     if(betanotifier){
+        //         if (getUser == "notifier") {
+        //             if(betanotifier.classList.contains('hide') == false){
+        //                 betanotifier.classList.add('hide');
+        //             }  
+        //         } else {
+        //             betanotifier.classList.remove('hide');
+        //             betanotifier.classList.add('show');
+        //         }
+        //     }
+    // };
+    // set cookie for feedback
+    // oGlobal.set_Cookie_For_FeedBack = function(){
+        //     document.cookie = "headercookie" + "=" + "notifier";
+        //     var getBetabanner=document.getElementById("betaNotifier");
+        //     getBetabanner.classList.add('hide');
+        //     getBetabanner.classList.remove('show');
+        //     var skipContent=document.querySelector('.skip-content');
+        //     var getUser="";
+        //     var getCookies=document.cookie.split(';');
+        //     for (i=0;i<getCookies.length;i++){
+        //         if(getCookies[i].indexOf('phM$ftl$ngu$ge') != -1 ){
+        //             getUser=getCookies[i].split('=')[1];
+        //             break;
+        //         }
+        //     }
+        //     if(getUser == "msftjobs"){
+        //         skipContent.focus();
+        //     }else{
+        //         var langDeafault = document.getElementById('multy-lang-def');
+        //         var langMulty = document.getElementById('multy-lang-Other');
+        //         var langMultyEng = document.getElementById('multy-lang-en');
+        //         if(langDeafault && langMulty){  
+        //             if(langDeafault.children[0].nodeName == "A" && langMulty.children[0].nodeName == "A"){
+        //                 var getAnchor = langDeafault.children[0];
+        //                 getAnchor.focus();
+        //             }
+        //         }else if(langMultyEng && langMulty){
+        //             if(langMultyEng.children[0].nodeName == "A" && langMulty.children[0].nodeName == "A"){
+        //                 var getAnchorEng = langMultyEng.children[0];
+        //                 getAnchorEng.focus();
+        //             }
+        //         }else if(langDeafault || langMultyEng){
+        //             if(langDeafault){
+        //                 var getAnchor1=langDeafault.children[0];
+        //                 getAnchor1.focus();
+        //             }else{
+        //                 var getMultyAnchor = langMultyEng.children[0]
+        //                 getMultyAnchor.focus();
+        //             }
+        //         }
+        //     }
+    // };
+    // smooth scroll
+    oGlobal.smooth_Scrool_Ur_Page= function(currentEleBtn){
+        var getPage=document.body.classList.contains('university-lp');
+        for(j=0;j<currentEleBtn.parentElement.childElementCount;j++){
+            currentEleBtn.parentElement.children[j].setAttribute('aria-selected',false);
+            currentEleBtn.parentElement.children[j].classList.remove('active');
+        }
+        currentEleBtn.setAttribute('aria-selected','true');
+        currentEleBtn.classList.add('active');
+        if(getPage){
+            var removeHeight=0;
+            var getSections=document.querySelectorAll('section');
+            for(j=0;j<getSections.length;j++){
+                if(getSections[j].classList.contains('fixed-text') == true){
+                    getSections[j].classList.remove('fixed-text');
+                }
+            }
+            var getText=currentEleBtn.innerText.trim();
+            if( getText == "Internships"){
+                var getSection=document.querySelector('[original-view="media-card"]').parentElement;
+                getSection.classList.add('fixed-text');                
+                if(window.innerWidth < 580){
+                    removeHeight = 950;
+                }else{
+                    removeHeight = 650;
+                }
+            }else if(getText == "Programs"){
+                var getSection=document.querySelector('[original-view="media-large-img-right"]').parentElement;
+                var getChildCount=document.querySelector('.ph-html-v1-media-large-img-right-default .ph-card-container').childElementCount
+                getSection.classList.add('fixed-text');
+                if(getChildCount > 1){                    
+                    if(window.innerWidth > 1600){
+                        removeHeight = 1530;
+                    }else{
+                        removeHeight = 1330;
+                    }
+                }else{
+                    removeHeight = 880;
+                }
+                if(window.innerWidth < 580){
+                    removeHeight = 1000;
+                }
+                
+            }else if(getText == "Full-time"){
+                var getSection=document.querySelector('.ph-html-v1-nav-scroll-tab-default').parentElement;
+                getSection.classList.add('fixed-text');
+                removeHeight = 650;                
+            }
+            
+            var getHeight=0;
+            for(i=0;i<getSections.length;i++){
+                getHeight +=getSections[i].offsetHeight;
+                if(getSections[i].classList.contains('fixed-text') == true){
+                    window.scrollTo('0', getHeight - 150 - removeHeight);
+                    break;
+
+                }
+            }
+            
+        }
+    };
+    oGlobal.students_Onchange_Local= function(){
+        var page_check=document.body.className.indexOf('static-templ-page');
+        
+        if(page_check != -1){
+            var getEle = document.getElementById('list-dropdown-pages');
+            if(getEle){
+                getEle.setAttribute('onkeypress','ph$Msft$Custom.redirectPage$students(this,event)');
+            } 
+        }
+    };
+    oGlobal.redirectPage$students=function(current,e){
+        var seletedValue = e.target.selectedIndex -1;
+        var getkeyCodeNum=e.keyCode;
+        if(seletedValue == -1){
+    
+        }else if(seletedValue>=0 && getkeyCodeNum == 13){
+            var getSiteUrl=phApp.baseUrl;
+            var getPageUrl=oGlobal.oLocations[seletedValue].location_url;
+            var pageUrl=getSiteUrl.concat(getPageUrl);
+            window.location.href=pageUrl;
+        }
+    }
+    oGlobal.currentElementAcc=function(){
+        if(window.navigator.userAgent.indexOf("Edge") > -1 ){
+
+        }
+    }
+    // oGlobal.redirectToClose=function(){
+        //     var getAllElements=document.body.getElementsByTagName("*");
+        //     for(i=0;i<getAllElements.length;i++){
+        //         if(getAllElements[i].getAttribute('aria-hidden') == null && getAllElements[i].getAttribute('acc-attr-ref') == null){
+        //             getAllElements[i].setAttribute('aria-hidden','true');
+        //             getAllElements[i].setAttribute('acc-attr-ref','true');
+        //         }else if(getAllElements[i].getAttribute('aria-hidden') == "true" && getAllElements[i].getAttribute('acc-attr-ref') == "true"){
+        //             getAllElements[i].removeAttribute('aria-hidden');
+        //             getAllElements[i].removeAttribute('acc-attr-ref');
+        //         }
+        //     }
+    // }
+}(ph$Msft$Custom));
+  
+//adding multy language content in header goe here   
+ph$Msft$Custom.handleMultiLanguageCookieBanner();
+
+// get multy language content when onchagne goes here 
+ph$Msft$Custom.comboBoxMultyLocal();
+
+// redirection for travel policy pages
+ph$Msft$Custom.redirect_Fun_travelpolacy_page();
+
+// cookie verifying function
+ph$Msft$Custom.check_Multy_Lang_Cookie();
+// ph$Msft$Custom.check_Cookie_For_FeedBack();
+
+// set loctions into a dropdown in ur landing page
+ph$Msft$Custom.student_location_dropdown();
+
+ph$Msft$Custom.students_Onchange_Local();
+
+// window onload code goes here
+document.addEventListener('DOMContentLoaded',function(){
+    var getUrl=phApp.baseUrl.indexOf('/i/');
+    var getSkiptContent=document.getElementById('skip-content');
+    var getPhpageEle=document.querySelector('.ph-page');
+    // if(window.navigator.userAgent.indexOf('Trident') > -1){
+    //     getSkiptContent.setAttribute('aria-label','skip to main content');
+    // }
+    if(getUrl <= -1){
+        var getElement=document.getElementById('students-navigation');
+        if(getElement){
+            getElement.classList.add('show');
+        }               
+    }else{
+        var getReferalEle=document.getElementById('referal-link-tab');
+        if(getReferalEle){
+            getReferalEle.classList.add('show');
+        } 
+    }
+    var getURLocationPage_Name=document.body.classList.contains('university-lp');
+    var getLocationPage_Name=document.body.classList.contains('location-page');
+    var getProfessionPage_Name=document.body.classList.contains('category-lp');
+    if(getURLocationPage_Name){
+        var getPageUrl=window.location.href;        
+        if(getPageUrl.indexOf('/ur-lp-united-states') < 0){
+            var getEle=document.querySelector('.ph-nav-scroll-tab-default').children[1];
+            getEle.classList.add('add-bg');
+
+        }
+    }
+    if(window.innerWidth >= 900){
+        var getMediaCrad=document.querySelector('.ph-html-v1-media-card-default .ph-card-container');
+        if(getMediaCrad != null){
+            if(getMediaCrad.childElementCount <= 3){
+                getMediaCrad.classList.add('txt-center');
+                for(i=0;i<getMediaCrad.childElementCount;i++){
+                    getMediaCrad.children[i].classList.add('no-float');
+                }
+            }
+
+        }
+    }
+    if(getURLocationPage_Name || getLocationPage_Name || getProfessionPage_Name){
+        var get_All_Anchors=document.querySelectorAll('.ph-html-v1-media-link-default .ph-card a');
+        var get_All_AnchorsNewWidget=document.querySelectorAll('.media-link-default .ph-card a')
+        var add_Text=" opens in a new tab";
+        if(get_All_Anchors.length > 0 || get_All_AnchorsNewWidget.length > 0){
+            if(get_All_Anchors.length > 0){
+                var totalLinks=get_All_Anchors.length;
+                var GetOld=true
+            }
+            if(get_All_AnchorsNewWidget.length > 0){
+                var totalLinks=get_All_AnchorsNewWidget.length;
+                var GetNew=true
+            }
+            for(i=0;i < totalLinks;i++){
+                if(GetOld){
+                    var get_Title_text=get_All_Anchors[i].title;
+                    var getPhrefValue=get_All_Anchors[i].getAttribute('ph-href');
+                    var getHrefVlaue=get_All_Anchors[i].getAttribute('href');
+                }
+                if(GetNew){
+                    var get_Title_text=get_All_AnchorsNewWidget[i].title;
+                    var getPhrefValue=get_All_AnchorsNewWidget[i].getAttribute('ph-href');
+                    var getHrefVlaue=get_All_AnchorsNewWidget[i].getAttribute('href');
+                }
+                if(get_Title_text){
+
+                }
+                if(get_Title_text.indexOf('opens in a new tab') <= -1){
+                    var aria_Text=get_Title_text.concat(add_Text);
+                }                
+                if(getPhrefValue){
+                    var validatePhrefVal=(getPhrefValue.indexOf('javascript:void(0)') > -1) ? true : false;
+                }
+                if(getHrefVlaue){
+                    var validateHrefVlaue=(getHrefVlaue.indexOf('javascript:void(0)') > -1) ? true : false;
+                }                
+                if(validatePhrefVal == false || validateHrefVlaue == false){
+                    if(GetOld){
+                        get_All_Anchors[i].setAttribute('title',aria_Text);
+                    }
+                    if(GetNew){
+                        get_All_AnchorsNewWidget[i].setAttribute('title',aria_Text);
+                    }
+                    
+                }else if(validatePhrefVal == true || validateHrefVlaue == true){
+                    if(GetOld){
+                        get_All_Anchors[i].removeAttribute('target');
+                    }
+                    if(GetNew){
+                        get_All_AnchorsNewWidget[i].removeAttribute('target');
+                    }
+                }             
+            }
+        }
+    }
+    if(getLocationPage_Name){
+        var get_All_Video_Anchors=document.querySelectorAll('.ph-html-v1-media-large-default .content .link a');
+        var add_Text=" opens in a new tab";
+        if(get_All_Video_Anchors.length > 0){
+            for(i=0;i < get_All_Video_Anchors.length;i++){
+                var get_Title_text=get_All_Video_Anchors[i].title;
+                var aria_Text=get_Title_text.concat(add_Text);
+                var get_keyTitle=get_All_Video_Anchors[i].getAttribute('key-title');
+                get_All_Video_Anchors[i].setAttribute('aria-label',aria_Text);
+                get_All_Video_Anchors[i].setAttribute('key-aria-label',get_keyTitle);
+                get_All_Video_Anchors[i].removeAttribute('title');
+                get_All_Video_Anchors[i].removeAttribute('key-title');
+            }
+        } 
+    }
+    if(getSkiptContent){
+        document.getElementById('skip-content').addEventListener('focus',function(){
+            document.querySelector('.skip-nav-para').style.height="40px";
+            });
+        document.getElementById("skip-content").addEventListener("focusout", function(){
+            document.querySelector('.skip-nav-para').style.height="auto";
+        });
+    }
+    if(getPhpageEle && phApp.pageName != "search-results" && location.href.indexOf('/c/') <= -1){
+        // if(getPhpageEle.getAttribute('id') == null){  
+        //     getPhpageEle.setAttribute('id','content');
+        // }
+        // if(getPhpageEle.getAttribute('tabIndex') == null){
+        //     getPhpageEle.setAttribute('tabIndex','-1');
+        // }
+        // if(getPhpageEle.getAttribute('role') == null){
+        //     getPhpageEle.setAttribute('role','main');
+        // }
+        setTimeout(function(){
+            var createNewEle=document.createElement("DIV");
+            var nodeText_El = ("<a id='acc-skip-content'>-</a>");
+            createNewEle.innerHTML=nodeText_El;
+            createNewEle.setAttribute('class','skiptarget')
+            // if(getPhpageEle.parentElement.nodeName != 'BODY'){
+            //     document.body.insertBefore(createNewEle,getPhpageEle.parentElement);
+            // }else{
+            //     document.body.insertBefore(createNewEle,getPhpageEle);
+            // }
+            getPhpageEle.appendChild(createNewEle);
+            getPhpageEle.insertBefore(createNewEle,getPhpageEle.firstChild);
+            
+        },500);
+    }
+    // Aware Message for Users 
+    if(location.origin == "https://careersdev.microsoft.com" || location.origin == "https://careersppe.microsoft.com" || location.origin == "http://microsoft-editor.phenompeople.com"){
+            var createAwareMesEle=document.createElement('DIV');
+            var awareMesTexNode="<p>Please be aware that you are in the Careers Dev / PPE environment which is used for testing purpose only. Please use <a href='https://careers.microsoft.com' aria-label='Microsoft Careers opens in a new tab' target='_blank'>https://careers.microsoft.com</a> to access the production environment.</p>";
+            createAwareMesEle.innerHTML=awareMesTexNode;
+            createAwareMesEle.setAttribute('id','aware-message');
+            var getInsertContainer=document.querySelector('.beta-container');
+            if(getInsertContainer){
+                // firstChild.
+                getInsertContainer.insertBefore(createAwareMesEle,getInsertContainer.childNodes[0]);
+            }
+    }
+    var getCareersTab=document.querySelector('header #mobiletab');
+    if(getCareersTab){
+        if(document.querySelector('header #mobiletab').childElementCount < 7){
+            ph$Msft$Custom.setHIdeClass(500)
+        }
+    }
+    document.addEventListener('click',function(e){
+        if((e.target.nodeName == "BUTTON" && e.target.getAttribute('aria-expanded') == "true") ||  (e.target.nodeName == "BUTTON" && e.target.getAttribute('aria-expanded') == "false")){
+            e.target.focus();
+        }       
+         
+    })
+    // for keros accessibility fix
+    var getRolesMain=document.querySelectorAll('.ph-page [role="main"]');
+    var getPageRole=document.querySelector('.ph-page').getAttribute('role');
+    if((getRolesMain.length <= 0 && getPageRole == null) || getRolesMain.length <= 0 && getPageRole == ""){
+        document.querySelector('.ph-page').setAttribute('role','main');
+    }
+    // for keros accessibility fix
+    var getSelectBox=document.querySelector('#list-dropdown-pages');
+    if(getSelectBox){
+        getSelectBox.removeAttribute('role');
+        getSelectBox.setAttribute('aria-label',"Select Location and press Enter key to go to the page for that location");
+    }
+    // for keros accessibility fix
+    var getViewPort=document.querySelector('[name="viewport"]');
+    if(getViewPort){
+        getViewPort.remove();
+        var createMetaEle=document.createElement('meta');
+        createMetaEle.setAttribute("name","viewport");
+        createMetaEle.setAttribute("content","width=device-width, initial-scale=1, shrink-to-fit=no");
+        document.querySelector('head').appendChild(createMetaEle);
+    }
+    // for keros accessibility fix
+    var getCurrentFrUrl=window.location.href.indexOf('/ca/fr');
+    if(getCurrentFrUrl != -1){
+        document.querySelector('html').setAttribute('lang','fr');
+    }
+})
+
+if(document.body.classList.contains('university-lp') || document.body.classList.contains('military') || document.body.classList.contains('location-page')){
+    document.addEventListener('focus',function(e){
+        if(document.body.classList.contains('university-lp') || document.body.classList.contains('military') || document.body.classList.contains('location-page')){
+            if(e.target.nodeName == "BUTTON" || e.target.nodeName == "A"){
+                var getPopoverbodyEle=document.querySelector('.popover-body');
+                var getPopoverbodyEleLen=document.querySelectorAll('.popover-body');
+                if(getPopoverbodyEle){
+                    if(getPopoverbodyEle.classList.contains('ph-hide') == false){
+                        document.querySelector('.close').focus();
+                    }
+                }
+                if(getPopoverbodyEleLen.length >= 1){
+                    if(document.querySelectorAll('.popover-body').length >= 2){
+                        if(document.querySelectorAll('.popover-body')[1].classList.contains('ph-hide') == false){
+                            document.querySelectorAll('.popover-body .popup-header .close')[1].focus();
+                        }
+                    }
+                }
+            }
+        }    
+    }, true);
+    document.addEventListener('keydown',function(e){
+        if(document.body.classList.contains('university-lp') || document.body.classList.contains('military') || document.body.classList.contains('location-page')){
+            if(e.key == "ArrowDown" || e.key == "ArrowUp"){
+                if(e.target.nodeName == "BUTTON" || e.target.nodeName == "A"){
+                    if(document.querySelector('.popover-body').classList.contains('ph-hide') == false){
+                        document.querySelector('.close').focus();
+                    }
+                    if(document.querySelectorAll('.popover-body').length >= 2){
+                        if(document.querySelectorAll('.popover-body')[1].classList.contains('ph-hide') == false){
+                            document.querySelectorAll('.popover-body .popup-header .close')[1].focus();
+                        }
+                    }
+                }
+            }        
+        }    
+    }, true);
+}
+
+//window click code goes here   
+document.addEventListener("click",function(event) {
+    // top navbar collapsed here
+    // var e = event || null;
+    if(!event){
+        return;
+    }
+    if(!document.body.classList.contains('logout-page')){
+        if(!event.target.classList.contains('topheader-nav')){
+            var getParentval=document.querySelector('#top-navbar');
+            var childCount=getParentval.childElementCount;
+            for (var i = 0; i < childCount; i++) {
+                var getBtns=getParentval.children[i].children[0];
+                var getUls=getParentval.children[i].children[1];
+                if(getBtns.nodeName=="BUTTON"){
+                    if(getUls.nodeName=="UL"){
+                        var chilElcount=getUls.childElementCount;
+                            for (var j = 0; j < chilElcount; j++) {
+                                if(getUls.children[j].children[0].nodeName=="BUTTON"){
+                                    if(getUls.children[j].children[0].classList.contains('active')){
+                                        getUls.children[j].children[0].classList.remove('active');
+                                        getUls.children[j].children[0].setAttribute('aria-expanded','false');
+                                    }
+                                }
+                            }
+                        if(getUls.classList.contains('show')==true){
+                            getUls.classList.remove('show');
+                            getBtns.classList.remove('active');
+                            getUls.setAttribute("aria-hidden", true);
+                            getBtns.setAttribute("aria-expanded", false);
+                        }
+                    }
+                }
+            }
+        }
+        // second navbar collapsed here
+        if(!event.target.classList.contains("secondheader-nav")){
+            var getParentval=document.querySelector('#mobiletab');
+            var childCount=getParentval.childElementCount;
+            for (var i = 0; i < childCount; i++) {
+                var getsecBtns=getParentval.children[i].children[0];
+                var getsecUls=getParentval.children[i].children[1];
+                if(getsecBtns.nodeName=="BUTTON"){
+                    if(getsecUls.nodeName=="UL"){
+                        if(getsecUls.classList.contains('show')==true){
+                            getsecUls.classList.remove('show');
+                            getsecBtns.classList.remove('active');
+                            getsecUls.setAttribute("aria-hidden", true);
+                            getsecBtns.setAttribute("aria-expanded", false);
+                        }
+                    }
+                }
+            }
+        }
+        // footer navbar collapsed here
+        if(!event.target.classList.contains('footer-menubtn') && !event.target.classList.contains('icon-down-arrow') && !event.target.classList.contains('footer-click')){
+            var getFotterHead=document.querySelector('.shell-footer-menugroups');
+            var getCount=getFotterHead.childElementCount;
+            for (var i = 0; i < getCount; i++) {
+                var getClasslist=getFotterHead.children[i].children[2].classList;
+                getFotterHead.children[i].children[1].setAttribute("aria-expanded", false);
+                if(getClasslist.contains('show')==true){
+                    getFotterHead.children[i].children[2].classList.remove('show');
+                }
+            }
+        }
+        // mobile second header
+        if(!event.target.classList.contains('mobile-btn') && !event.target.classList.contains('menubtn') && !event.target.classList.contains('menu-item')){
+            var getMenu=document.getElementById("mobiletab");
+            var getParentmenu=document.getElementById("main-navigation");
+            getMenu.classList.remove('click-show');
+            getParentmenu.setAttribute('aria-expanded',false);
+        }
+        // 
+        if(!event.target.classList.contains('icon-menu') && !event.target.classList.contains('topheader-nav')){
+            var getUllist=document.getElementById('top-navbar');
+            var getbtn=document.getElementById('btn-menu');
+            if(getUllist.classList.contains('show-tab')==true){
+                getUllist.classList.remove('show-tab');
+                getUllist.classList.add('hidden-tab');
+                getbtn.setAttribute('aria-expanded',false);
+            }
+        }
+        if(!event.target.classList.contains('profile-title')){
+            var profDetails=document.querySelector('.profile-title');
+            if(profDetails){
+                if(profDetails.nextElementSibling.classList.contains('show')){
+                    profDetails.nextElementSibling.classList.remove('show');
+                    profDetails.setAttribute('aria-expanded','false');
+                }
+            }
+        }
+        if(!event.target.classList.contains('archived-dropdown')){
+            if(document.getElementById('archived-applications')){
+                var getVal=document.getElementById('archived-applications');
+                if(getVal.classList.contains('hide')==false){
+                    getVal.classList.add('hide');
+                    getVal.classList.remove('show');
+                    document.getElementById('archived-dropdown').setAttribute('aria-expanded','false');
+                    var getDwnarrow=document.getElementById('archiev-down').classList;
+                        getDwnarrow.add('show-icon');
+                        getDwnarrow.remove('hide');
+                    var getUparrow=document.getElementById('archiev-up').classList;            
+                        getUparrow.add('hide');
+                        getUparrow.remove('show-icon');
+                }
+            }
+        }
+        if(!event.target.classList.contains('btn-options') && !event.target.classList.contains('options')){
+            if(document.getElementById('profile-nav')){
+                var getVal=document.getElementById('profile-nav');
+                if (getVal.classList.contains('show')==true) {
+                    getVal.classList.remove('show');
+                    var getBtn=document.querySelector('.btn-options');
+                        getBtn.setAttribute('aria-expanded','false');
+                }
+            }
+        }
+    }
+})
+// escap key code goes here
+document.onkeyup = function(evt) {
+    evt = evt || window.event;
+    if (evt.keyCode == 27) {
+        var topheader=document.getElementById("top-navbar");
+        var secondheader=document.getElementById("mobiletab");
+        var mobileTopnav=document.getElementById("top-navbar");
+        var footerNav=document.getElementById('footer-nav');
+        var profDetails=document.querySelector('.profile-title');
+        var globalSearch=document.querySelector('#searchSuggest');
+        var getProfDetails=document.querySelector('#profile-nav');
+        
+        if(secondheader){
+            var getCount=secondheader.childElementCount;
+            for (var i = 0; i < getCount; i++) {
+                var topnavUl=secondheader.children[i];
+                if(topnavUl.children[0].nodeName=="BUTTON"){                
+                    if(topnavUl.children[1].classList.contains('show')==true){
+                        topnavUl.children[1].classList.remove('show');
+                        topnavUl.children[0].classList.remove('active');
+                        topnavUl.children[1].setAttribute('aria-hidden',true);
+                        topnavUl.children[0].setAttribute('aria-expanded',false);
+                        topnavUl.children[0].focus();
+                    }
+                }
+            }
+            if(secondheader.classList.contains('click-show')){
+                secondheader.classList.remove('click-show');
+                var getMunu=document.getElementById('main-navigation');
+                if(getMunu){
+                    getMunu.setAttribute('aria-expanded',"false");
+                    getMunu.focus();
+                }
+            }
+        }
+        if(topheader){
+            var getTopCount=topheader.childElementCount;
+            var hasRemoved = false;
+            for (var i = 0; i < getTopCount; i++) {
+                var lesAttr=topheader.children[i];
+                if(lesAttr.children[0].nodeName=="BUTTON"){
+                    var subElcount=lesAttr.children[1].childElementCount;
+                    for (var j = 0; j < subElcount; j++) {
+                        var menupanel = lesAttr.children[1].children[j];
+                        if(menupanel.children[0].nodeName=="BUTTON"){
+                            if(lesAttr.children[1].classList.contains('show')==true){
+                                if(menupanel.children[1].classList.contains('show') == true){
+                                    menupanel.children[1].classList.remove('show');
+                                    menupanel.children[0].classList.remove('active');
+                                    menupanel.children[1].setAttribute('aria-hidden',true);
+                                    menupanel.children[0].setAttribute('aria-expanded',false);
+                                    menupanel.parentElement.style.height="auto";
+                                    menupanel.children[0].focus();
+                                    hasRemoved = true;
+                                    break;
+                                }else if(hasRemoved || j == subElcount - 1){
+                                        lesAttr.children[1].classList.remove('show');
+                                        lesAttr.children[1].setAttribute('aria-hidden',true);
+                                        lesAttr.children[0].setAttribute('aria-expanded',false);                                    
+                                        lesAttr.children[0].classList.remove('active');
+                                        lesAttr.children[0].focus();
+                                        lesAttr.children[1].style.height="auto";                                
+                                }
+                            }   
+                        }
+                        if( hasRemoved ){
+                            break;
+                        }
+                    }               
+                }
+                if( hasRemoved ){
+                    break;
+                }
+            }
+        }
+        if(mobileTopnav){
+            if(mobileTopnav.classList.contains('show-tab')){
+                mobileTopnav.classList.remove('show-tab');
+                mobileTopnav.classList.add('hidden-tab');
+                var navbtn=document.getElementById('btn-menu');
+                if(navbtn){
+                    navbtn.setAttribute('aria-expanded',"false");
+                    navbtn.focus();
+                }
+            }
+        }
+        if(footerNav){
+            var btnCount=footerNav.childElementCount;
+            for (var i = 0; i < btnCount; i++) {            
+                if(footerNav.children[i].children[2].classList.contains('show')){
+                    footerNav.children[i].children[1].setAttribute('aria-expanded',"false");
+                    footerNav.children[i].children[1].classList.remove('active');
+                    footerNav.children[i].children[2].classList.remove('show');
+                    footerNav.children[i].children[2].setAttribute('aria-hidden',"true");
+                }
+            }
+        }
+        if(profDetails){
+            if(profDetails.nextElementSibling.classList.contains('show')){
+                profDetails.nextElementSibling.classList.remove('show');
+                profDetails.setAttribute('aria-expanded','false');
+                profDetails.focus();
+            }
+        }
+        if(getProfDetails){
+            if(document.getElementById('profile-nav')){
+                var getVal=document.getElementById('profile-nav');
+                if (getVal.classList.contains('show')==true) {
+                    getVal.classList.remove('show');
+                    var getBtn=document.querySelector('.btn-options');
+                        getBtn.setAttribute('aria-expanded','false');
+                        getBtn.focus();
+                }
+            }
+        }
+        if(globalSearch){
+            var getInputval=document.querySelector("input[ref='phGSearchInput']");
+                getInputval.focus();
+        } 
+    }
+}
+// remove over flow arows from header in desk top
+window.addEventListener('resize',function(){
+    if(!document.body.classList.contains('logout-page')){
+        if(window.innerWidth >= 1299){
+            var navList = document.getElementsByClassName("main-nav-links-block")[0];
+            navList.style.marginLeft="-0.8rem";
+        }else if(window.innerWidth <= 900){
+            var navList = document.getElementsByClassName("main-nav-links-block")[0];
+            navList.style.marginLeft="0px";
+        }
+    }
+    if(window.innerWidth <= 899){
+        var getMediaCrad=document.querySelector('.ph-html-v1-media-card-default .ph-card-container');
+        if(getMediaCrad != null){
+            if(getMediaCrad.childElementCount <= 3){
+                if(getMediaCrad.classList.contains('txt-center') == true){
+                    getMediaCrad.classList.remove('txt-center');
+                }                
+                for(i=0;i<getMediaCrad.childElementCount;i++){
+                    if(getMediaCrad.children[i].classList.contains('no-float') == true){
+                        getMediaCrad.children[i].classList.remove('no-float');
+                    }                    
+                }
+            }
+            
+        }
+    }else if(window.innerWidth >= 900){
+        var getMediaCrad=document.querySelector('.ph-html-v1-media-card-default .ph-card-container');
+        if(getMediaCrad != null){
+            if(getMediaCrad.childElementCount <= 3){
+                if(getMediaCrad.classList.contains('txt-center') == false){
+                    getMediaCrad.classList.add('txt-center');
+                }                
+                for(i=0;i<getMediaCrad.childElementCount;i++){
+                    if(getMediaCrad.children[i].classList.contains('no-float') == false){
+                        getMediaCrad.children[i].classList.add('no-float');
+                    }                    
+                }
+            }
+            
+        }
+    }    
+})
+// windwo onscroll function
+document.addEventListener('scroll',function(){
+    if(document.body.classList.contains('university-lp') == true){
+        var getHeader=document.querySelector('.ph-header').offsetHeight;
+        var getBanner=document.querySelector('.ph-html-v1-hero-content-theme1-default').offsetHeight;
+        var getSlider=document.querySelector('.ph-html-v1-media-large-default').offsetHeight;
+        var getTabs=document.querySelector('.ph-navbar');
+        var getHeight=getHeader + getBanner + getSlider;
+        if(document.documentElement.scrollTop > getHeight || window.scrollY > getHeight){
+            if(getTabs.classList.contains('fixed-tab') == false){
+                getTabs.classList.add('fixed-tab');
+            }
+        }else{
+            if(getTabs.classList.contains('fixed-tab') == true){
+                getTabs.classList.remove('fixed-tab');
+            }
+        }
+    }
+})
+
+// window srcoll event
+// window.onscroll=function(){
+    //     var getPage=document.body.classList.contains('university-lp');
+    //     if(getPage == true){
+    //         var getSections=document.querySelectorAll('section');
+    //         for(i=0;i<getSections.length;i++){
+    //             if(getSections[i].classList.contains('fixed-text') == true){
+    //                 getSections[i].classList.remove('fixed-text')
+    //             }
+    //         }
+    //     }
+// }
+
+function stopAriaBusyState(){
+    var loaderState = document.querySelector("#loader-_-_-state");
+    var pageMain = document.querySelector("#page-_-_-main");
+
+    if(pageMain){
+        pageMain.classList.remove("hide");
+        loaderState.classList.remove("hide");
+        loaderState.classList.add("hide");
+        setTimeout(function(){
+            window.focus();
+            if (document.activeElement) {
+                document.activeElement.blur();
+            }
+        },10);
+    }
+    // var msgBlock = document.querySelector("#phPageLoaderMessage");
+    // if(msgBlock){
+    //     msgBlock.innerHTML = "";
+    // }
+}
+// Action center
+function archivedDropdown(getBtn){
+    var getVal=document.getElementById('archived-applications');
+    if(getVal.classList.contains('hide')==true){
+        getVal.classList.remove('hide');
+        getVal.classList.add('show');        
+        getBtn.setAttribute('aria-expanded','true');
+        var getDwnarrow=document.getElementById('archiev-down').classList;
+            getDwnarrow.remove('show-icon');
+            getDwnarrow.add('hide');
+        var getUparrow=document.getElementById('archiev-up').classList;            
+            getUparrow.remove('hide');
+            getUparrow.add('show-icon');
+    
+    }else{
+        getVal.classList.add('hide');
+        getVal.classList.remove('show');
+        getBtn.setAttribute('aria-expanded','false');
+        var getDwnarrow=document.getElementById('archiev-down').classList;
+            getDwnarrow.add('show-icon');
+            getDwnarrow.remove('hide');
+        var getUparrow=document.getElementById('archiev-up').classList;            
+            getUparrow.add('hide');
+            getUparrow.remove('show-icon');
+    }
+}
+// profile options
+function openProfile(getArrow) {
+    var prfoValue=getArrow.nextElementSibling;
+    if(prfoValue.classList.contains('show')==false){
+        prfoValue.classList.add('show');        
+        var getDownarrow=document.querySelector('#down-arrow');
+        getDownarrow.classList.add('hide');
+        getDownarrow.classList.remove('show');
+        var getUparrow=document.querySelector('#up-arrow');
+        getUparrow.classList.remove('hide');
+        getUparrow.classList.add('show');
+        getArrow.setAttribute('aria-expanded','true');
+    }
+    else{
+        prfoValue.classList.remove('show');
+        var getDownarrow=document.querySelector('#down-arrow');
+        getDownarrow.classList.add('show');
+        getDownarrow.classList.remove('hide');
+        var getUparrow=document.querySelector('#up-arrow');
+        getUparrow.classList.add('hide');
+        getUparrow.classList.remove('show');
+        getArrow.setAttribute('aria-expanded','false')
+    }
+}
+
+function setClass(els, className, fnName) {
+    for (var i = 0; i < els.length; i++) {
+        els[i].classList[fnName](className);
+    }
+}
+// function showErrorMes(currentEle){
+    //    var getContainerErrorblock=document.getElementById('interneal-error-container');
+    //    if(getContainerErrorblock){
+    //     getContainerErrorblock.innerHTML="";
+    //     setTimeout(
+    //         function() {
+    //             if(currentEle== "msft-internal"){
+    //                 var create_p_ele=document.createElement("p");
+    //                 create_p_ele.innerHTML="Please select from one of the four personal options to log in to the Microsoft careers site."
+    //                 create_p_ele.setAttribute('id','erro-text-block');
+    //                 getContainerErrorblock.appendChild(create_p_ele);
+    //             }else if(currentEle== "linked-in"){
+    //                 var create_p_ele=document.createElement("p");
+    //                 create_p_ele.innerHTML="Please select from one of the four personal options to log in to the Microsoft careers site."
+    //                 create_p_ele.setAttribute('id','erro-text-block');
+    //                 getContainerErrorblock.appendChild(create_p_ele);
+    //             }
+    //         }, 100); 
+    //     if(getContainerErrorblock.classList.contains('hide') ==true){
+    //         getContainerErrorblock.classList.remove('hide');
+    //     }
+    //    } 
+// }
+function phvAddFromValidation(v1, v2, v3, v4, v5) {
+    var d1 = null,
+        d2 = null;
+    var _date = new Date();
+    var _dateParse = Date.parse(_date);
+    if (v1.year && v1.month && v1.day) {
+        d1 = Date.parse(v1.year + '-' + v1.month + '-' + v1.day);
+        var d = new Date(v1.year, v1.month, 0).getDate();
+        if (v1.day > d) {
+            // v5[v4].day = d + "";
+            return false;
+        }
+        if (d1 < _dateParse) {
+            // v5[v4].year = ((+v1.year) + 1) + "";
+            return false;
+        }
+    }
+    if (v2.year && v2.month && v2.day) {
+        d2 = Date.parse(v2.year + '-' + v2.month + '-' + v2.day);
+        var d = new Date(v2.year, v2.month, 0).getDate();
+        if (v2.day > d) {
+            //v5[v3.attribute].day = d + "";
+            return false;
+        }
+
+
+    }
+    if ((d1 && d2 === null) || d1 >= d2) {
+        if (d1) {
+            // v5[v3.attribute].day = v1.day;
+            // v5[v3.attribute].month = v1.month;
+            // v5[v3.attribute].year = v1.year;
+            return true;
+        }
+    } else {
+
+    }
+    if (d1 && d2) {
+        return d1 <= d2;
+    } else {
+        return !!d1;
+    }
+}
+function phvToValidation(v1, v2, v3, v4, v5) {
+    var d1 = null,
+        d2 = null;
+    var _date = new Date();
+    var _dateParse = Date.parse(_date);
+    if (v1.year && v1.month && v1.day) {
+        d1 = Date.parse(v1.year + '-' + v1.month + '-' + v1.day);
+        var d = new Date(v1.year, v1.month, 0).getDate();
+        if (v1.day > d) {
+            // v5[v4].day = d + "";
+            return false;
+        }
+
+        if (d1 < _dateParse) {
+            // v5[v4].year = ((+v1.year) + 1) + "";
+            return false;
+        }
+    }
+    if (v2.year && v2.month && v2.day) {
+        d2 = Date.parse(v2.year + '-' + v2.month + '-' + v2.day);
+        var d = new Date(v2.year, v2.month, 0).getDate();
+        if (v2.day > d) {
+            //v5[v3.attribute].day = d + "";
+            return false;
+        }
+
+
+    }
+    if ((d1 && d2 === null) || d1 <= d2) {
+        if (d1) {
+            //v5[v3.attribute].day = v1.day;
+            //v5[v3.attribute].month = v1.month;
+            // v5[v3.attribute].year = v1.year;
+            return true;
+        }
+    } else {
+
+    }
+
+
+
+    if (d1 && d2) {
+        return d1 >= d2;
+    } else {
+        return !!d1;
+
+    }
+}
+function phvDateOfBirth(v1, v2, v3, v4, v5) {
+    if (v1.year && v1.month && v1.day) {
+        return true;
+    }else{
+        return false;
+    }
+}
+function hideTab(){
+    var tabHide = document.getElementById('profileTabNav');
+    tabHide.style.display = 'none';
+}
+function showTab(){
+    var tabShow = document.getElementById('profileTabNav');
+    tabShow.style.display = 'block';    
+}
+function modal$$toggleDisplay(show, selector){
+    var selector = selector || document.querySelector(".ph-widget-modal-content");
+    var dialogBody = selector.querySelector('.popover-body');
+    if(dialogBody){
+        if(show == true){
+            dialogBody.classList.remove("popup-hide");
+            dialogBody.classList.add("popup-show");
+        }else if(show == false){
+            dialogBody.classList.remove("popup-show");
+            dialogBody.classList.add("popup-hide");
+        }
+    }
+}
+function modal$$AddFocusToFirstItem(selector){
+        var selector = selector || document.querySelector(".ph-widget-modal-content");
+        if(selector){
+            var elem = selector.querySelector(".popover-main.active .ref-modal-tab-item");
+            if(elem){
+                elem.focus();
+            }
+        }
+}
+// function redirectPage$students(current,e){
+//     var seletedValue = e.target.selectedIndex -1;
+//     var getkeyCodeNum=e.keyCode;
+//     if(seletedValue == -1){
+
+//     }else if(seletedValue>=0 && getkeyCodeNum == 13){
+//         var getSiteUrl=phApp.baseUrl;
+//         var getPageUrl=oGlobal.oLocations[seletedValue].location_url;
+//         var pageUrl=getSiteUrl.concat(getPageUrl);
+//         window.location.href=pageUrl;
+//     }
+// }
+function modal$$KeyDownPopupHandler(event){
+    var selector = document.querySelector(".ph-widget-modal-content");
+        switch(event.keyCode){
+            case 27:
+                modal$$toggleDisplay(false);
+            break;
+            case 9:
+                if(!selector.contains(document.activeElement)){
+                    modal$$AddFocusToFirstItem(selector);
+                    event.preventDefault();
+                }
+            break;
+            case 33:
+            case 34:
+            case 38:
+            case 40:
+                if(selector.contains(document.activeElement)){
+                    event.preventDefault();
+                }
+            break;
+        }
+    return true;    
+}
+function handleModalAriaContent(open, aQuery){
+    try{
+        var isAriaHidden  = !!open;
+        var hasQuery = aQuery || [".ph-header", ".ph-inline-nav-bar", ".ph-footer", ".ph-widget-main-content"];
+        if(!hasQuery.length){
+            return false;
+        }
+        hasQuery.forEach(function (itemCls) {
+            if(itemCls){
+                var selectors = document.querySelectorAll(itemCls);
+                var len = selectors && selectors.length;
+                if( len ){
+                    for(var k = 0; k< len; k++ )
+                        var selector = selectors[k];
+                        if(selector){
+                            selector.setAttribute("aria-hidden", isAriaHidden + '');
+                        }
+                }
+            }
+        }); 
+        var selector = document.querySelector(".ph-widget-modal-content");
+        selector.setAttribute("aria-hidden", !isAriaHidden + '');
+        if(open){
+            phApp = phApp || {};
+            phApp.get$$ActiveElement = document.activeElement;
+            modal$$toggleDisplay(true, selector);
+            document.body.style.overflow = "hidden";
+            document.addEventListener('keydown', modal$$KeyDownPopupHandler);
+            selector.querySelector("div.tabGaurdStartSrOnly").addEventListener("focus", function (event) {
+                event.stopImmediatePropagation();
+                if (selector) {
+                    var elem = selector.querySelectorAll(".popover-main.active .ref-modal-tab-item");
+                    var last = elem.length - 1;
+                    elem[last].focus();
+                }
+            }, true);  
+            selector.querySelector("div.tabGaurdEndSrOnly").addEventListener("focus", function (event) {
+                event.stopImmediatePropagation();
+                modal$$AddFocusToFirstItem(selector);
+            }, true); 
+            setTimeout(function(){
+                modal$$AddFocusToFirstItem(selector);
+            },40)
+            
+        }else{
+            document.removeEventListener('keydown', modal$$KeyDownPopupHandler);
+            document.body.style.overflow = "auto";
+            modal$$toggleDisplay(false, selector);
+            phApp.get$$ActiveElement && phApp.get$$ActiveElement.focus();
+        }
+        
+    }catch(e){
+         console.info(e);
+    }
+}
+function validations$GetPattern(type){
+    switch(type){
+        case 1:
+            // (Do not accept these characters!) General fields
+            return /^$\s*|[^\$%\^\&+=_\]\[()\;\/\\<>"]+/;
+
+        case 2:
+        //(Do not accept these characters!), Specific for First/Middle/Last name fields
+        return /^$\s*|[^\–\—\~\!\“\”\@\#\$\%\^\&\*\(\)\_\+\=\{\}\[\]\;\<\>\/\\\?\u2022\\]+/;
+
+        case 3:
+            // For Only Accepting english and other given below symbols (Only accept these characters!)
+            return /^$|[a-zA-Z0-9\@\^\%\>\<\'\‘\’\“\”\"\;\&\(\)\+\$\.\,\#\!\\\/\[\]\-\–\—\_\u2022\u200B\{\}\:\?\|\s*]+/;
+
+        case 4:
+            // (Do not accept these characters!) for MSR school field
+            return /^$\s*|[^\$%\^+=_\]\[\;\/\\<>"]+/;
+
+        case 5:
+            // (Do not accept these characters!) Company Name
+            return /^$\s*|[^\$%\^+=_\]\[()\;\/\\<>"]+/;
+
+        case 6:
+            // (Do not accept these characters!) Address line 1 and
+            return /^$\s*|[^\$%\^\&+=_\]\[()\;\\<>"]+/;
+       
+        case 7:
+            /** Accept emails */
+            return /^([A-Za-z0-9_\-\.])+\@([A-Za-z0-9_\-\.])+\.([A-Za-z]{2,4})$/;
+
+        case 8:
+            /** Accept microsoft emails */
+            return /^\w+([\.-]?\w+)*@microsoft\.com$/;
+
+        case 9:
+            return /(<\s*.*[^>]*>?(.*?))|(((ftp|http)(s)?:\/\/.?(www\.)*?)*?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&\/\/=]*))/gi;
+        
+        case 91:
+        // url regex for social url
+            return /^$\s*|\s*((http)(s)?:\/\/.?(www\.)*?)[-a-zA-Z0-9@:%._\+~#=\/]+/;
+
+        case 10:
+            // (Do not accept these characters!) General fields
+            return /^$\s*|[^\$%\^\&+=_\]\[()\;\\<>"]+/;
+
+        case 11:
+        // For Only Accepting english and other given below symbols (Only accept these characters!)
+        return /^$|[a-zA-Z0-9\@\^\%\>\`\®\<\'\‘\’\“\”\"\;\&\(\)\+\$\.\,\#\!\\\/\[\]\-\–\—\_\u2022\u200B\{\}\:\?\|\s*]+/;
+        
+        default:
+        
+    }
+}
+function validate$profile$Year(v1, v2, v3, v4){
+    if(!v2){
+        if(v1 >= 1900 && v1 <= 2100){
+            return true;
+        }else{
+            return false;
+        }
+    }else{
+        return true;
+    }
+}
+function validate$profile$Month(v1, v2, v3, v4){
+        if(!v2){
+            if(v1 === "" || v1=== undefined){
+                return false;
+            }else{
+                return true;
+            }
+        }else{
+            return true;
+        }
+}

@@ -1,0 +1,307 @@
+/*
+ * 입력폼의 단어 수를 카운팅 합니다. 기본은 모든 문자(공백 포함)를 1글자로 취급해 단어 수를 세는 것이고,
+ * 바이트 수를 세기 위해선 type: 'byte' 파라미터를 설정해야 합니다.
+ * count 또는 countElement 파라미터 중 하나만 지정하면 되며, 카운팅 수를 나타낼 엘리먼트를 지정합니다.
+ *
+ * 이 플러그인이 필요한 이유는 특정 브라우저에서 한글의 key 관련 이벤트가 제대로 동작하지 않기 때문입니다. 한글을
+ * 사용할 경우 키 코드가 다른 버튼을 눌러도 같은 코드 값이 나온다던지, 키 관련 이벤트를 제대로 캐치하지 못한다던지
+ * 하는 브라우저의 버그가 있습니다. 이 플러그인은 해당 버그를 해결하기 위한 것이며, 해결 방법으로 타이머를 지정해
+ * 입력폼 엘리먼트의 글자 수를 업데이트 하는 방법을 사용합니다.
+ *
+ * 한 번에 여러 textarea를 설정할 수 있으며, 이 경우 각각의 textarea와 count 또는 countElement가 매핑됩니다.
+ *
+ * 또한, UTF-8 또는 MS949 인코딩을 사용해야 regex 패턴이 깨지지 않습니다:
+ * <script type="text/javascript" src="/js/jquery-inputform.js" charset="UTF-8"></script>
+ *
+ * 사용 예:
+ * 		$J("#word_count_textarea").wordcount({
+ * 			count: "#word_count_span"
+ * 		});
+ *
+ * 		$(this).wordcount({
+ * 			type: "byte",
+ * 			countElement: $(this).next()
+ * 		});
+ *
+ * 		$J("textarea").wordcount({
+ * 			countElement: $("span")
+ * 		});
+ *
+ *      <td><input type="text" class="form-control" name="name" id="name"  value="최대 40자까지 입력 가능합니다."/>
+ *		<span style="display:none" data-maxlength="40"></span></td>
+ *  	$J('#name').wordcount({
+ * 			type: "word",
+ *			countElement: $J(this).next()
+ *		});
+ *
+ * Depends:
+ * 		jquery.js
+ *
+ * Author:
+ * 		mOer
+ *
+ */
+var intervalId;
+(function($, undefined) {
+	$.fn.wordcount = function(options) {
+		return this.each(function(index) {
+			var opts = $.extend({}, $.fn.wordcount.defaults, options);
+			opts.target = $(this);
+			opts.count = opts.count == "" ? opts.countElement.eq(index) : $(opts.count).eq(index);
+			opts.maxlength = opts.count.attr("data-maxlength");
+
+			$(this).focus(function(e) {
+				intervalId = setInterval(function() {
+					if (opts.type === "byte") {
+						byte(opts,false);
+					} else {
+						count(opts, false);
+					}
+				}, opts.time);
+			}).blur(function(e) {
+				if (opts.type === "byte") {
+					byte(opts,true);
+				} else {
+					count(opts, true);
+				}
+				clearInterval(intervalId);
+			});
+
+			count(opts, false);
+		});
+	};
+
+	function checkMaxLength(opts, isBlur) {
+
+		if (opts.maxlength != null && opts.maxlength > 0) {
+			var targetLength = opts.target.val().length ;
+			if (opts.target.val().length > opts.maxlength) {
+				if (!isBlur){
+					alert(opts.maxlength + "자를 초과할 수 없습니다.");
+				}
+				opts.target.val(opts.target.val().substring(0, opts.maxlength));
+			}
+		}
+	}
+
+	function count(opts, isBlur) {
+		checkMaxLength(opts, isBlur);
+		opts.count.text(opts.target.val().length + match(opts.target, /\r\n/g));
+	}
+
+	function byte(opts,isBlur) {
+		checkMaxLength(opts, isBlur);
+		var total = match(opts.target, /[^ㄱ-힣]/gi)	+ (match(opts.target, /[ㄱ-힣]/g) * 3);
+		opts.count.text(total);
+	}
+
+	function match($target, pattern) {
+		var inputStr = $target.val();
+		var matchedChar = inputStr.match(pattern);
+		return matchedChar != null ? matchedChar.length : 0;
+	}
+
+	$.fn.wordcount.defaults = {
+		type : "word", // 글자 수(word) 또는 바이트(byte)
+		count : "", // 글자 수나 바이트를 표시할 곳
+		countElement : null, // 글자 수나 바이트를 표시할 곳의 실제 엘리먼트
+		time : 200 // textarea 글자 수를 체크할 시간
+	};
+})(jQuery);
+
+
+/* 한글 입력 불가 처리*/
+
+(function($, undefined) {
+	$.fn.wordlimit = function(options) {
+		return this.each(function(index) {
+			var opts = $.extend({}, $.fn.wordlimit.defaults, options);
+			opts.target = $(this);
+			opts.maxlength = opts.target.attr("data-maxlength");
+			var intervalId;
+
+			$(this).focus(function(e) {
+				intervalId = setInterval(function() {
+					if (opts.type === "kor") {
+						korLimit(opts);
+					}
+				}, opts.time);
+			}).blur(function(e) {
+				clearInterval(intervalId);
+			});
+
+			korLimit(opts);
+		});
+	};
+
+	function korLimit(opts) {
+		if (opts.maxlength != "" && opts.maxlength > 0) {
+			if (opts.target.val().length > opts.maxlength) {
+				alert(opts.maxlength + "자를 초과할 수 없습니다.");
+				opts.target.val(opts.target.val().substring(0, opts.maxlength));
+			}
+		}
+
+		if (match(opts.target, /[ㄱ-힣]/gi) != null) {
+			alert("한글은 입력할 수 없습니다.");
+			opts.target.val("").focus();
+		}
+	}
+
+	function match($target, pattern) {
+		var inputStr = $target.val();
+		var matchedChar = inputStr.match(pattern);
+		return matchedChar;
+	}
+
+	$.fn.wordlimit.defaults = {
+		type : "kor",
+		time : 200
+	};
+})(jQuery);
+
+/*
+ * 금액을 한글로 표기 해주는 스크립트
+ *
+ * 금액 부분만 숫자로 표기 하게끔 수정하고 엘리먼트에 세팅하는 기존 방식에서 단순히 변환된 문자열을
+ * 반환 받게끔 수정함.
+ *
+ * 출처 - http://smartflex.tistory.com/447
+ */
+function trans_han(s){
+    if(s.length > 16){
+        t.innerHTML = '숫자가 너무 큽니다';
+        return;
+    } else if(isNaN(s)){
+        t.innerHTML = '숫자가 아닙니다';
+        return;
+    }
+    b1 = ' 123456789';
+    b2 = '천백십조천백십억천백십만천백십원';
+    tmp = '';
+    cnt = 0;
+    while(s != ''){
+        cnt++;
+        tmp1 = b1.substring(s.substring(s.length-1,s.length), Number(s.substring(s.length-1,s.length))+1); // 숫자
+        tmp2 = b2.substring(b2.length-1,b2.length); // 단위
+        if(tmp1==' '){ // 숫자가 0일때
+            if(cnt%4 == 1){ // 4자리로 끊어 조,억,만,원 단위일때만 붙여줌
+                tmp = tmp2 + tmp;
+            }
+        } else{
+            if(tmp1 == '일' && cnt%4 != 1){ // 단위가 조,억,만,원일때만 숫자가 일을 붙여주고 나머지는 생략 ex) 삼백일십만=> 삼백십만
+                tmp = tmp2 + tmp;
+            } else{
+                tmp = tmp1 + tmp2 + tmp; // 그외에는 단위와 숫자 모두 붙여줌
+            }
+        }
+        b2 = b2.substring(0, b2.length-1);
+        s = s.substring(0, s.length-1);
+    }
+    tmp = tmp.replace('억만','억').replace('조억','조'); // 조,억,만,원 단위는 모두 붙였기 때문에 필요없는 단위 제거
+    return tmp;
+}
+
+/**
+ * jquery.placeholder http://matoilic.github.com/jquery.placeholder
+ *
+ * @version v0.2.4
+ * @author Mato Ilic <info@matoilic.ch>
+ * @copyright 2013 Mato Ilic
+ *
+ * Dual licensed under the MIT and GPL licenses:
+ * http://www.opensource.org/licenses/mit-license.php
+ * http://www.gnu.org/licenses/gpl.html
+ */
+;(function($, doc, debug) {
+    var input = ('placeholder' in doc.createElement('input')),
+        textarea = ('placeholder' in doc.createElement('textarea')),
+        selector = ':input[placeholder]';
+
+    $.placeholder = {input: input, textarea: textarea};
+
+    //skip if there is native browser support for the placeholder attribute
+    if(!debug && input && textarea) {
+        $.fn.placeholder = function() {};
+        return;
+    }
+
+    if(!debug && input && !textarea) {
+        selector = 'textarea[placeholder]';
+    }
+
+    /* patch jQuery.fn.val to return an empty value if the value matches
+     * the placeholder
+     */
+    $.fn.realVal = $.fn.val;
+    $.fn.val = function() {
+        var $element = $(this), val, placeholder;
+        if(arguments.length > 0) return $element.realVal.apply(this, arguments);
+
+        val = $element.realVal();
+        placeholder = $element.attr('placeholder');
+
+        return ((val == placeholder) ? '' : val);
+    };
+
+    function clearForm() {
+        $(this).find(selector).each(removePlaceholder);
+    }
+
+    function extractAttributes(elem) {
+        var attr = elem.attributes, copy = {}, skip = /^jQuery\d+/;
+        for(var i = 0; i < attr.length; i++) {
+            if(attr[i].specified && !skip.test(attr[i].name)) {
+                copy[attr[i].name] = attr[i].value;
+            }
+        }
+        return copy;
+    }
+
+    function removePlaceholder() {
+        var $target = $(this), $clone, $orig;
+
+        if($target.is(':password')) return;
+
+        if($target.data('password')) {
+            $orig = $target.next().show().focus();
+            $('label[for=' + $target.attr('id') + ']').attr('for', $orig.attr('id'));
+            $target.remove();
+        } else if($target.realVal() == $target.attr('placeholder')) {
+            $target.val('');
+            $target.removeClass('placeholder');
+        }
+    }
+
+    function setPlaceholder() {
+        var $target = $(this), $clone, plceholder, hasVal, cid;
+        placeholder = $target.attr('placeholder');
+        if($.trim($target.val()).length > 0) return;
+
+        if($target.is(':password')) {
+            cid = $target.attr('id') + '-clone';
+            $clone = $('<input/>')
+                        .attr($.extend(extractAttributes(this), {type: 'text', value: placeholder, 'data-password': 1, id: cid}))
+                        .addClass('placeholder');
+
+            $target.before($clone).hide();
+            $('label[for=' + $target.attr('id') + ']').attr('for', cid);
+        } else {
+            $target.val(placeholder).css("color","#a5a5a5");
+            $target.addClass('placeholder');
+        }
+    }
+
+    $.fn.placeholder = function() {
+        this.filter(selector).each(setPlaceholder);
+        return this;
+    };
+
+    $(function($) {
+        var $doc = $(doc);
+        $doc.on('submit', 'form', clearForm);
+        $doc.on('focus', selector, removePlaceholder);
+        $doc.on('blur', selector, setPlaceholder);
+        $(selector).placeholder();
+    });
+})(jQuery, document, window.debug);

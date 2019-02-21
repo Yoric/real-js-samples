@@ -1,0 +1,23 @@
+(function() {
+  adv.AdBase.extend('Ad17173Script', {
+    init: function (options) {
+      this.base(options);
+      this.emit(adv.ENUM.EVENTS.inited);
+    },
+    setup: function (data) {
+      this.base();
+      this.data = data || this.options;
+      this.emit(adv.ENUM.EVENTS.setuped);
+    },
+    play: function () {
+      this.base();
+      if((!~navigator.userAgent.indexOf('iPad') || !this.options.disableOnIPad) && this.data.source){
+        script = document.createElement('script');
+        script.type = 'text/javascript';
+        script.src = this.data.source.replace('http:','');
+        document.getElementsByTagName('head')[0].appendChild(script);
+        this.emit(adv.ENUM.EVENTS.played);
+      }
+    }
+  });
+})();

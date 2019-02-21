@@ -1,0 +1,273 @@
+/**
+ * @method: productBenefit
+ * @dependency: requireJS, jQuery, bnfVar(sellerProductDetailView)
+ */
+(function(root, factory) {
+	'use strict';
+    if (typeof define === 'function' && define.amd) {
+        define([
+            'jquery',
+            'myPriceInfo'
+        ], factory);
+    } else {
+        root.productBenefit = factory(
+            root.jQuery,
+            root.myPriceInfo
+        );
+    }
+}(window || this, function($, myPriceInfo) {
+	'use strict';
+	/************************************************
+	 * P130415 금융마케팅_5월 바로가기 무이자할부 도입
+	 * 2013.05.08 by sjshim
+	 ************************************************/
+	var _evtInitFreecardList   = new Array();
+	var _allInitFreecardList   = new Array();
+	var _subInitFreecardList   = new Array();
+	var _sellerPrdNoIntList    = new Array();
+	var _longFreeHalbuCardList = new Array();	
+
+	var bnfVar = productBnfInfo;
+
+	var productBenefit = {
+			
+		//카드할부정보HTML
+		_feeCardHtml : "",	
+			
+		init : function() {
+	
+			//무이자할부
+			$('#cardList2').click(function(e) {
+				//레이어그리기
+				productBenefit.getFeeCard();
+			});
+			productBenefit.getFeeCard();
+
+			myPriceInfo.pluYN = bnfVar.pluDscText;		
+			
+			if(bnfVar.isShowFBnr != "true" && bnfVar.floatViewYn == "Y") {
+				this.fnInitTopFloatingBnr();
+			}
+			
+			//무이자할부데이터 세팅 S
+			if(bnfVar.longFreeHalbuCardList != "" ){
+				for(var i=0; i < bnfVar.longFreeHalbuCardList.length; i++){
+					this.setFeeCard("longFreeHalbuCardList", bnfVar.longFreeHalbuCardList[i].intFreeAplTermAmt, bnfVar.longFreeHalbuCardList[i].crdenCd, bnfVar.longFreeHalbuCardList[i].crdenCdNm, bnfVar.longFreeHalbuCardList[i].freeHalbuMonth, bnfVar.longFreeHalbuCardList[i].stlMnsClfCd);
+				}
+			} 
+			if(bnfVar.evtInitFreecardList != "" ){
+				for(var i=0; i < bnfVar.evtInitFreecardList.length; i++){
+					this.setFeeCard("evtInitFreecardList", bnfVar.evtInitFreecardList[i].intFreeAplTermAmt, bnfVar.evtInitFreecardList[i].crdenCd, bnfVar.evtInitFreecardList[i].crdenCdNm, bnfVar.evtInitFreecardList[i].freeHalbuMonth, bnfVar.evtInitFreecardList[i].stlMnsClfCd);
+				}
+			}	
+			if(bnfVar.allInitFreecardList != "" ){
+				for(var i=0; i < bnfVar.allInitFreecardList.length; i++){
+					this.setFeeCard("allInitFreecardList", bnfVar.allInitFreecardList[i].intFreeAplTermAmt, bnfVar.allInitFreecardList[i].crdenCd, bnfVar.allInitFreecardList[i].crdenCdNm, bnfVar.allInitFreecardList[i].freeHalbuMonth, bnfVar.allInitFreecardList[i].stlMnsClfCd);
+				}
+			}	
+			if(bnfVar.subInitFreecardList != "" ){
+				for(var i=0; i < bnfVar.subInitFreecardList.length; i++){
+					this.setFeeCard("subInitFreecardList", bnfVar.subInitFreecardList[i].intFreeAplTermAmt, bnfVar.subInitFreecardList[i].crdenCd, bnfVar.subInitFreecardList[i].crdenCdNm, bnfVar.subInitFreecardList[i].freeHalbuMonth, bnfVar.subInitFreecardList[i].stlMnsClfCd);
+				}
+			}	
+			if(bnfVar.sellerPrdNoIntList != "" ){
+				for(var i=0; i < bnfVar.sellerPrdNoIntList.length; i++){
+					this.setFeeCard("sellerPrdNoIntList", bnfVar.sellerPrdNoIntList[i].intFreeAplTermAmt, bnfVar.sellerPrdNoIntList[i].crdenCd, bnfVar.sellerPrdNoIntList[i].crdenCdNm, bnfVar.sellerPrdNoIntList[i].freeHalbuMonth, bnfVar.sellerPrdNoIntList[i].stlMnsClfCd);
+				}
+			}
+			//무이자할부데이터 세팅 E			
+		},
+		
+		fnInitTopFloatingBnr : function() {
+			// 반복형이벤트 : 플로팅 배너 :S
+			try{
+				var so = new SWFObject(bnfVar.floatUrl, "swf", "100", "100", "9");
+				so.addParam("allowScriptAccess", "always");
+				so.addParam("quality", "high");
+				so.addParam("wmode", "transparent");
+				so.addParam("align", "middle");
+				so.addParam("salign", "t");
+				so.addParam("scale", "noscale");
+				so.addVariable("IDNAME","floatingRealy");
+				so.write("floatingRealy");
+				$(".bann_floating").css('display','block');
+			}catch (e) {}
+			// 반복형이벤트 : 플로팅 배너 :E
+		},
+		
+		setFeeCard : function(type, _intFreeAplTermAmt, _crdenCd, _crdenCdNm,_freeHalbuMonth, _stlMnsClfCd){
+			var obj = {	"intFreeAplTermAmt": _intFreeAplTermAmt
+						,"crdenCd": _crdenCd
+						,"type": type
+						,"crdenCdNm" : _crdenCdNm
+						,"freeHalbuMonth" : _freeHalbuMonth
+						,"stlMnsClfCd" : _stlMnsClfCd
+
+					};
+			if('evtInitFreecardList' == type){
+				var index = _evtInitFreecardList.length;
+				_evtInitFreecardList[index] = obj;
+			}
+			if('allInitFreecardList' == type){
+				var index = _allInitFreecardList.length;
+				_allInitFreecardList[index] = obj;
+			}
+			if('subInitFreecardList' == type){
+				var index = _subInitFreecardList.length;
+				_subInitFreecardList[index] = obj;
+			}
+			if('sellerPrdNoIntList' == type){
+				var index = _sellerPrdNoIntList.length;
+				_sellerPrdNoIntList[index] = obj;
+			}
+			if('longFreeHalbuCardList' == type){
+				_longFreeHalbuCardList[_longFreeHalbuCardList.length] = obj;
+			}
+		},
+		
+		//카드 레이어
+		getFeeCard : function(){
+			//처음 한번만 그리기
+			if('' == this._feeCardHtml){
+				var subTitle = bnfVar.directBenefitTitle +"무이자할부 적용카드";
+				if(bnfVar.isExcludeSomeCard) {
+                    subTitle += "(일부 카드사 제외)";
+				}
+				
+				if(_longFreeHalbuCardList.length > 0){
+					this._feeCardHtml +="<h4 class='sub_tit'>장기 무이자 할부 프로모션 참여상품</h4>";
+					this._feeCardHtml +="<p class='sub_text'>바로가기 접속 시, 이 상품에만 적용됩니다.</p>";
+					this._feeCardHtml +="<div class='layer_card_free'>";
+					this._feeCardHtml +="<table class='row_tb'>";
+					this._feeCardHtml +="<caption>장기 무이자할부 프로모션 참여 상품</caption>";
+					this._feeCardHtml +="<colgroup><col style='width:90px'><col style='width:249px'></colgroup>";
+					this._feeCardHtml +="<tbody>";
+					this._feeCardHtml += this.setCardHtml(_longFreeHalbuCardList);
+					this._feeCardHtml +="</tbody>";
+					this._feeCardHtml +="</table>";
+				}
+
+				//지급유예+일반무이자
+				if(_evtInitFreecardList.length > 0 || _allInitFreecardList.length > 0){
+					this._feeCardHtml +="<h4 class='sub_tit'>" + subTitle +  "</h4>";
+					this._feeCardHtml +="<div class='layer_card_free'>";
+					this._feeCardHtml +="<table class='row_tb'>";
+					this._feeCardHtml +="<colgroup><col style='width:90px'><col style='width:249px'></colgroup>";
+					this._feeCardHtml +="<caption>" + subTitle + "</caption>";
+					this._feeCardHtml +="<tbody>";
+					//지급유예무이자
+					if(_evtInitFreecardList.length > 0){
+					this._feeCardHtml += this.setCardHtml(_evtInitFreecardList);
+					}
+					//일반무이자
+					if(_allInitFreecardList.length > 0){
+					this._feeCardHtml += this.setCardHtml(_allInitFreecardList);
+					}
+					this._feeCardHtml +="</tbody>";
+					this._feeCardHtml +="</table>";
+				}
+
+				//부분무이자
+				if(_subInitFreecardList.length > 0){
+					subTitle = bnfVar.directBenefitTitle +"부분 무이자할부 적용카드";
+					this._feeCardHtml +="<h4 class='sub_tit'>" + subTitle +  "</h4>";
+					this._feeCardHtml +="<div class='layer_card_free'>";
+					this._feeCardHtml +="<table class='row_tb'>";
+					this._feeCardHtml +="<colgroup><col style='width:90px'><col style='width:249px'></colgroup>";
+					this._feeCardHtml +="<caption>" + subTitle +  "</caption>";
+					this._feeCardHtml +="<tbody>";
+					this._feeCardHtml += this.setCardHtml(_subInitFreecardList);
+					this._feeCardHtml +="</tbody>";
+					this._feeCardHtml +="</table>";
+				}
+
+				//판매자
+				if(_sellerPrdNoIntList.length > 0 && "" != _sellerPrdNoIntList[0].intFreeAplTermAmt){
+					subTitle = "판매자 상품 무이자할부 적용카드";
+						this._feeCardHtml +="<h4 class='sub_tit'>" + subTitle +  "</h4>";
+						this._feeCardHtml +="<p class='sub_text'>이 상품 구매 시 " + this._sellerPrdNoIntList[0].freeHalbuMonth + " 무이자할부가 적용됩니다.</p>";
+						this._feeCardHtml +="<div class='layer_card_free pb10'>";
+						this._feeCardHtml +="<table class='row_tb'>";
+						this._feeCardHtml +="<colgroup><col style='width:90px'><col style='width:249px'></colgroup>";
+						this._feeCardHtml +="<tbody>";
+						var obj = _sellerPrdNoIntList;
+						for(var i = 0; i < obj.length; i++){
+						this._feeCardHtml +="<tr>";	
+						this._feeCardHtml +="<th scope='row'><span class='card_ico ico" + obj[i].crdenCd + "'>" + obj[i].crdenCdNm + "카드</span></th>";
+						this._feeCardHtml +="<tr>";	
+						}
+						this._feeCardHtml +="</tbody>";
+						this._feeCardHtml +="</table>";
+						this._feeCardHtml +="</div>";
+						this._feeCardHtml +="<ul class='txt_info'>";
+						this._feeCardHtml +="<li><span class='ico'>판매자 상품 무이자할부는 이 상품 결제 시에만 적용됩니다. 다른<br/>";
+						this._feeCardHtml +=" 판매자 상품과 같이 결제하시는 경우 유이자 할부 적용 되오니 <br/>유의해 주시기 바랍니다.</li>";
+						this._feeCardHtml +="<li><span class='ico'>해당 서비스는 11번가 제공 무이자 할부 서비스가 없을 경우에 한해<br/> 제공됩니다.</li>";
+						this._feeCardHtml +="</ul>";
+				}
+
+				if('' != this._feeCardHtml){
+					this._feeCardHtml +="<ul class='txt_info'>";
+					this._feeCardHtml +="<li><span class='ico'></span>제외품목 : 순금매장, 아동용쥬얼리, 복지용구(요양보험), e-쿠폰/상품권/이용권, 문화비소득공제상품(도서/티켓) 등<br>";
+					this._feeCardHtml +="(제외품목 상품을 포함하여 할부 결제 시 할부 수수료가 청구됩니다)</li>";
+					this._feeCardHtml +="<li><span class='ico'></span>제외카드 : 체크/법인/선불/기프트/NON-BC카드 제외(BC계열은 BC카드 무이자 한도 적용)</li>";
+					this._feeCardHtml +="</ul>";
+				}
+			}
+			$("#feeCard").html(this._feeCardHtml);
+		},
+		
+		setCardHtml : function(obj){
+			var strHTML = "";
+			for(var i = 0; i < obj.length ; i++){
+
+				var intFreeAplTermAmt = 0;
+				if("" != obj[i].intFreeAplTermAmt && null != obj[i].intFreeAplTermAmt && parseInt(obj[i].intFreeAplTermAmt) > 0){
+					intFreeAplTermAmt = parseInt(obj[i].intFreeAplTermAmt)/10000;
+				}
+
+				var rows = 1;
+				if(i+1 < obj.length && (i == 0 || (i > 0 && obj[i-1].crdenCd != obj[i].crdenCd))){
+					for(var j = i+1; j < obj.length; j++){
+						if(obj[j].crdenCd == obj[i].crdenCd){
+							rows++;
+						}else{
+							break;
+						}
+					}
+				}
+				var strRowSpan="";
+				if(rows > 1){
+					strRowSpan = "rowspan='"+rows+"'";
+				}
+
+				strHTML +="<tr>";
+				if(i == 0 || (i > 0 && obj[i-1].crdenCd != obj[i].crdenCd)){
+					strHTML +="<th scope='row' " + strRowSpan + "><span class='card_ico ico" + obj[i].crdenCd + "'><span class='hide'>" + obj[i].crdenCdNm + "카드</span></span></th>";
+				}
+
+				if(obj[i].type == "longFreeHalbuCardList"){
+					if(i == 0){
+						if(obj[i].stlMnsClfCd == "33"){
+							strHTML +="<td rowspan='"+(obj.length)+"'><strong>최대"+bnfVar.maxFreeHalbuMonth+"개월</strong> (<em>"+parseInt(bnfVar.maxFreeHalbuPrice)/10000+"만원↑, 11Pay 결제 시</em>)</td>";
+						}else {
+							strHTML +="<td rowspan='"+(obj.length)+"'><strong>최대"+bnfVar.maxFreeHalbuMonth+"개월</strong> (<em>"+parseInt(bnfVar.maxFreeHalbuPrice)/10000+"만원↑</em>)</td>";
+						}
+					}
+					strHTML + "</tr>"
+				}else{
+					if(obj[i].stlMnsClfCd == "33"){
+						strHTML +="<td><strong>" + obj[i].freeHalbuMonth + "개월</strong> (<em>" + intFreeAplTermAmt + "만원↑, 11Pay 결제 시</em>)</td>";
+					}else {
+						strHTML +="<td><strong>" + obj[i].freeHalbuMonth + "개월</strong> (<em>" + intFreeAplTermAmt + "만원↑</em>)</td>";
+					}
+
+					strHTML +="</tr>";
+				}
+			}
+			return strHTML;
+		}
+	};
+
+	return productBenefit;
+}));

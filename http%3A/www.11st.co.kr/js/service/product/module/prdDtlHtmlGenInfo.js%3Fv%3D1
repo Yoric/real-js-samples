@@ -1,0 +1,95 @@
+/**
+ * @method: prdDtlHtmlGenInfo
+ * @dependency: requireJS, jQuery
+ */
+(function(root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define([
+            'jquery',
+            'addDiscountPrice',
+            'productCommon'
+        ], factory);
+    } else {
+        root.prdDtlHtmlGenInfo = factory(
+            root.jQuery,
+            root.AddDiscountPrice,
+            root.productCommon
+        );
+    }
+}(window || this, function($, AddDiscountPrice, productCommon) {
+	'use strict';
+	var prdVar = productPrdInfo;
+	
+	var prdDtlHtmlGenInfo = {
+			
+		isHtmlGen : false,
+		
+		isHTMLPage : false,
+		
+		reg : /\.html/,
+		
+		init : function(){
+			this.isHtmlGen = prdVar.isHtmlGen;
+			
+			if( this.reg.test(window.location.href) ) {
+				this.isHTMLPage = true;
+			}
+			
+			try {
+				if( this.isHTMLPage ) {
+					var url = "/product/SellerProductDetailAjax.tmall";
+					var param = "method=checkHTMLGen&prdNo=" + prdVar.prdNo;
+					var _callBack = function (retrunval) {
+						var data = eval(retrunval);
+						if(data) {
+							if(data.type == "sendRedirect")	{
+								window.location.href = "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=" + prdVar.prdNo;
+							}
+						}/* 고객맞춤가 쇼킹딜 APP에서만 실행 - hankpj
+						require(['productPrice'] , function(ProductPrice){
+							ProductPrice.getMyPrice(true);
+						});*/
+						prdDtlHtmlGenInfo.displayIconArea();
+						prdDtlHtmlGenInfo.displayBenefitArea();
+					};
+					productCommon.callAjaxAsynch(url, param, _callBack);
+				}else{
+		        	require(['addDiscountPrice'] , function(AddDiscountPrice){
+		        		AddDiscountPrice.preVisibleProcess();
+		        	});
+				}
+	
+			} catch (e){
+	
+			}
+		},
+
+		// Title 영역 : Icon 노출 영역 표시
+		displayIconArea : function() {
+			if( this.isHTMLPage ) {
+				if( getBookMarkYn() ) {
+					jQuery("#titleIconSpanByHTMLGen").show();
+					jQuery("#titleIconSpan").remove();
+				} else {
+					jQuery("#titleIconSpan").show();
+					jQuery("#titleIconSpanByHTMLGen").remove();
+				}
+			}
+		},
+		
+		// 혜택 노출 영역 표시
+		displayBenefitArea : function() {
+			if( this.isHTMLPage ) {
+				if( getBookMarkYn() ) {
+					jQuery("#benefitLiByHTMLGen").show();
+					jQuery("#benefitLi").remove();
+				} else {
+					jQuery("#benefitLi").show();
+					jQuery("#benefitLiByHTMLGen").remove();
+				}
+			}
+		}
+		
+	};
+	return prdDtlHtmlGenInfo;
+}));

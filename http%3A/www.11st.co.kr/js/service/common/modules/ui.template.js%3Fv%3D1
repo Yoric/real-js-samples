@@ -1,0 +1,181 @@
+;(function (root, factory) {
+	'use strict';
+	if (typeof define === 'function' && define.amd) {   // jshint ignore:line
+		// AMD
+		define([                                            // jshint ignore:line
+			'jquery',
+			'handlebars',
+			'slider' 
+		], factory);
+	} else {
+		root.skp11 = root.skp11 || {};
+		root.skp11.common = root.skp11.common || {};
+		root.skp11.common.Template = factory(
+			root.jQuery,
+			root.Handlebars,
+			root.skp11.common.Slider
+		);
+	}
+}(this, function ($, Handlebars, Slider) {
+	'use strict';
+	var Template;
+
+	(function() {
+		Handlebars.registerHelper('ifCond', function (v1, operator, v2, options) {
+			switch (operator) {
+				case '===':
+					return (v1 === v2) ? options.fn(this) : options.inverse(this);
+				case '<':
+					return (v1 < v2) ? options.fn(this) : options.inverse(this);
+				case '<=':
+					return (v1 <= v2) ? options.fn(this) : options.inverse(this);
+				case '>':
+					return (v1 > v2) ? options.fn(this) : options.inverse(this);
+				case '>=':
+					return (v1 >= v2) ? options.fn(this) : options.inverse(this);
+				case '&&':
+					return (v1 && v2) ? options.fn(this) : options.inverse(this);
+				case '||':
+					return (v1 || v2) ? options.fn(this) : options.inverse(this);
+				default:
+					return options.inverse(this);
+			}
+		});
+
+		Handlebars.registerHelper('last4', function (index, options) {
+			if (((index+1) % 4) === 0) {
+				return options.fn(this);
+			} else {
+				return options.inverse(this);
+			}
+		});
+
+        Handlebars.registerHelper('times', function(n, options) {
+            var accum = '';
+            for(var i = 0; i < n; ++i)
+                accum += options.fn(i);
+            return accum;
+        });
+
+		Handlebars.registerHelper("math", function(lvalue, operator, rvalue, options) {
+			if (arguments.length < 4) {
+		        options = rvalue;
+		        rvalue = operator;
+		        operator = "+";
+		    }
+			
+		    lvalue = parseFloat(lvalue);
+		    rvalue = parseFloat(rvalue);
+		        
+		    return {
+		        "+": lvalue + rvalue,
+		        "-": lvalue - rvalue,
+		        "*": lvalue * rvalue,
+		        "/": lvalue / rvalue,
+		        "%": lvalue % rvalue
+		    }[operator];
+		});
+		
+		Handlebars.registerHelper("abs", function(value) {
+			return Math.abs(value);
+		});
+
+		Handlebars.registerHelper('trackAd', function (prdNo, trcNo, typGubn, areaGubn, isCPC, target, minorYn) {
+			var result = "HeaderComm.Product.doTracking(" + prdNo + ",'" + trcNo + "','" + typGubn + "','" + areaGubn + "'," + isCPC + ",'" + "" + "', this, '"+minorYn+"');" +
+				"return false;";
+
+			if( "_blank" !== (target) && 'Y' !== minorYn ){
+
+				if(isCPC){
+					result = "productDetailViewAdultsCPC(" + prdNo + ",'N','" + trcNo + "','" + typGubn + "','" + areaGubn + "');" +
+						"HeaderComm.Product.doTracking(" + prdNo + ",'" + trcNo + "','" + typGubn + "','" + areaGubn + "', false,'" + "" + "', '');" +
+						"return false;";
+				}else{
+					result = "productDetailViewAdults('" + prdNo + "','N');" +
+						"HeaderComm.Product.doTracking(" + prdNo + ",'" + trcNo + "','" + typGubn + "','" + areaGubn + "', false,'" + "" + "', '');" +
+						"return false;";
+				}
+
+			}
+			return result;
+		});
+
+
+	}());
+
+	Template = function (content, options) {
+		this.DATA = $.extend({}, templateData);// jshint ignore:line
+		this.content = content;
+		this.options = options;
+		this.defaults = {
+			// common
+			template: '',
+			jsonName: '',
+
+			// element
+			templateContent: '.ui_templateContent'
+		};
+		this.$appendObject = '';
+		this.$win = $(window);
+	};
+
+	Template.prototype.init = function () {
+		var _this = this,
+			$content = $(_this.content);
+
+		if ($content.length === 0) {
+			return;
+		}
+
+		_this.setting = $.extend({}, _this.defaults, $content.data(), _this.options);
+		_this.$templateContent = $content.find(_this.setting.templateContent);
+
+		if (!_this.$templateContent.data('isTemplate')) {
+			_this.templateSettig();
+			_this.templateCreate(_this.DATA[_this.setting.jsonName]);
+		}
+
+		$content.on('templateUpdate', function (e, data) {
+			_this.templateCreate(data);
+		});
+	};
+
+	Template.prototype.templateSettig = function () {
+		var _this = this;
+
+		_this.source = $('#' + _this.setting.template).html();
+		_this.handlebars = Handlebars.compile(_this.source);
+	};
+
+	Template.prototype.templateCreate = function (templateData) {
+		var _this = this;
+
+		if (_this.$appendObject !== '') {
+			_this.$appendObject.remove();
+		}
+		_this.$appendObject = $(_this.handlebars(templateData));
+		_this.$templateContent.prepend(_this.$appendObject).data('isTemplate', true);
+		_this.slider();
+		_this.$win.trigger('layoutUpdate');
+	};
+	
+	Template.prototype.templateAppend = function (templateData) {
+		var _this = this;
+
+		_this.$appendObject = $(_this.handlebars(templateData));
+		_this.$templateContent.append(_this.$appendObject).data('isTemplate', true);
+		_this.slider();
+		_this.$win.trigger('layoutUpdate');
+	};
+
+	Template.prototype.slider = function () {
+		var _this = this,
+			slider;
+
+		if (_this.setting.slider) {
+			slider = new Slider(_this.setting.sliderOption);
+		}
+	};
+
+	return Template;
+}));

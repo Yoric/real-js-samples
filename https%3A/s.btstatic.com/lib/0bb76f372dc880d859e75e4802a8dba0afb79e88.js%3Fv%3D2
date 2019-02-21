@@ -1,0 +1,125 @@
+yj_apn_segid=(function(){
+try{
+
+//--Switch debug mode--
+//var mode="debug";
+var mode="non_debug";
+var test_sec_fq=60*1;
+var test_device="PC";
+
+//---Array for sending APN segment ID--
+var array_segment=[
+[".*purchase.gyao.yahoo.co.jp/premium_gyao/subscribe.*","","ALL","6194000",1],
+[".*purchase.gyao.yahoo.co.jp/premium_gyao/subscribe.*","","ALL","6194001",3],
+[".*purchase.gyao.yahoo.co.jp/premium_gyao/subscribe.*","","ALL","6194002",14],
+[".*purchase.gyao.yahoo.co.jp/premium_gyao/subscribe.*","","ALL","6194003",30]
+];
+
+//---Setting for device type--
+var str_device="";
+if(typeof(BrightTag.device)=="function"){
+if(BrightTag.device()=="mobile"){
+str_device="SP";
+}else if(BrightTag.device()=="desktop"){
+str_device="PC";
+}else if(BrightTag.device()=="tablet"){
+str_device="PC";
+}else{
+str_device="PC";
+}
+}else if(mode!="debug"){throw new Error("non_BrightTag_device");}
+
+//---Setting for Frequency cap--
+var sec_fq=60*60*24;
+
+//---Do not modify from here---
+var i,j;
+
+//get URL
+var str_URL=document.URL;
+
+//get "yjcd" Cookie
+var array_yjcd=bt_cookie("bt3.yjcd").split(",");
+
+//set array_recency from array_segment
+var array_recency=[];
+for(i=0;i<array_segment.length;i++){
+array_recency[i]=array_segment[i][4];
+}
+array_recency=Array.from(new Set(array_recency));
+for(i=0;i<array_recency.length;i++){
+eval("var array_apn_segment_id"+array_recency[i]+"=[];");
+eval("var apn_segment_id"+array_recency[i]+";");
+eval("var apn_recency"+array_recency[i]+";");
+}
+
+//verify array_segment one by one
+for(i=0;i<array_segment.length;i++){
+
+var seg_URL=array_segment[i][0];
+var str_regURL=new RegExp(seg_URL);
+var seg_URLx=array_segment[i][1];
+var str_regURLx=new RegExp(seg_URLx);
+var seg_device=array_segment[i][2];
+var seg_segment_id=array_segment[i][3];
+var seg_recency=array_segment[i][4];
+
+//work only on debug mode
+if(mode=="debug"){
+if(str_device.length==0){str_device=test_device;}
+console.log("------------------");
+console.log("array_segment:"+i+" : "+seg_URL+" "+seg_URLx+" "+seg_device+" "+seg_segment_id+" "+seg_recency);
+console.log("URL match : "+(str_URL.match(str_regURL)));
+console.log("Device match : "+(seg_device==str_device));
+console.log("Fire status : "+(array_yjcd.indexOf(seg_segment_id)));
+console.log("------------------");
+}
+
+//Fire conditions
+if(array_segment[i][2]=="ALL"){
+//-URL and Cookie
+if(seg_URLx.length>0){
+var boolean_if=str_URL.match(str_regURL)&&!str_URL.match(str_regURLx)&&array_yjcd.indexOf(seg_segment_id)==-1;
+}else{
+var boolean_if=str_URL.match(str_regURL)&&array_yjcd.indexOf(seg_segment_id)==-1;
+}
+}else{
+//-URL and Device and Cookie
+if(seg_URLx.length>0){
+var boolean_if=str_URL.match(str_regURL)&&!str_URL.match(str_regURLx)&&seg_device==str_device&&array_yjcd.indexOf(seg_segment_id)==-1;
+}else{
+var boolean_if=str_URL.match(str_regURL)&&seg_device==str_device&&array_yjcd.indexOf(seg_segment_id)==-1;
+}
+}
+
+//Store APN segment ID to tmp array and cookie array if fire conditions matched
+if(boolean_if){
+for(j=0;j<array_recency.length;j++){
+if(seg_recency==array_recency[j]){
+eval("array_apn_segment_id"+array_recency[j]+".push(seg_segment_id);");
+array_yjcd.push(seg_segment_id);
+}}}
+}
+
+
+var yj_apn_segid=[];
+for(j=0;j<array_recency.length;j++){
+
+//Store APN segment ID to recency position of return value array
+eval("var str_apn_segment_id=array_apn_segment_id"+array_recency[j]+".join(',');");
+yj_apn_segid[array_recency[j]]=str_apn_segment_id;
+
+//Write APN segment ID to cookie
+if(mode=="debug"){
+document.cookie="bt3.yjcd="+array_yjcd.join(",")+";max-age="+test_sec_fq+";path=/";
+}else{
+document.cookie="bt3.yjcd="+array_yjcd.join(",")+";max-age="+sec_fq+";path=/";
+}
+
+}
+
+} catch(e){return "";}
+
+return yj_apn_segid;
+
+})();

@@ -1,0 +1,10 @@
+(function(b){b.fn.shpUtil=function(){return this;};b.shpUtil={};b.shpUtil.sendAjax=function(n){var j={"method":"GET","url":"","dataType":"jsonp","query":"","timeout":1000,"callback":"","errorCallback":""};
+var m=b.extend(j,n);var f=b.ajax({type:m["method"],url:m["url"],cache:false,timeout:m["timeout"],dataType:m["dataType"],data:m["query"],headers:{"abtest":JSON.stringify(m["abtest"]||{})}}).done(m["callback"]).fail(m["errorCallback"]);
+if(m["dataType"]=="jsonp"){var k=b(b("head")[0].firstChild);var g=k.attr("src")||"";var h=(g.match(/callback=(\w+)/)||[])[1];if(!h){return;}var l=0,i=window[h];k[0].onerror=function(o){k.remove();e("error",o,m["errorCallback"]);
+clearTimeout(l);};window[h]=function(o){clearTimeout(l);i(o);i=null;};l=setTimeout(function(){k.remove();e("timeout",null,m["errorCallback"]);if(i){window[h]=function(){};}},m["timeout"]);}return f;};b.shpUtil.calcDiscountRate=function(f){var g=0;
+if(f["price"]!=f["sale"]){g=Math.floor(100-((parseInt(f["sale"])/parseInt(f["price"]))*100));}return g;};b.shpUtil.setComma3=function(g){var f=c(g["priceNum"]);while(f!=(f=f.replace(/^(-?\d+)(\d{3})/,"$1,$2"))){}if(isNaN(parseInt(f))){f="0";
+}return f;};b.shpUtil.analyzeHash=function(g,j){var i=location.hash||"#",h=new RegExp("(#|&)("+g+"=)([^&¥?]*)(¥?|&|$)"),f=i.match(h);if(typeof j==="undefined"){return f?f[3]:false;}location.hash=f?i.replace(f[0],f[1]+f[2]+j+f[4]):(i+(i!=="#"?"&":"")+g+"="+j);
+};function a(f){return b("<div>").text(f).html();}function d(f){return b("<div>").html(f).text();}b.shpUtil.htmlEncode=function(f){return a(f);};b.shpUtil.htmlDecode=function(f){return d(f);};b.shpUtil.shorten=function(h){var f="";
+if(!h.text||!h.maxLength){return"";}var g=h.ellipsisStr===undefined?"...":h.ellipsisStr;if(h.text.length<=h.maxLength){return h.text;}f=h.text.substring(0,h.maxLength-1)+g;return f;};b.shpUtil.h=function(f){f=f.replace(/&/g,"&amp;");
+f=f.replace(/</g,"&lt;");f=f.replace(/>/g,"&gt;");f=f.replace(/"/g,"&quot;");f=f.replace(/'/g,"&#039;");return f;};function c(f){f=""+f;return f.replace(/^\s+|\s+$|,/g,"");}function e(h,g,f){if(f){f(g,h);
+}else{return false;}}})(jQuery);

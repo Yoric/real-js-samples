@@ -1,0 +1,246 @@
+(function(){
+
+window._jc_ping = window._jc_ping || [];
+_jc_ping.push([ '_trackModuleData', [
+    { md: '2016_\u5bfc\u822a\u533a_\u5168\u7ad9\u5bfc\u822a', containerId: 'forsetLink1', ads: '7b1a1c57cd4e704df63ed226a58552f5' },
+    { md: '2016_\u5bfc\u822a\u533a_17173APP', containerId: 'forsetLink2', ads: '65faa19c2a1d6fb4d3ae905dd4e9745b' },
+    { md: '2016_\u5bfc\u822a\u533a_VR\u63a8\u8350', containerId: 'forsetLink3', ads: '9ae297d6406d1848461fae108a6d1f59' },
+    { md: '2016_\u63a8\u8350\u533a_\u624b\u6e38\u671f\u5f85\u699c', containerId: 'forsetLink4', ads: '82a620629919cfeac27acb64052fb125' },
+    { md: '2016_\u65b0\u63a8\u8350\u533a_\u4eca\u65e5\u7cbe\u9009', containerId: 'forsetLink5', ads: 'a6ba50c28a0169a3e3082721f8f9c9af', track: 'ad' },
+    { md: '2016_\u4fa7\u8fb9\u533a_\u8fd4\u56de\u9876\u90e8', containerId: 'forsetLink6', ads: 'c30226e3c2b9b6c2138e722f792d39fa' },
+    { md: '2016_\u6e38\u620f\u4e13\u533a_\u798f\u5229', containerId: 'forsetLink7', ads: '633bf344be92ea292452440b7da68cb3' },
+    { md: '2016_\u6e38\u620f\u4e13\u533a_\u5546\u57ce', containerId: 'forsetLink8', ads: '18bd38ba69677bbc60838e88e1ef8f9d' },
+    { md: '2016_\u624b\u6e38\u533a_\u6d77\u5916\u65b0\u6e38', containerId: 'forsetLink9', ads: '10ca5b4b4ad167e2375f960e1f0c8abc' },
+    { md: '2016_\u9875\u6e38\u533a_\u5206\u7c7b\u5bfc\u822a', containerId: 'forsetLink10', ads: '193ea7ceb07ec85550307e883bf1f2ec' },
+
+    { md: '2016_\u9875\u6e38\u533a_\u672c\u5468\u63a8\u8350', containerId: 'forsetLink11', ads: 'e351b53dfa9e111cf8ef90b826893b48' },
+    { md: '2016_\u9875\u6e38\u533a_\u70ed\u95e8\u793c\u5305', containerId: 'forsetLink12', ads: '0f74e9794edc2c0a4b71d26885e84e3f' },
+    { md: '2016_\u5355\u673a\u533a_\u5206\u7c7b\u5bfc\u822a', containerId: 'forsetLink13', ads: 'e6246a125b979ec03bbc6577e86a1b56' },
+    { md: '2016_\u5355\u673a\u533a_\u70ed\u70b9\u8bc4\u6d4b', containerId: 'forsetLink14', ads: '3033b625023cb968a83a81ccf7a85163' },
+    { md: '2016_\u5355\u673a\u533a_\u5bfc\u8d2d', containerId: 'forsetLink15', ads: '41b87600f547c8a6987ad16a261b292b' },
+    { md: '2016_\u5355\u673a\u533a_\u70ed\u70b9\u680f\u76ee', containerId: 'forsetLink16', ads: '87e58524e24ed970c464b0d3d5859303' },
+    { md: '2016_\u5355\u673a\u533a_\u70ed\u95e8\u8d44\u8baf', containerId: 'forsetLink17', ads: '37889a141dad496a57af0bd495bbe182' },
+    { md: '2016_\u9875\u6e38\u533a_\u9875\u6e38\u6392\u884c\u699c', containerId: 'forsetLink18', ads: '2d05e32ca923cb55927a5f7603248128' },
+    { md: '2016_\u6392\u884c\u533a_\u624b\u6e38\u6d4b\u8bd5\u8868', containerId: 'forsetLink19', ads: '40cee934c660aedc02cfa0c4b32318d3' },
+    { md: '2016_\u5e95\u90e8_\u4e0b\u8f7d\u6392\u884c', containerId: 'forsetLink20', ads: 'a2b29a73ea55e0b81db124914e7d2ccd' },
+
+    { md: '2014_\u5bfc\u822a\u533a_\u7ad9\u7fa4\u5bfc\u822a', containerId: 'forsetLink21', ads: '75cd865bb830c1410327a6ab7d87353c' },
+    { md: '2014_\u5bfc\u822a\u533a_LOGO', containerId: 'forsetLink22', ads: '2d2ca7eedf739ef4c3800713ec482e1a' },
+    { md: '2014_\u5bfc\u822a\u533a_17173\u672c\u7ad9\u5bfc\u822a', containerId: 'forsetLink23', ads: 'e49a1bf42f39565435d64f9587beaf4b' },
+    { md: '2015_\u5bfc\u822a\u533a_\u5207\u6362\u65b0\u6e38', containerId: 'inc-newgame', ads: 'da0b1b5bec71b468bcab872a64595541' },
+    { md: '2015_\u5bfc\u822a\u533a_\u5207\u6362\u624b\u6e38', containerId: 'inc-sy', ads: '68897f19b106926ed889fe3f7e3d01c9' },
+    { md: '2015_\u5bfc\u822a\u533a_\u5207\u6362\u9875\u6e38', containerId: 'inc-yy', ads: 'e524b57da14a33eaba87093d83c247e0' },
+    { md: '2015_\u5bfc\u822a\u533a_\u5207\u6362A-Z', containerId: 'inc-sort', ads: '77143919d1234297079f075357988f3b' },
+    { md: '2014_\u5bfc\u822a\u533a_\u5168\u90e8\u6e38\u620f\u5bfc\u822a', containerId: 'forsetLink24', ads: 'f509e6e247395fcaef19a3dabee98802' },
+    { md: '2014_\u5bfc\u822a\u533a_\u624b\u6e38\u5bfc\u822a', containerId: 'forsetLink29', ads: 'dfeb9598fbfb97cc6bbcc0aff2c785d6' },
+    { md: '2014_\u5bfc\u822a\u533a_\u9875\u6e38\u5bfc\u822a', containerId: 'forsetLink30', ads: '944a5ae3483ed5c1e10bbccb7942a279' },
+
+    { md: '2014_\u5bfc\u822a\u533a_\u9875\u6e38\u63a8\u8350', containerId: 'forsetLink31', ads: 'bcb8c94b1704bcbb7f6b231e7777d675' },
+    { md: '2014_\u5bfc\u822a\u533a_\u767b\u5f55', containerId: 'forsetLink32', ads: '825ec0bc82ee105261b07e655dc96ad6' },
+    { md: '2014_\u5bfc\u822a\u533a_\u641c\u7d22\u6846', containerId: 'forsetLink33', ads: 'bebfa0d08da2c142b3dba07546ab86dd' },
+    { md: '2014_\u5bfc\u822a\u533a_\u641c\u7d22\u6846', containerId: 'forsetLink331', ads: 'bebfa0d08da2c142b3dba07546ab86dd' },
+    { md: '2016_\u5bfc\u822a\u533a_\u4eca\u65e5\u6d4b\u8bd5', containerId: 'forsetLink34', ads: '3506a5a001628937f98daf4048554ef6' },
+    { md: '2016_\u56fe\u7247\u5bfc\u822a', containerId: 'forsetLink35', ads: '9c9f1366edbae758a3bb56eca4388b64' },
+    { md: '2014_\u5bfc\u822a\u533a_\u5206\u7c7b\u627e\u6e38\u620f', containerId: 'forsetLink36', ads: 'ea4a8832b277054d326928c5e5cf8136' },
+    { md: '2014_\u63a8\u8350\u533a_\u5927\u773c\u775b', containerId: 'forsetLink37', ads: '3d97246cbdbaf57d16ed8042f6b75a21', track: 'ad' },
+    { md: '2014_\u63a8\u8350\u533a_\u7126\u70b9\u56de\u987e', containerId: 'forsetLink38', ads: '3a3db549e046bb0e2ccd94d54c17282f' },
+    { md: '2014_\u63a8\u8350\u533a_\u7126\u70b9\u56de\u987e', containerId: 'forsetLink381', ads: '3a3db549e046bb0e2ccd94d54c17282f' },
+    { md: '2014_\u63a8\u8350\u533a_\u5934\u6761', containerId: 'forsetLink39', ads: '0a7671e0ce7999c566962459061bfd73' },
+    { md: '2014_\u63a8\u8350\u533a_\u7b2c\u4e00\u6bb5', containerId: 'forsetLink40', ads: '7fe883b786e576c8bc0ffea589a11b7a' },
+
+    { md: '2016_\u63a8\u8350\u533a_\u6709\u6599\u793e\u533a', containerId: 'forsetLink41', ads: 'a93e5c47513fa8e11e0bbc5fe01aab0e' },
+    { md: '2014_\u63a8\u8350\u533a_\u76f4\u64ad\u89c6\u9891', containerId: 'forsetLink42', ads: 'd3a5f9ada5aa7cdbb8712fe768bf3dd0' },
+    { md: '2014_\u63a8\u8350\u533a_\u8f6f\u4ef6\u63a8\u8350', containerId: 'forsetLink43', ads: '0e55666a4ad822e0e34299df3591d979' },
+    { md: '2016_\u63a8\u8350\u533a_3+1', containerId: 'forsetLink44', ads: '168954ac74a0c561fa9341773a0c35e9' },
+    { md: '2015_\u63a8\u8350\u533a_\u660e\u661f\u73a9\u5bb6', containerId: 'forsetLink45', ads: '6224a9bccb82c8332b62c3a9c25a4838' },
+    { md: '2015_\u63a8\u8350\u533a_\u660e\u661f\u73a9\u5bb6', containerId: 'forsetLink451', ads: '6224a9bccb82c8332b62c3a9c25a4838' },
+    { md: '2014_\u63a8\u8350\u533a_\u7aef\u6e38\u53d1\u53f7', containerId: 'forsetLink46', ads: '632a966457d9e5523ae918a419ec21f6' },
+    { md: '2014_\u63a8\u8350\u533a_\u7aef\u6e38\u53d1\u53f7', containerId: 'forsetLink461', ads: '632a966457d9e5523ae918a419ec21f6' },
+    { md: '2014_\u63a8\u8350\u533a_\u9875\u6e38\u53d1\u53f7', containerId: 'forsetLink47', ads: '761c7920f470038d4c8a619c79eddd62' },
+    { md: '2014_\u63a8\u8350\u533a_\u9875\u6e38\u53d1\u53f7', containerId: 'forsetLink471', ads: '761c7920f470038d4c8a619c79eddd62' },
+    { md: '2014_\u63a8\u8350\u533a_\u624b\u6e38\u53d1\u53f7', containerId: 'forsetLink48', ads: '149815eb972b3c370dee3b89d645ae14' },
+    { md: '2014_\u63a8\u8350\u533a_\u624b\u6e38\u53d1\u53f7', containerId: 'forsetLink481', ads: '149815eb972b3c370dee3b89d645ae14' },
+    { md: '2014_\u63a8\u8350\u533a_\u7279\u6743', containerId: 'forsetLink49', ads: 'fd75da3b123e93d8de7a44de30767c1c' },
+    { md: '2014_\u63a8\u8350\u533a_\u624b\u6e38', containerId: 'forsetLink50', ads: '9316f4d92d1a26feedea69526aedf3bf' },
+
+    { md: '2014_\u63a8\u8350\u533a_\u70ed\u95e8\u6d3b\u52a8', containerId: 'forsetLink51', ads: 'ba3ffeea7eb45646b9f8ae127f645c95', track: 'ad' },
+    { md: '2016_\u63a8\u8350\u533a_\u7efc\u5408', containerId: 'forsetLink52', ads: '2ba45e5a7e743addeb6c8d07b2ba2e3c' },
+    { md: '2014_\u65b0\u95fb\u00b7\u65b0\u6e38_\u5927\u9646\u65b0\u95fb', containerId: 'forsetLink53', ads: '5da7561f1edbcdb6ab01f9fc6b25bd20' },
+    { md: '2014_\u65b0\u95fb\u00b7\u65b0\u6e38_\u65b0\u95fb\u5bfc\u822a', containerId: 'forsetLink54', ads: '87f2203c9b6ebee10e7fe30204a00c85' },
+    { md: '2014_\u65b0\u95fb\u00b7\u65b0\u6e38_\u65b0\u6e38\u8d44\u8baf', containerId: 'forsetLink55', ads: '421f47aeb63e4e95ab2dfbcba2e31c4a' },
+    { md: '2014_\u65b0\u95fb\u00b7\u65b0\u6e38_\u70ed\u95e8\u4e3b\u9898', containerId: 'forsetLink551', ads: '421f47aeb63e4e95ab2dfbcba2e31c4a' },
+    { md: '2014_\u65b0\u95fb\u00b7\u65b0\u6e38_\u5168\u7403\u65b0\u95fb', containerId: 'global', ads: 'd75e11f32017a07801d26d058c32bed6' },
+    { md: '2014_\u65b0\u95fb\u00b7\u65b0\u6e38_\u4ea7\u4e1a\u65b0\u95fb', containerId: 'forsetLink57', ads: 'aca2b6dbbb0166e57bbe4359733f6ef6' },
+    { md: '2014_\u65b0\u95fb\u00b7\u65b0\u6e38_\u65b0\u6e38\u5927\u76d8\u70b9', containerId: 'forsetLink58', ads: '39fbf0170952ae32f98288b23586e33f' },
+    { md: '2014_\u65b0\u95fb\u00b7\u65b0\u6e38_\u4e13\u8bbf', containerId: 'forsetLink59', ads: 'f0a29e9027121d7c5ce93b1e6b183031' },
+    { md: '2016_\u65b0\u95fb\u00b7\u65b0\u6e38_\u66dd\u65b0\u6e38', containerId: 'forsetLink60', ads: '8f4a525e8077a40339df634132a6abe3' },
+
+    { md: '2014_\u6e38\u620f\u4e13\u533a_\u5206\u7c7b\u5bfc\u822a', containerId: 'forsetLink61', ads: '45964d5f6c4dd3d31fe01c678a84aef2' },
+    { md: '2014_\u6e38\u620f\u4e13\u533a_\u7ecf\u5178\u7f51\u6e38', containerId: 'forsetLink62', ads: '9e219f220c37cd2d1c45ea3dda439792' },
+    { md: '2014_\u6e38\u620f\u4e13\u533a_\u4e13\u533a\u8d44\u8baf', containerId: 'forsetLink63', ads: '4da7369b9a597822345067a8bbb59215' },
+    { md: '2014_\u6e38\u620f\u4e13\u533a_\u70ed\u95e8\u8d44\u8baf', containerId: 'forsetLink64', ads: 'c8b885af6926f424dd25f99cbfaeede5' },
+    { md: '2014_\u6e38\u620f\u4e13\u533a_\u70ed\u95e8\u8d44\u8baf1', containerId: 'forsetLink641', ads: 'c8b885af6926f424dd25f99cbfaeede5' },
+    { md: '2016_\u6e38\u620f\u4e13\u533a_\u624b\u6e38\u4e13\u533a', containerId: 'forsetLink65', ads: 'eec9ab5ed87c35dc1595879267060e94' },
+    { md: '2016_\u89c6\u9891_\u4e13\u533a\u4f4d', containerId: 'forsetLink66', ads: 'a3f6573a7325b690522e2821d15007fc' },
+    { md: '2014_\u624b\u6e38\u533a_\u5206\u7c7b\u5bfc\u822a', containerId: 'forsetLink67', ads: '1b318124e37af6d74a03501474f44ea1' },
+    { md: '2014_\u624b\u6e38\u533a_\u624b\u673a\u6e38\u620f', containerId: 'forsetLink68', ads: '1f6747356825c116deb692dfac5efc02' },
+    { md: '2016_\u624b\u6e38\u533a_\u70ed\u95e8\u63a8\u8350', containerId: 'forsetLink69', ads: 'ba036d228858d76fb89189853a5503bd' },
+    { md: '2016_\u89c6\u9891_\u624b\u6e38\u4f4d', containerId: 'forsetLink70', ads: '4f710b53237144f08932ef1868017cf4' },
+
+    { md: '2016_\u9875\u6e38\u533a_\u9875\u6e38\u5934\u6761', containerId: 'forsetLink71', ads: '559ac54ac345e4f340aa7dfb2423794b' },
+
+    { md: '2014_\u624b\u6e38\u533a_\u7f51\u6e38\u6392\u884c', containerId: 'forsetLink73', ads: '949dc7fffb89778a1c5e6d1e9bb28418' },
+    { md: '2014_\u7efc\u5408\u6e38\u620f_flash\u5c0f\u6e38\u620f', containerId: 'forsetLink74', ads: '7f7d67c6fd0fe67e466888f7cf25d5bb' },
+    { md: '2015_\u5a31\u4e50\u5927\u89c2_\u5bfc\u822a', containerId: 'forsetLink75', ads: '7d97667a3e056acab9aaf653807b4a03' },
+    { md: '2015_\u5a31\u4e50\u5927\u89c2_\u65b0\u95fb', containerId: 'forsetLink76', ads: '6785d6cfcb95ebe1eb55ab0e3e731716' },
+    { md: '2015_\u5a31\u4e50\u5927\u89c2_\u52a8\u6f2b', containerId: 'forsetLink77', ads: 'ec0f40c389aeef789ce03eb814facc6c' },
+    { md: '2015_\u5a31\u4e50\u5927\u89c2_818', containerId: 'forsetLink78', ads: 'f3a3a63a79eb1831b0a2776bfd20d838' },
+    { md: '2015_\u5a31\u4e50\u5927\u89c2_\u89c6\u9891', containerId: 'forsetLink79', ads: 'e3b21256183cf7c2c7a66be163579d37' },
+    { md: '2014_\u7efc\u5408\u6e38\u620f_\u73a9\u5bb6\u8c03\u67e5', containerId: 'forsetLink80', ads: '99e30147fff984205648a5b879156666' },
+
+    { md: '2014_\u6392\u884c\u533a_\u65b0\u6e38\u671f\u5f85\u699c', containerId: 'forsetLink81', ads: '6273154c808759048e3200c51cbb44b1' },
+    { md: '2014_\u6392\u884c\u533a_\u65b0\u6e38\u671f\u5f85\u699c', containerId: 'forsetLink811', ads: '6273154c808759048e3200c51cbb44b1' },
+    { md: '2016_\u6392\u884c\u533a_\u56fd\u670d\u5f00', containerId: 'forsetLink82', ads: 'ea3a8d7d7ff57f8522e2deaade612ae8' },
+    { md: '2016_\u6392\u884c\u533a_\u56fd\u670d\u5f00', containerId: 'forsetLink821', ads: 'ea3a8d7d7ff57f8522e2deaade612ae8' },
+    { md: '2016_\u6392\u884c\u533a_\u4e00\u5468\u70ed\u95e8\u699c', containerId: 'forsetLink83', ads: 'd23ef35d93506f8e8a4af6e18ae09e7a' },
+    { md: '2016_\u6392\u884c\u533a_\u4e00\u5468\u70ed\u95e8\u699c', containerId: 'forsetLink831', ads: 'd23ef35d93506f8e8a4af6e18ae09e7a' },
+    { md: '2014_\u6392\u884c\u533a_\u70ed\u95e8\u603b\u6392\u884c', containerId: 'forsetLink84', ads: '4c7238469d656f90476c8cb7bbb4a49d' },
+    { md: '2014_\u6392\u884c\u533a_\u70ed\u95e8\u603b\u6392\u884c', containerId: 'forsetLink841', ads: '4c7238469d656f90476c8cb7bbb4a49d' },
+    { md: '2014_\u6392\u884c\u533a_\u6d4b\u8bd5\u65f6\u95f4\u8868', containerId: 'forsetLink85', ads: '3a9b3f036a2f571a23e1c499d1477791' },
+    { md: '2015_\u6392\u884c\u533a_\u9875\u6e38\u6d4b\u8bd5\u8868', containerId: 'forsetLink86', ads: '3983e1512aa570c564fab522bdb3efa5' },
+    { md: '2016_ \u5e95\u90e8_\u6e38\u620f\u95ee\u7b54', containerId: 'forsetLink87', ads: 'a80b6895746b414928f25624067b5f69' },
+    { md: '2014_\u5e95\u90e8_\u4e0b\u8f7d\u63a8\u8350', containerId: 'forsetLink88', ads: 'a8f4f49c828148010a127be4fc799e8b' },
+    { md: '2014_\u5e95\u90e8_17173\u52a8\u6001', containerId: 'forsetLink89', ads: 'bddd7e08fca9a2c47b830fe144f9dc7e' },
+    { md: '2014_\u5e95\u90e8_\u5bfc\u822a', containerId: 'ue-sitemap', ads: '6fe2b08fa5fcce8d53dd3ce73e7c9e1e' },
+    { md: '2014_\u5e95\u90e8_\u641c\u7d22\u6846', containerId: 'forsetLink90', ads: '153fd58bdbdcdf6f8d86805704df5b26', track: 'b' },
+
+    { md: '2016_\u5e95\u90e8_\u793e\u4ea4\u8d26\u53f7', containerId: 'forsetLink91', ads: '433fe97a8bd700d318fa2f37c7a71f84' },
+    { md: '2016_\u6392\u884c\u533a_\u9875\u6e38\u5f00\u670d\u8868', containerId: 'forsetLink92', ads: 'f48b9818b2689e5e4008d7c296ba4db1' },
+    { md: '2016_\u5bfc\u822a\u533a_\u6e38\u620f\u641c\u7d22', containerId: 'forsetLink93', ads: '22c92ed29e7f3bd0b63d944e1e6e0b8f' },
+    { md: '2016_\u624b\u6e38\u533a_\u5206\u7c7b\u63a8\u8350', containerId: 'forsetLink94', ads: '648df9d94fcc267b98bd4ddfbd5c1950' },
+    { md: '17173\u9996\u9875\u56fe\u7247\u5bfc\u822aXS', containerId: 'forsetLink95', ads: 'eaYzya' },
+    { md: '2016_\u6392\u884c\u533a_\u7f51\u6e38\u5f00\u670d\u8868', containerId: 'forsetLink96', ads: 'yqyyaq' },
+    { md: '2014_\u5bfc\u822a\u533a_\u5168\u7ad9\u6e38\u620f\u5bfc\u822aB', containerId: 'forsetLink97', ads: '8d4b8010c6a6526dc24e98f2d53c6dd3' },
+
+    { md: '\u5207\u6362_\u5bfc\u822a\u533a_\u6e38\u620f\u7c7b\u578b_\u70ed\u95e8', containerId: 'btnLink1', ads: 'QBveUf', track: 'b' },
+    { md: '\u5207\u6362_\u5bfc\u822a\u533a_\u6e38\u620f\u7c7b\u578b_\u65b0\u6e38', containerId: 'btnLink2', ads: 'RZNRzi', track: 'b' },
+    { md: '\u5207\u6362_\u5bfc\u822a\u533a_\u6e38\u620f\u7c7b\u578b_\u624b\u6e38', containerId: 'btnLink3', ads: '2uI363', track: 'b' },
+    { md: '\u5207\u6362_\u5bfc\u822a\u533a_\u6e38\u620f\u7c7b\u578b_\u9875\u6e38', containerId: 'btnLink4', ads: 'rIfM32', track: 'b' },
+    { md: '\u5207\u6362_\u5bfc\u822a\u533a_\u6e38\u620f\u7c7b\u578b_A-Z', containerId: 'btnLink5', ads: '2QZ3qu', track: 'b' },
+
+    { md: '\u5207\u6362_\u63a8\u8350\u533a_\u8981\u95fb3\u5207\u6362_\u4eca\u65e5\u8981\u95fb', containerId: 'btnLink6', ads: 'FbYnMz', track: 'b' },
+    { md: '\u5207\u6362_\u63a8\u8350\u533a_\u8981\u95fb3\u5207\u6362_\u7126\u70b9\u56de\u987e', containerId: 'btnLink7', ads: 'bA3YJr', track: 'b' },
+    { md: '\u5207\u6362_\u63a8\u8350\u533a_\u8981\u95fb3\u5207\u6362_\u660e\u661f\u73a9\u5bb6', containerId: 'btnLink8', ads: 'z2U32a', track: 'b' },
+    { md: '\u5207\u6362_\u63a8\u8350\u533a_\u5927\u773c\u775b_\u5de6\u7bad\u5934', containerId: 'btnLink9', ads: 'YNZ7bu', track: 'b' },
+    { md: '\u5207\u6362_\u63a8\u8350\u533a_\u5927\u773c\u775b_\u53f3\u7bad\u5934', containerId: 'btnLink10', ads: 'z2iEby', track: 'b' },
+
+    { md: '\u5207\u6362_\u63a8\u8350\u533a_\u53d1\u53f73\u5207\u6362_\u70ed\u95e8', containerId: 'btnLink11', ads: 'Abu6Vv', track: 'b' },
+    { md: '\u5207\u6362_\u63a8\u8350\u533a_\u53d1\u53f73\u5207\u6362_\u9875\u6e38', containerId: 'btnLink12', ads: 'eua2i2', track: 'b' },
+    { md: '\u5207\u6362_\u63a8\u8350\u533a_\u53d1\u53f73\u5207\u6362_\u624b\u6e38', containerId: 'btnLink13', ads: 'qYr2uu', track: 'b' },
+    { md: '\u5207\u6362_\u63a8\u8350\u533a_\u4eca\u65e5\u7cbe\u9009_\u5de6\u7bad\u5934', containerId: 'btnLink14', ads: '3u2yAb', track: 'b' },
+    { md: '\u5207\u6362_\u63a8\u8350\u533a_\u4eca\u65e5\u7cbe\u9009_\u53f3\u7bad\u5934', containerId: 'btnLink15', ads: 'NvaqEj', track: 'b' },
+
+    { md: '\u5207\u6362_\u6e38\u620f\u4e13\u533a_16\u6e38\u620f\u5207\u6362_\u7b2c\u4e00\u7c7b', containerId: 'btnLink16', ads: 'fQfuIr', track: 'b' },
+    { md: '\u5207\u6362_\u6e38\u620f\u4e13\u533a_16\u6e38\u620f\u5207\u6362_\u7b2c\u4e8c\u7c7b', containerId: 'btnLink17', ads: 'f2UZVj', track: 'b' },
+    { md: '\u5207\u6362_\u6e38\u620f\u4e13\u533a_16\u6e38\u620f\u5207\u6362_\u7b2c\u4e09\u7c7b', containerId: 'btnLink18', ads: 'uuyQ3m', track: 'b' },
+    { md: '\u5207\u6362_\u6e38\u620f\u4e13\u533a_16\u6e38\u620f\u5207\u6362_\u7b2c\u56db\u7c7b', containerId: 'btnLink19', ads: 'Y7VZ7n', track: 'b' },
+
+    { md: '\u5207\u6362_\u624b\u6e38\u533a_16\u6e38\u620f\u5207\u6362_\u7b2c\u4e00\u7c7b', containerId: 'btnLink20', ads: 'aI3Yfq', track: 'b' },
+    { md: '\u5207\u6362_\u624b\u6e38\u533a_16\u6e38\u620f\u5207\u6362_\u7b2c\u4e8c\u7c7b', containerId: 'btnLink21', ads: 'yY3IFr', track: 'b' },
+    { md: '\u5207\u6362_\u624b\u6e38\u533a_16\u6e38\u620f\u5207\u6362_\u7b2c\u4e09\u7c7b', containerId: 'btnLink22', ads: 'qI7nMn', track: 'b' },
+    { md: '\u5207\u6362_\u624b\u6e38\u533a_16\u6e38\u620f\u5207\u6362_\u7b2c\u56db\u7c7b', containerId: 'btnLink23', ads: 'MB3imy', track: 'b' },
+
+    { md: '\u5207\u6362_\u6392\u884c\u533a_\u671f\u5f85\u699c\u5207\u6362_\u56fd\u670d\u5f00\u6d4b', containerId: 'btnLink24', ads: 'yUnyyq', track: 'b' },
+    { md: '\u5207\u6362_\u6392\u884c\u533a_\u70ed\u95e8\u699c\u5207\u6362_\u70ed\u95e8\u6e38\u620f\u699c', containerId: 'btnLink25', ads: 'QbUfQb', track: 'b' },
+    { md: '\u5207\u6362_\u6392\u884c\u533a_\u6d4b\u8bd5\u8868\u5207\u6362_\u52a0\u53f7', containerId: 'btnLink26', ads: 'YzQJJb', track: 'b' },
+    { md: '\u5207\u6362_\u6392\u884c\u533a_\u624b\u6e38\u6d4b\u8bd5\u8868\u5207\u6362_\u52a0\u51cf\u53f7', containerId: 'btnLink27', ads: 'Y32iQr', track: 'b' },
+    { md: '\u5207\u6362_\u6392\u884c\u533a_\u9875\u6e38\u6d4b\u8bd5\u8868\u5207\u6362_\u52a0\u51cf\u53f7', containerId: 'btnLink28', ads: 'BVBV7j', track: 'b' },
+
+    { md: '\u9996\u9875\u5bfc\u822a\u6700\u70ed\u6e38\u620f\u63a8\u83502\uff08\u6807\u7ea2\uff09', containerId: 'adLink1', ads: 'ArQfUn' },
+    { md: '\u9996\u9875\u5bfc\u822a\u6700\u65b0\u6e38\u620f\u63a8\u83501\uff08\u6807\u7ea2\uff09', containerId: 'adLink2', ads: '6FnQfy' },
+    { md: '\u9996\u9875\u5bfc\u822a\u6700\u70ed\u6e38\u620f\u63a8\u83501', containerId: 'adLink3', ads: 'Z7fiu2' },
+     { md: '17173\u9996\u9875\u5bfc\u822a\u7384\u5e7b\u6e38\u620f\u63a8\u83501', containerId: 'adLink6', ads: 'FrQrIn' },
+
+
+    { md: '2017_VR\u4e3b\u673a\u533a_\u5206\u7c7b\u5bfc\u822a', containerId: 'forsetLink98', ads: 'qUJF3i' },
+    { md: '2017_\u65b0\u624b\u5bfc\u8d2d_\u5206\u7c7b\u5bfc\u822a', containerId: 'forsetLink99', ads: 'euqmEr' },
+    { md: '2017_\u5927\u5bb6\u6b63\u5728\u770b_\u70ed\u95e8\u63a8\u8350', containerId: 'forsetLink100', ads: 'BZzAbu' },
+    { md: '2017-VR\u70ed\u8bc4-\u70ed\u95e8\u63a8\u8350', containerId: 'forsetLink101', ads: 'MniIRb' },
+    { md: '2017_\u9875\u6e38\u533a_\u9875\u6e38\u6e38\u620f\u641c\u7d22', containerId: 'forsetLink102', ads: 'AbUbEf' },
+
+    { md: '2018_\u65b0\u5a92\u4f53_X\u535a\u58eb', containerId: 'forsetLink103', ads: 'ArQ7na' },
+    { md: '2018_\u65b0\u5a92\u4f53_\u6b63\u7ecf\u6e38\u620f', containerId: 'forsetLink104', ads: 'JNNBNf' },
+    { md: '2018_\u65b0\u5a92\u4f53_\u54d4\u54d4', containerId: 'forsetLink105', ads: 'YrMN3e' },
+    { md: '2018_\u65b0\u5a92\u4f53_\u67d2\u53c1', containerId: 'forsetLink106', ads: 'UBFvua' },
+
+    { md: '2018_PC\u6e38\u620f_\u89c6\u9891', containerId: 'forsetLink107', ads: 'reiMz2', track: 'b' },
+    { md: '2018_PC\u6e38\u620f_\u53d1\u552e\u8868', containerId: 'forsetLink108', ads: 'E7nUBb', track: 'b' },
+    { md: '2018_PC\u6e38\u620f_\u6298\u6263\u8868', containerId: 'forsetLink109', ads: 'JjEVbm', track: 'b' },
+    { md: '2018_PC\u6e38\u620f_\u53d1\u552e\u8868', containerId: 'forsetLink110', ads: 'E7nUBb', track: 'b' },
+    { md: '2018_PC\u6e38\u620f_\u6298\u6263\u8868', containerId: 'forsetLink111', ads: 'JjEVbm', track: 'b' },
+
+    { md: '2018_\u5bfc\u822a\u533a_\u5168\u6e38\u620f', containerId: 'gameLink11', ads: 'nqUzyq' },
+    { md: '2018_\u5bfc\u822a\u533a_\u7b2c\u4e00\u884c', containerId: 'gameLink1', ads: 'iaYbym' },
+    { md: '2018_\u5bfc\u822a\u533a_\u7b2c\u4e8c\u884c', containerId: 'gameLink2', ads: 'ER3q63' },
+    { md: '2018_\u5bfc\u822a\u533a_\u7b2c\u4e09\u884c', containerId: 'gameLink3', ads: 'ZzARz2' },
+    { md: '2018_\u5bfc\u822a\u533a_\u7b2c\u56db\u884c', containerId: 'gameLink4', ads: '7BVb2y' },
+    { md: '2018_\u5bfc\u822a\u533a_\u7b2c\u4e94\u884c', containerId: 'gameLink5', ads: 'RbA3Ef' },
+    { md: '2018_\u5bfc\u822a\u533a_\u7b2c\u516d\u884c', containerId: 'gameLink6', ads: '7v2m2u' },
+    { md: '2018_\u5bfc\u822a\u533a_\u7b2c\u4e03\u884c', containerId: 'gameLink7', ads: 'Jvy6Fz' },
+    { md: '2018_\u5bfc\u822a\u533a_\u624b\u6e38\u7b2c\u4e00\u884c', containerId: 'gameLink8', ads: 'bqUZnq' },
+    { md: '2018_\u5bfc\u822a\u533a_\u624b\u6e38\u7b2c\u4e8c\u884c', containerId: 'gameLink9', ads: 'aiAZVj' },
+    { md: '2018_\u5bfc\u822a\u533a_\u624b\u6e38\u7b2c\u4e09\u884c', containerId: 'gameLink10', ads: 'vUvqIb' }
+]]);
+
+// 添加导航区弹层监控
+var tagDic;
+$('.ue-gameinfotip a').on('mousedown', function(event) {
+    var name = $(this).closest('.ue-gameinfotip').attr('data-ui-game');
+    if(name) {
+        if(!tagDic) {
+            tagDic = {};
+            $('.ue-gameinfotip-container a.tg-sameip').each(function(k, v) {
+                tagDic[$(v).text()] = $(v).closest('[adskey]').attr('adskey');
+            });
+        }
+        if(tagDic[name]) {
+            _jc_ping.push([
+                '_trackBlockClick',
+                tagDic[name],
+                {
+                    u: $(this).attr('href'),
+                    index: 'tip-' + name
+                }
+            ]);
+        }
+        
+    }
+});
+
+
+
+
+
+
+
+
+
+
+
+  var logBySelector = function(selector,key){
+    var exposure = true;
+    window._jc_ping = window._jc_ping || [];
+    $(selector).each(function(i,el){
+      _jc_ping.push([
+        '_trackBlock',
+        el,
+        key,
+        exposure
+      ]);
+      exposure = false;
+    });
+  };
+  logBySelector('.adLink4','b2EBJr');
+  logBySelector('.adLink5','iiqQr2');
+
+})();

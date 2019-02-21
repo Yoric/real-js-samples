@@ -1,0 +1,1 @@
+PARSELY.pInit({"apikey":"nbcnews.com","bundle":"/code/ptrack-v0.9.2-engaged-time-slots-video.js","customizations":null,"track_third_party_cookies":false,"track_ip_addresses":false,"settings":{"tracker":true,"widget":false,"debug":false},"uuid":"41436f30-dbb7-4409-9934-9b5dfba069ad","network_uuid":null,"apikey_uuid":"41436f30-dbb7-4409-9934-9b5dfba069ad"});

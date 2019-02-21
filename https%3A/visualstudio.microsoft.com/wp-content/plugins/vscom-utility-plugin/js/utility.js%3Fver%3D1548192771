@@ -1,0 +1,1817 @@
+/**
+ * Utility Javscript
+ * This Consists of Google Tag Manager Integration (without any GEO logic), VSCOM Cookie compliance logic
+ * Newrelic browser integration if we are in non EU region  or user agree the cookie consent
+ * Optimizely integration if we are in non EU
+ * Page specific twitter, facebook tracing code if we are in Non EU region
+ */
+
+ //vscom-geo.js
+function VscomGeo() {
+  var that = this;
+
+  ////////////////////////////////////////////////////////////////////////////////////////
+  // Public fields
+  this.cookieName = "VSCOMGeo";
+  this.isInEU = null;
+
+  ////////////////////////////////////////////////////////////////////////////////////////
+  // Private fields
+  this._expirationInterval = 30;
+
+  ////////////////////////////////////////////////////////////////////////////////////////
+  // Public methods
+  this.setCookie = function(isInEU) {
+    that.isInEU = isInEU;
+    var d = new Date();
+    d.setTime(d.getTime() + that._expirationInterval * 24 * 60 * 60 * 1000);
+    var expires = "expires=" + d.toUTCString();
+    document.cookie =
+      that.cookieName + "=" + isInEU + ";" + expires + ";path=/";
+  };
+}
+
+/**
+ * Reads the value of a cookie.
+ * @param {any} cookieName The name of the cookie whose value should be read.
+ */
+function wpmscc_getCookie(cookieName) {
+  var cookies = document.cookie;
+  var nvp = cookies.split(";");
+  for (var i = 0; i < nvp.length; i++) {
+    var nv = nvp[i].split("=");
+    if (nv.length > 0) {
+      var name = nv[0].trim();
+      if (name == cookieName) {
+        return nv.length > 1 ? nv[1].trim() : null;
+      }
+    }
+  }
+
+  return null;
+}
+//End vscom-geo.js
+
+/**
+ * Including google ad tags to page header
+ * @param {Javscript File Path} js
+ */
+function add_google_adtag(js) {
+  if (typeof js !== "undefined") {
+    var head = document.getElementsByTagName("head")[0];
+    gapScript = document.createElement("script");
+    gapScript.src = js;
+    gapScript.async = false;
+    head.appendChild(gapScript);
+  }
+}
+/* Event snippet for Download Visual Studio for Mac conversion page
+ * @param {Tag manager config} config 
+ * @param {Location object} url
+ * @param {google tag tracking id} id 
+*/
+function gtag_report_conversion(config, url, id) {
+  if (typeof config !== "undefined") {
+    window.dataLayer = window.dataLayer || [];
+    function gtag() {
+      dataLayer.push(arguments);
+    }
+    gtag("js", new Date());
+    gtag("config", config);
+  }
+  var callback = function() {
+    if (typeof url != "undefined") {
+      window.location = url;
+    }
+  };
+  if (typeof id != "undefined") {
+    gtag("event", "conversion", {
+      send_to: id,
+      event_callback: callback
+    });
+  }
+}
+function load_conditional_js(optimizely_js) {
+  var consentRequired = true;
+  var urlQueryParam;
+  var res;
+  var gapScript;
+  var optimizelyLoaded = false;
+  if (
+    wpmscc_getCookie("VSCOMGeo") == "false" ||
+    wpmscc_getCookie("MSCC") != null
+  ) {
+    //if no consent set, but region determined
+    consentRequired = false;
+  }
+
+  // Load New Relic browser snippet to send browser telemetry, if we have consent
+  if (consentRequired === false) {
+    // Load New Relic browser snippet to send browser telemetry
+    // TODO: Add to CDN
+    window.NREUM || (NREUM = {}), __nr_require = function (t, e, n) {
+      function r(n) {
+          if (!e[n]) {
+              var o = e[n] = {
+                  exports: {}
+              };
+              t[n][0].call(o.exports, function (e) {
+                  var o = t[n][1][e];
+                  return r(o || e)
+              }, o, o.exports)
+          }
+          return e[n].exports
+      }
+      if ("function" == typeof __nr_require) return __nr_require;
+      for (var o = 0; o < n.length; o++) r(n[o]);
+      return r
+      }({
+          1: [function (t, e, n) {
+              function r(t) {
+                  try {
+                      c.console && console.log(t)
+                  } catch (e) {}
+              }
+              var o, i = t("ee"),
+                  a = t(20),
+                  c = {};
+              try {
+                  o = localStorage.getItem("__nr_flags").split(","), console && "function" == typeof console.log && (c.console = !0, o.indexOf("dev") !== -1 && (c.dev = !0), o.indexOf("nr_dev") !== -1 && (c.nrDev = !0))
+              } catch (s) {}
+              c.nrDev && i.on("internal-error", function (t) {
+                  r(t.stack)
+              }), c.dev && i.on("fn-err", function (t, e, n) {
+                  r(n.stack)
+              }), c.dev && (r("NR AGENT IN DEVELOPMENT MODE"), r("flags: " + a(c, function (t, e) {
+                  return t
+              }).join(", ")))
+          }, {}],
+          2: [function (t, e, n) {
+              function r(t, e, n, r, c) {
+                  try {
+                      h ? h -= 1 : o(c || new UncaughtException(t, e, n), !0)
+                  } catch (f) {
+                      try {
+                          i("ierr", [f, s.now(), !0])
+                      } catch (d) {}
+                  }
+                  return "function" == typeof u && u.apply(this, a(arguments))
+              }
+      
+              function UncaughtException(t, e, n) {
+                  this.message = t || "Uncaught error with no additional information", this.sourceURL = e, this.line = n
+              }
+      
+              function o(t, e) {
+                  var n = e ? null : s.now();
+                  i("err", [t, n])
+              }
+              var i = t("handle"),
+                  a = t(21),
+                  c = t("ee"),
+                  s = t("loader"),
+                  f = t("gos"),
+                  u = window.onerror,
+                  d = !1,
+                  p = "nr@seenError",
+                  h = 0;
+              s.features.err = !0, t(1), window.onerror = r;
+              try {
+                  throw new Error
+              } catch (l) {
+                  "stack" in l && (t(13), t(12), "addEventListener" in window && t(6), s.xhrWrappable && t(14), d = !0)
+              }
+              c.on("fn-start", function (t, e, n) {
+                  d && (h += 1)
+              }), c.on("fn-err", function (t, e, n) {
+                  d && !n[p] && (f(n, p, function () {
+                      return !0
+                  }), this.thrown = !0, o(n))
+              }), c.on("fn-end", function () {
+                  d && !this.thrown && h > 0 && (h -= 1)
+              }), c.on("internal-error", function (t) {
+                  i("ierr", [t, s.now(), !0])
+              })
+          }, {}],
+          3: [function (t, e, n) {
+              t("loader").features.ins = !0
+          }, {}],
+          4: [function (t, e, n) {
+              function r() {
+                  M++, S = y.hash, this[u] = b.now()
+              }
+      
+              function o() {
+                  M--, y.hash !== S && i(0, !0);
+                  var t = b.now();
+                  this[l] = ~~this[l] + t - this[u], this[d] = t
+              }
+      
+              function i(t, e) {
+                  E.emit("newURL", ["" + y, e])
+              }
+      
+              function a(t, e) {
+                  t.on(e, function () {
+                      this[e] = b.now()
+                  })
+              }
+              var c = "-start",
+                  s = "-end",
+                  f = "-body",
+                  u = "fn" + c,
+                  d = "fn" + s,
+                  p = "cb" + c,
+                  h = "cb" + s,
+                  l = "jsTime",
+                  m = "fetch",
+                  v = "addEventListener",
+                  w = window,
+                  y = w.location,
+                  b = t("loader");
+              if (w[v] && b.xhrWrappable) {
+                  var g = t(10),
+                      x = t(11),
+                      E = t(8),
+                      P = t(6),
+                      O = t(13),
+                      R = t(7),
+                      T = t(14),
+                      L = t(9),
+                      j = t("ee"),
+                      N = j.get("tracer");
+                  t(15), b.features.spa = !0;
+                  var S, M = 0;
+                  j.on(u, r), j.on(p, r), j.on(d, o), j.on(h, o), j.buffer([u, d, "xhr-done", "xhr-resolved"]), P.buffer([u]), O.buffer(["setTimeout" + s, "clearTimeout" + c, u]), T.buffer([u, "new-xhr", "send-xhr" + c]), R.buffer([m + c, m + "-done", m + f + c, m + f + s]), E.buffer(["newURL"]), g.buffer([u]), x.buffer(["propagate", p, h, "executor-err", "resolve" + c]), N.buffer([u, "no-" + u]), L.buffer(["new-jsonp", "cb-start", "jsonp-error", "jsonp-end"]), a(T, "send-xhr" + c), a(j, "xhr-resolved"), a(j, "xhr-done"), a(R, m + c), a(R, m + "-done"), a(L, "new-jsonp"), a(L, "jsonp-end"), a(L, "cb-start"), E.on("pushState-end", i), E.on("replaceState-end", i), w[v]("hashchange", i, !0), w[v]("load", i, !0), w[v]("popstate", function () {
+                      i(0, M > 1)
+                  }, !0)
+              }
+          }, {}],
+          5: [function (t, e, n) {
+              function r(t) {}
+              if (window.performance && window.performance.timing && window.performance.getEntriesByType) {
+                  var o = t("ee"),
+                      i = t("handle"),
+                      a = t(13),
+                      c = t(12),
+                      s = "learResourceTimings",
+                      f = "addEventListener",
+                      u = "resourcetimingbufferfull",
+                      d = "bstResource",
+                      p = "resource",
+                      h = "-start",
+                      l = "-end",
+                      m = "fn" + h,
+                      v = "fn" + l,
+                      w = "bstTimer",
+                      y = "pushState",
+                      b = t("loader");
+                  b.features.stn = !0, t(8);
+                  var g = NREUM.o.EV;
+                  o.on(m, function (t, e) {
+                      var n = t[0];
+                      n instanceof g && (this.bstStart = b.now())
+                  }), o.on(v, function (t, e) {
+                      var n = t[0];
+                      n instanceof g && i("bst", [n, e, this.bstStart, b.now()])
+                  }), a.on(m, function (t, e, n) {
+                      this.bstStart = b.now(), this.bstType = n
+                  }), a.on(v, function (t, e) {
+                      i(w, [e, this.bstStart, b.now(), this.bstType])
+                  }), c.on(m, function () {
+                      this.bstStart = b.now()
+                  }), c.on(v, function (t, e) {
+                      i(w, [e, this.bstStart, b.now(), "requestAnimationFrame"])
+                  }), o.on(y + h, function (t) {
+                      this.time = b.now(), this.startPath = location.pathname + location.hash
+                  }), o.on(y + l, function (t) {
+                      i("bstHist", [location.pathname + location.hash, this.startPath, this.time])
+                  }), f in window.performance && (window.performance["c" + s] ? window.performance[f](u, function (t) {
+                      i(d, [window.performance.getEntriesByType(p)]), window.performance["c" + s]()
+                  }, !1) : window.performance[f]("webkit" + u, function (t) {
+                      i(d, [window.performance.getEntriesByType(p)]), window.performance["webkitC" + s]()
+                  }, !1)), document[f]("scroll", r, {
+                      passive: !0
+                  }), document[f]("keypress", r, !1), document[f]("click", r, !1)
+              }
+          }, {}],
+          6: [function (t, e, n) {
+              function r(t) {
+                  for (var e = t; e && !e.hasOwnProperty(u);) e = Object.getPrototypeOf(e);
+                  e && o(e)
+              }
+      
+              function o(t) {
+                  c.inPlace(t, [u, d], "-", i)
+              }
+      
+              function i(t, e) {
+                  return t[1]
+              }
+              var a = t("ee").get("events"),
+                  c = t(23)(a, !0),
+                  s = t("gos"),
+                  f = XMLHttpRequest,
+                  u = "addEventListener",
+                  d = "removeEventListener";
+              e.exports = a, "getPrototypeOf" in Object ? (r(document), r(window), r(f.prototype)) : f.prototype.hasOwnProperty(u) && (o(window), o(f.prototype)), a.on(u + "-start", function (t, e) {
+                  var n = t[1],
+                      r = s(n, "nr@wrapped", function () {
+                          function t() {
+                              if ("function" == typeof n.handleEvent) return n.handleEvent.apply(n, arguments)
+                          }
+                          var e = {
+                              object: t,
+                              "function": n
+                          } [typeof n];
+                          return e ? c(e, "fn-", null, e.name || "anonymous") : n
+                      });
+                  this.wrapped = t[1] = r
+              }), a.on(d + "-start", function (t) {
+                  t[1] = this.wrapped || t[1]
+              })
+          }, {}],
+          7: [function (t, e, n) {
+              function r(t, e, n) {
+                  var r = t[e];
+                  "function" == typeof r && (t[e] = function () {
+                      var t = r.apply(this, arguments);
+                      return o.emit(n + "start", arguments, t), t.then(function (e) {
+                          return o.emit(n + "end", [null, e], t), e
+                      }, function (e) {
+                          throw o.emit(n + "end", [e], t), e
+                      })
+                  })
+              }
+              var o = t("ee").get("fetch"),
+                  i = t(20);
+              e.exports = o;
+              var a = window,
+                  c = "fetch-",
+                  s = c + "body-",
+                  f = ["arrayBuffer", "blob", "json", "text", "formData"],
+                  u = a.Request,
+                  d = a.Response,
+                  p = a.fetch,
+                  h = "prototype";
+              u && d && p && (i(f, function (t, e) {
+                  r(u[h], e, s), r(d[h], e, s)
+              }), r(a, "fetch", c), o.on(c + "end", function (t, e) {
+                  var n = this;
+                  e ? e.clone().arrayBuffer().then(function (t) {
+                      n.rxSize = t.byteLength, o.emit(c + "done", [null, e], n)
+                  }) : o.emit(c + "done", [t], n)
+              }))
+          }, {}],
+          8: [function (t, e, n) {
+              var r = t("ee").get("history"),
+                  o = t(23)(r);
+              e.exports = r, o.inPlace(window.history, ["pushState", "replaceState"], "-")
+          }, {}],
+          9: [function (t, e, n) {
+              function r(t) {
+                  function e() {
+                      s.emit("jsonp-end", [], p), t.removeEventListener("load", e, !1), t.removeEventListener("error", n, !1)
+                  }
+      
+                  function n() {
+                      s.emit("jsonp-error", [], p), s.emit("jsonp-end", [], p), t.removeEventListener("load", e, !1), t.removeEventListener("error", n, !1)
+                  }
+                  var r = t && "string" == typeof t.nodeName && "script" === t.nodeName.toLowerCase();
+                  if (r) {
+                      var o = "function" == typeof t.addEventListener;
+                      if (o) {
+                          var a = i(t.src);
+                          if (a) {
+                              var u = c(a),
+                                  d = "function" == typeof u.parent[u.key];
+                              if (d) {
+                                  var p = {};
+                                  f.inPlace(u.parent, [u.key], "cb-", p), t.addEventListener("load", e, !1), t.addEventListener("error", n, !1), s.emit("new-jsonp", [t.src], p)
+                              }
+                          }
+                      }
+                  }
+              }
+      
+              function o() {
+                  return "addEventListener" in window
+              }
+      
+              function i(t) {
+                  var e = t.match(u);
+                  return e ? e[1] : null
+              }
+      
+              function a(t, e) {
+                  var n = t.match(p),
+                      r = n[1],
+                      o = n[3];
+                  return o ? a(o, e[r]) : e[r]
+              }
+      
+              function c(t) {
+                  var e = t.match(d);
+                  return e && e.length >= 3 ? {
+                      key: e[2],
+                      parent: a(e[1], window)
+                  } : {
+                      key: t,
+                      parent: window
+                  }
+              }
+              var s = t("ee").get("jsonp"),
+                  f = t(23)(s);
+              if (e.exports = s, o()) {
+                  var u = /[?&](?:callback|cb)=([^&#]+)/,
+                      d = /(.*)\.([^.]+)/,
+                      p = /^(\w+)(\.|$)(.*)$/,
+                      h = ["appendChild", "insertBefore", "replaceChild"];
+                  f.inPlace(HTMLElement.prototype, h, "dom-"), f.inPlace(HTMLHeadElement.prototype, h, "dom-"), f.inPlace(HTMLBodyElement.prototype, h, "dom-"), s.on("dom-start", function (t) {
+                      r(t[0])
+                  })
+              }
+          }, {}],
+          10: [function (t, e, n) {
+              var r = t("ee").get("mutation"),
+                  o = t(23)(r),
+                  i = NREUM.o.MO;
+              e.exports = r, i && (window.MutationObserver = function (t) {
+                  return this instanceof i ? new i(o(t, "fn-")) : i.apply(this, arguments)
+              }, MutationObserver.prototype = i.prototype)
+          }, {}],
+          11: [function (t, e, n) {
+              function r(t) {
+                  var e = a.context(),
+                      n = c(t, "executor-", e),
+                      r = new f(n);
+                  return a.context(r).getCtx = function () {
+                      return e
+                  }, a.emit("new-promise", [r, e], e), r
+              }
+      
+              function o(t, e) {
+                  return e
+              }
+              var i = t(23),
+                  a = t("ee").get("promise"),
+                  c = i(a),
+                  s = t(20),
+                  f = NREUM.o.PR;
+              e.exports = a, f && (window.Promise = r, ["all", "race"].forEach(function (t) {
+                  var e = f[t];
+                  f[t] = function (n) {
+                      function r(t) {
+                          return function () {
+                              a.emit("propagate", [null, !o], i), o = o || !t
+                          }
+                      }
+                      var o = !1;
+                      s(n, function (e, n) {
+                          Promise.resolve(n).then(r("all" === t), r(!1))
+                      });
+                      var i = e.apply(f, arguments),
+                          c = f.resolve(i);
+                      return c
+                  }
+              }), ["resolve", "reject"].forEach(function (t) {
+                  var e = f[t];
+                  f[t] = function (t) {
+                      var n = e.apply(f, arguments);
+                      return t !== n && a.emit("propagate", [t, !0], n), n
+                  }
+              }), f.prototype["catch"] = function (t) {
+                  return this.then(null, t)
+              }, f.prototype = Object.create(f.prototype, {
+                  constructor: {
+                      value: r
+                  }
+              }), s(Object.getOwnPropertyNames(f), function (t, e) {
+                  try {
+                      r[e] = f[e]
+                  } catch (n) {}
+              }), a.on("executor-start", function (t) {
+                  t[0] = c(t[0], "resolve-", this), t[1] = c(t[1], "resolve-", this)
+              }), a.on("executor-err", function (t, e, n) {
+                  t[1](n)
+              }), c.inPlace(f.prototype, ["then"], "then-", o), a.on("then-start", function (t, e) {
+                  this.promise = e, t[0] = c(t[0], "cb-", this), t[1] = c(t[1], "cb-", this)
+              }), a.on("then-end", function (t, e, n) {
+                  this.nextPromise = n;
+                  var r = this.promise;
+                  a.emit("propagate", [r, !0], n)
+              }), a.on("cb-end", function (t, e, n) {
+                  a.emit("propagate", [n, !0], this.nextPromise)
+              }), a.on("propagate", function (t, e, n) {
+                  this.getCtx && !e || (this.getCtx = function () {
+                      if (t instanceof Promise) var e = a.context(t);
+                      return e && e.getCtx ? e.getCtx() : this
+                  })
+              }), r.toString = function () {
+                  return "" + f
+              })
+          }, {}],
+          12: [function (t, e, n) {
+              var r = t("ee").get("raf"),
+                  o = t(23)(r),
+                  i = "equestAnimationFrame";
+              e.exports = r, o.inPlace(window, ["r" + i, "mozR" + i, "webkitR" + i, "msR" + i], "raf-"), r.on("raf-start", function (t) {
+                  t[0] = o(t[0], "fn-")
+              })
+          }, {}],
+          13: [function (t, e, n) {
+              function r(t, e, n) {
+                  t[0] = a(t[0], "fn-", null, n)
+              }
+      
+              function o(t, e, n) {
+                  this.method = n, this.timerDuration = isNaN(t[1]) ? 0 : +t[1], t[0] = a(t[0], "fn-", this, n)
+              }
+              var i = t("ee").get("timer"),
+                  a = t(23)(i),
+                  c = "setTimeout",
+                  s = "setInterval",
+                  f = "clearTimeout",
+                  u = "-start",
+                  d = "-";
+              e.exports = i, a.inPlace(window, [c, "setImmediate"], c + d), a.inPlace(window, [s], s + d), a.inPlace(window, [f, "clearImmediate"], f + d), i.on(s + u, r), i.on(c + u, o)
+          }, {}],
+          14: [function (t, e, n) {
+              function r(t, e) {
+                  d.inPlace(e, ["onreadystatechange"], "fn-", c)
+              }
+      
+              function o() {
+                  var t = this,
+                      e = u.context(t);
+                  t.readyState > 3 && !e.resolved && (e.resolved = !0, u.emit("xhr-resolved", [], t)), d.inPlace(t, y, "fn-", c)
+              }
+      
+              function i(t) {
+                  b.push(t), l && (x ? x.then(a) : v ? v(a) : (E = -E, P.data = E))
+              }
+      
+              function a() {
+                  for (var t = 0; t < b.length; t++) r([], b[t]);
+                  b.length && (b = [])
+              }
+      
+              function c(t, e) {
+                  return e
+              }
+      
+              function s(t, e) {
+                  for (var n in t) e[n] = t[n];
+                  return e
+              }
+              t(6);
+              var f = t("ee"),
+                  u = f.get("xhr"),
+                  d = t(23)(u),
+                  p = NREUM.o,
+                  h = p.XHR,
+                  l = p.MO,
+                  m = p.PR,
+                  v = p.SI,
+                  w = "readystatechange",
+                  y = ["onload", "onerror", "onabort", "onloadstart", "onloadend", "onprogress", "ontimeout"],
+                  b = [];
+              e.exports = u;
+              var g = window.XMLHttpRequest = function (t) {
+                  var e = new h(t);
+                  try {
+                      u.emit("new-xhr", [e], e), e.addEventListener(w, o, !1)
+                  } catch (n) {
+                      try {
+                          u.emit("internal-error", [n])
+                      } catch (r) {}
+                  }
+                  return e
+              };
+              if (s(h, g), g.prototype = h.prototype, d.inPlace(g.prototype, ["open", "send"], "-xhr-", c), u.on("send-xhr-start", function (t, e) {
+                      r(t, e), i(e)
+                  }), u.on("open-xhr-start", r), l) {
+                  var x = m && m.resolve();
+                  if (!v && !m) {
+                      var E = 1,
+                          P = document.createTextNode(E);
+                      new l(a).observe(P, {
+                          characterData: !0
+                      })
+                  }
+              } else f.on("fn-end", function (t) {
+                  t[0] && t[0].type === w || a()
+              })
+          }, {}],
+          15: [function (t, e, n) {
+              function r(t) {
+                  var e = this.params,
+                      n = this.metrics;
+                  if (!this.ended) {
+                      this.ended = !0;
+                      for (var r = 0; r < d; r++) t.removeEventListener(u[r], this.listener, !1);
+                      if (!e.aborted) {
+                          if (n.duration = a.now() - this.startTime, 4 === t.readyState) {
+                              e.status = t.status;
+                              var i = o(t, this.lastSize);
+                              if (i && (n.rxSize = i), this.sameOrigin) {
+                                  var s = t.getResponseHeader("X-NewRelic-App-Data");
+                                  s && (e.cat = s.split(", ").pop())
+                              }
+                          } else e.status = 0;
+                          n.cbTime = this.cbTime, f.emit("xhr-done", [t], t), c("xhr", [e, n, this.startTime])
+                      }
+                  }
+              }
+      
+              function o(t, e) {
+                  var n = t.responseType;
+                  if ("json" === n && null !== e) return e;
+                  var r = "arraybuffer" === n || "blob" === n || "json" === n ? t.response : t.responseText;
+                  return l(r)
+              }
+      
+              function i(t, e) {
+                  var n = s(e),
+                      r = t.params;
+                  r.host = n.hostname + ":" + n.port, r.pathname = n.pathname, t.sameOrigin = n.sameOrigin
+              }
+              var a = t("loader");
+              if (a.xhrWrappable) {
+                  var c = t("handle"),
+                      s = t(16),
+                      f = t("ee"),
+                      u = ["load", "error", "abort", "timeout"],
+                      d = u.length,
+                      p = t("id"),
+                      h = t(19),
+                      l = t(18),
+                      m = window.XMLHttpRequest;
+                  a.features.xhr = !0, t(14), f.on("new-xhr", function (t) {
+                      var e = this;
+                      e.totalCbs = 0, e.called = 0, e.cbTime = 0, e.end = r, e.ended = !1, e.xhrGuids = {}, e.lastSize = null, h && (h > 34 || h < 10) || window.opera || t.addEventListener("progress", function (t) {
+                          e.lastSize = t.loaded
+                      }, !1)
+                  }), f.on("open-xhr-start", function (t) {
+                      this.params = {
+                          method: t[0]
+                      }, i(this, t[1]), this.metrics = {}
+                  }), f.on("open-xhr-end", function (t, e) {
+                      "loader_config" in NREUM && "xpid" in NREUM.loader_config && this.sameOrigin && e.setRequestHeader("X-NewRelic-ID", NREUM.loader_config.xpid)
+                  }), f.on("send-xhr-start", function (t, e) {
+                      var n = this.metrics,
+                          r = t[0],
+                          o = this;
+                      if (n && r) {
+                          var i = l(r);
+                          i && (n.txSize = i)
+                      }
+                      this.startTime = a.now(), this.listener = function (t) {
+                          try {
+                              "abort" === t.type && (o.params.aborted = !0), ("load" !== t.type || o.called === o.totalCbs && (o.onloadCalled || "function" != typeof e.onload)) && o.end(e)
+                          } catch (n) {
+                              try {
+                                  f.emit("internal-error", [n])
+                              } catch (r) {}
+                          }
+                      };
+                      for (var c = 0; c < d; c++) e.addEventListener(u[c], this.listener, !1)
+                  }), f.on("xhr-cb-time", function (t, e, n) {
+                      this.cbTime += t, e ? this.onloadCalled = !0 : this.called += 1, this.called !== this.totalCbs || !this.onloadCalled && "function" == typeof n.onload || this.end(n)
+                  }), f.on("xhr-load-added", function (t, e) {
+                      var n = "" + p(t) + !!e;
+                      this.xhrGuids && !this.xhrGuids[n] && (this.xhrGuids[n] = !0, this.totalCbs += 1)
+                  }), f.on("xhr-load-removed", function (t, e) {
+                      var n = "" + p(t) + !!e;
+                      this.xhrGuids && this.xhrGuids[n] && (delete this.xhrGuids[n], this.totalCbs -= 1)
+                  }), f.on("addEventListener-end", function (t, e) {
+                      e instanceof m && "load" === t[0] && f.emit("xhr-load-added", [t[1], t[2]], e)
+                  }), f.on("removeEventListener-end", function (t, e) {
+                      e instanceof m && "load" === t[0] && f.emit("xhr-load-removed", [t[1], t[2]], e)
+                  }), f.on("fn-start", function (t, e, n) {
+                      e instanceof m && ("onload" === n && (this.onload = !0), ("load" === (t[0] && t[0].type) || this.onload) && (this.xhrCbStart = a.now()))
+                  }), f.on("fn-end", function (t, e) {
+                      this.xhrCbStart && f.emit("xhr-cb-time", [a.now() - this.xhrCbStart, this.onload, e], e)
+                  })
+              }
+          }, {}],
+          16: [function (t, e, n) {
+              e.exports = function (t) {
+                  var e = document.createElement("a"),
+                      n = window.location,
+                      r = {};
+                  e.href = t, r.port = e.port;
+                  var o = e.href.split("://");
+                  !r.port && o[1] && (r.port = o[1].split("/")[0].split("@").pop().split(":")[1]), r.port && "0" !== r.port || (r.port = "https" === o[0] ? "443" : "80"), r.hostname = e.hostname || n.hostname, r.pathname = e.pathname, r.protocol = o[0], "/" !== r.pathname.charAt(0) && (r.pathname = "/" + r.pathname);
+                  var i = !e.protocol || ":" === e.protocol || e.protocol === n.protocol,
+                      a = e.hostname === document.domain && e.port === n.port;
+                  return r.sameOrigin = i && (!e.hostname || a), r
+              }
+          }, {}],
+          17: [function (t, e, n) {
+              function r() {}
+      
+              function o(t, e, n) {
+                  return function () {
+                      return i(t, [f.now()].concat(c(arguments)), e ? null : this, n), e ? void 0 : this
+                  }
+              }
+              var i = t("handle"),
+                  a = t(20),
+                  c = t(21),
+                  s = t("ee").get("tracer"),
+                  f = t("loader"),
+                  u = NREUM;
+              "undefined" == typeof window.newrelic && (newrelic = u);
+              var d = ["setPageViewName", "setCustomAttribute", "setErrorHandler", "finished", "addToTrace", "inlineHit", "addRelease"],
+                  p = "api-",
+                  h = p + "ixn-";
+              a(d, function (t, e) {
+                  u[e] = o(p + e, !0, "api")
+              }), u.addPageAction = o(p + "addPageAction", !0), u.setCurrentRouteName = o(p + "routeName", !0), e.exports = newrelic, u.interaction = function () {
+                  return (new r).get()
+              };
+              var l = r.prototype = {
+                  createTracer: function (t, e) {
+                      var n = {},
+                          r = this,
+                          o = "function" == typeof e;
+                      return i(h + "tracer", [f.now(), t, n], r),
+                          function () {
+                              if (s.emit((o ? "" : "no-") + "fn-start", [f.now(), r, o], n), o) try {
+                                  return e.apply(this, arguments)
+                              } catch (t) {
+                                  throw s.emit("fn-err", [arguments, this, t], n), t
+                              } finally {
+                                  s.emit("fn-end", [f.now()], n)
+                              }
+                          }
+                  }
+              };
+              a("setName,setAttribute,save,ignore,onEnd,getContext,end,get".split(","), function (t, e) {
+                  l[e] = o(h + e)
+              }), newrelic.noticeError = function (t) {
+                  "string" == typeof t && (t = new Error(t)), i("err", [t, f.now()])
+              }
+          }, {}],
+          18: [function (t, e, n) {
+              e.exports = function (t) {
+                  if ("string" == typeof t && t.length) return t.length;
+                  if ("object" == typeof t) {
+                      if ("undefined" != typeof ArrayBuffer && t instanceof ArrayBuffer && t.byteLength) return t.byteLength;
+                      if ("undefined" != typeof Blob && t instanceof Blob && t.size) return t.size;
+                      if (!("undefined" != typeof FormData && t instanceof FormData)) try {
+                          return JSON.stringify(t).length
+                      } catch (e) {
+                          return
+                      }
+                  }
+              }
+          }, {}],
+          19: [function (t, e, n) {
+              var r = 0,
+                  o = navigator.userAgent.match(/Firefox[\/\s](\d+\.\d+)/);
+              o && (r = +o[1]), e.exports = r
+          }, {}],
+          20: [function (t, e, n) {
+              function r(t, e) {
+                  var n = [],
+                      r = "",
+                      i = 0;
+                  for (r in t) o.call(t, r) && (n[i] = e(r, t[r]), i += 1);
+                  return n
+              }
+              var o = Object.prototype.hasOwnProperty;
+              e.exports = r
+          }, {}],
+          21: [function (t, e, n) {
+              function r(t, e, n) {
+                  e || (e = 0), "undefined" == typeof n && (n = t ? t.length : 0);
+                  for (var r = -1, o = n - e || 0, i = Array(o < 0 ? 0 : o); ++r < o;) i[r] = t[e + r];
+                  return i
+              }
+              e.exports = r
+          }, {}],
+          22: [function (t, e, n) {
+              e.exports = {
+                  exists: "undefined" != typeof window.performance && window.performance.timing && "undefined" != typeof window.performance.timing.navigationStart
+              }
+          }, {}],
+          23: [function (t, e, n) {
+              function r(t) {
+                  return !(t && t instanceof Function && t.apply && !t[a])
+              }
+              var o = t("ee"),
+                  i = t(21),
+                  a = "nr@original",
+                  c = Object.prototype.hasOwnProperty,
+                  s = !1;
+              e.exports = function (t, e) {
+                  function n(t, e, n, o) {
+                      function nrWrapper() {
+                          var r, a, c, s;
+                          try {
+                              a = this, r = i(arguments), c = "function" == typeof n ? n(r, a) : n || {}
+                          } catch (f) {
+                              p([f, "", [r, a, o], c])
+                          }
+                          u(e + "start", [r, a, o], c);
+                          try {
+                              return s = t.apply(a, r)
+                          } catch (d) {
+                              throw u(e + "err", [r, a, d], c), d
+                          } finally {
+                              u(e + "end", [r, a, s], c)
+                          }
+                      }
+                      return r(t) ? t : (e || (e = ""), nrWrapper[a] = t, d(t, nrWrapper), nrWrapper)
+                  }
+      
+                  function f(t, e, o, i) {
+                      o || (o = "");
+                      var a, c, s, f = "-" === o.charAt(0);
+                      for (s = 0; s < e.length; s++) c = e[s], a = t[c], r(a) || (t[c] = n(a, f ? c + o : o, i, c))
+                  }
+      
+                  function u(n, r, o) {
+                      if (!s || e) {
+                          var i = s;
+                          s = !0;
+                          try {
+                              t.emit(n, r, o, e)
+                          } catch (a) {
+                              p([a, n, r, o])
+                          }
+                          s = i
+                      }
+                  }
+      
+                  function d(t, e) {
+                      if (Object.defineProperty && Object.keys) try {
+                          var n = Object.keys(t);
+                          return n.forEach(function (n) {
+                              Object.defineProperty(e, n, {
+                                  get: function () {
+                                      return t[n]
+                                  },
+                                  set: function (e) {
+                                      return t[n] = e, e
+                                  }
+                              })
+                          }), e
+                      } catch (r) {
+                          p([r])
+                      }
+                      for (var o in t) c.call(t, o) && (e[o] = t[o]);
+                      return e
+                  }
+      
+                  function p(e) {
+                      try {
+                          t.emit("internal-error", e)
+                      } catch (n) {}
+                  }
+                  return t || (t = o), n.inPlace = f, n.flag = a, n
+              }
+          }, {}],
+          ee: [function (t, e, n) {
+              function r() {}
+      
+              function o(t) {
+                  function e(t) {
+                      return t && t instanceof r ? t : t ? s(t, c, i) : i()
+                  }
+      
+                  function n(n, r, o, i) {
+                      if (!p.aborted || i) {
+                          t && t(n, r, o);
+                          for (var a = e(o), c = l(n), s = c.length, f = 0; f < s; f++) c[f].apply(a, r);
+                          var d = u[y[n]];
+                          return d && d.push([b, n, r, a]), a
+                      }
+                  }
+      
+                  function h(t, e) {
+                      w[t] = l(t).concat(e)
+                  }
+      
+                  function l(t) {
+                      return w[t] || []
+                  }
+      
+                  function m(t) {
+                      return d[t] = d[t] || o(n)
+                  }
+      
+                  function v(t, e) {
+                      f(t, function (t, n) {
+                          e = e || "feature", y[n] = e, e in u || (u[e] = [])
+                      })
+                  }
+                  var w = {},
+                      y = {},
+                      b = {
+                          on: h,
+                          emit: n,
+                          get: m,
+                          listeners: l,
+                          context: e,
+                          buffer: v,
+                          abort: a,
+                          aborted: !1
+                      };
+                  return b
+              }
+      
+              function i() {
+                  return new r
+              }
+      
+              function a() {
+                  (u.api || u.feature) && (p.aborted = !0, u = p.backlog = {})
+              }
+              var c = "nr@context",
+                  s = t("gos"),
+                  f = t(20),
+                  u = {},
+                  d = {},
+                  p = e.exports = o();
+              p.backlog = u
+          }, {}],
+          gos: [function (t, e, n) {
+              function r(t, e, n) {
+                  if (o.call(t, e)) return t[e];
+                  var r = n();
+                  if (Object.defineProperty && Object.keys) try {
+                      return Object.defineProperty(t, e, {
+                          value: r,
+                          writable: !0,
+                          enumerable: !1
+                      }), r
+                  } catch (i) {}
+                  return t[e] = r, r
+              }
+              var o = Object.prototype.hasOwnProperty;
+              e.exports = r
+          }, {}],
+          handle: [function (t, e, n) {
+              function r(t, e, n, r) {
+                  o.buffer([t], r), o.emit(t, e, n)
+              }
+              var o = t("ee").get("handle");
+              e.exports = r, r.ee = o
+          }, {}],
+          id: [function (t, e, n) {
+              function r(t) {
+                  var e = typeof t;
+                  return !t || "object" !== e && "function" !== e ? -1 : t === window ? 0 : a(t, i, function () {
+                      return o++
+                  })
+              }
+              var o = 1,
+                  i = "nr@id",
+                  a = t("gos");
+              e.exports = r
+          }, {}],
+          loader: [function (t, e, n) {
+              function r() {
+                  if (!x++) {
+                      var t = g.info = NREUM.info,
+                          e = p.getElementsByTagName("script")[0];
+                      if (setTimeout(u.abort, 3e4), !(t && t.licenseKey && t.applicationID && e)) return u.abort();
+                      f(y, function (e, n) {
+                          t[e] || (t[e] = n)
+                      }), s("mark", ["onload", a() + g.offset], null, "api");
+                      var n = p.createElement("script");
+                      n.src = "https://" + t.agent, e.parentNode.insertBefore(n, e)
+                  }
+              }
+      
+              function o() {
+                  "complete" === p.readyState && i()
+              }
+      
+              function i() {
+                  s("mark", ["domContent", a() + g.offset], null, "api")
+              }
+      
+              function a() {
+                  return E.exists && performance.now ? Math.round(performance.now()) : (c = Math.max((new Date).getTime(), c)) - g.offset
+              }
+              var c = (new Date).getTime(),
+                  s = t("handle"),
+                  f = t(20),
+                  u = t("ee"),
+                  d = window,
+                  p = d.document,
+                  h = "addEventListener",
+                  l = "attachEvent",
+                  m = d.XMLHttpRequest,
+                  v = m && m.prototype;
+              NREUM.o = {
+                  ST: setTimeout,
+                  SI: d.setImmediate,
+                  CT: clearTimeout,
+                  XHR: m,
+                  REQ: d.Request,
+                  EV: d.Event,
+                  PR: d.Promise,
+                  MO: d.MutationObserver
+              };
+              var w = "" + location,
+                  y = {
+                      beacon: "bam.nr-data.net",
+                      errorBeacon: "bam.nr-data.net",
+                      agent: "js-agent.newrelic.com/nr-spa-1071.min.js"
+                  },
+                  b = m && v && v[h] && !/CriOS/.test(navigator.userAgent),
+                  g = e.exports = {
+                      offset: c,
+                      now: a,
+                      origin: w,
+                      features: {},
+                      xhrWrappable: b
+                  };
+              t(17), p[h] ? (p[h]("DOMContentLoaded", i, !1), d[h]("load", r, !1)) : (p[l]("onreadystatechange", o), d[l]("onload", r)), s("mark", ["firstbyte", c], null, "api");
+              var x = 0,
+                  E = t(22)
+          }, {}]
+      }, {}, ["loader", 2, 15, 5, 3, 4]);;
+      NREUM.info = {
+          beacon: "bam.nr-data.net",
+          errorBeacon: "bam.nr-data.net",
+          licenseKey: "b0106f4dcd",
+          applicationID: newrelic_browser_appID,
+          sa: 1
+      };
+  }
+
+  // This will execute if we are in non eu region
+  if (consentRequired === false && wpmscc_getCookie("VSCOMGeo") !== "true") {
+    optimizelyLoaded = true;
+    var head = document.getElementsByTagName("head")[0];
+    var script = document.createElement("script");
+
+    //Assigning the value generated from PHP (refer line no 9 and 12)
+    script.src = optimizely_js;
+    //Executing optimizely synchronously.
+    script.async = false;
+    head.appendChild(script);
+  }
+  return {
+    consentRequired: consentRequired,
+    optimizelyLoaded: optimizelyLoaded
+  };
+}
+
+// wpmscc.cookie-intercept.js
+/////////////////////////////////////////////////////////////////////////////////////////
+// The list of approved cookies
+_wpmscc_approvedCookies = [
+  ////////////////////////////////////////////////////////////////////
+  // Approved essential cookies
+  { name: "__RequestVerificationToken*", domain: null },
+  { name: "_icl_visitor_lang_js", domain: null },
+  { name: "A", domain: null },
+  { name: "ai_session", domain: null },
+  { name: "ai_user", domain: null },
+  { name: "ARRAffinity", domain: null },
+  { name: "ASPSESSIONID*", domain: null },
+  { name: "BIGipCookie", domain: null },
+  { name: "c", domain: null },
+  { name: "c9id", domain: null },
+  { name: "MC0", domain: null },
+  { name: "MC1", domain: null },
+  { name: "MS0", domain: null },
+  { name: "MSCC", domain: null },
+  { name: "MSFPC", domain: null },
+  { name: "MSPRequ", domain: null },
+  { name: "SID", domain: null },
+  { name: "uaid", domain: null },
+  { name: "userInfo", domain: null },
+  { name: "VstsSession", domain: null },
+  { name: "X-Mapping*", domain: null },
+  { name: "VSCOMGeo", domain: null },
+
+  ////////////////////////////////////////////////////////////////////
+  // Pending essential cookies
+  { name: "_ga", domain: null },
+  { name: "_gat", domain: null },
+  { name: "_gac_*", domain: null },
+  { name: "_gid", domain: null },
+  { name: "AMP_TOKEN", domain: null }
+];
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// Marks where to send the user if their browser doesn't support cookie suppression
+_wpmscc_nonCompliantRedirect = "http://www.microsoft.com";
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// Tracks how cookies are intercepted (null if capability does not exist)
+_wpmscc_cookieInterceptMode = null;
+
+/**
+ * Implements the filtered cookie getter logic.
+ * @param {any} _getter The function which will obtain the cookie from the store (if allowed).
+ */
+function _wpmscc_getCookieOverride(_getter) {
+  return _getter();
+}
+
+/**
+ * Implements the filtered cookie setter logic.
+ * @param {any} cookie The value assigned to document.cookie.
+ * @param {any} _setter The function which will persist the cookie (if allowed).
+ */
+function _wpmscc_setCookieOverride(cookie, _setter) {
+  var ci = _wpmscc_extractSetCookie(cookie);
+  if (ci != null && (ci.value == null || _wpmscc_isApprovedCookie(ci.name))) {
+    return _setter(cookie);
+  } else {
+    return cookie;
+  }
+}
+
+/**
+ * Determine if a cookie is approved.
+ * @param {any} cookieName The name of the cookie to check.
+ */
+function _wpmscc_isApprovedCookie(cookieName) {
+  if (cookieName != null && _wpmscc_approvedCookies != null) {
+    cookieName = cookieName.trim();
+    for (var i = 0; i < _wpmscc_approvedCookies.length; i++) {
+      var approvedCookie = _wpmscc_approvedCookies[i];
+      var approvedCookieName = approvedCookie.name.trim();
+
+      // Determine if the cookie name matches the current approved cookie
+      var isNameMatch = false;
+      if (
+        approvedCookieName.length > 0 &&
+        approvedCookieName.charAt(approvedCookieName.length - 1) == "*"
+      ) {
+        var prefix = approvedCookieName.substr(
+          0,
+          approvedCookieName.length - 1
+        );
+        var prefixLength = prefix.length;
+        if (cookieName.substr(0, prefixLength) == prefix) {
+          isNameMatch = true;
+        }
+      } else {
+        if (approvedCookieName == cookieName) {
+          isNameMatch = true;
+        }
+      }
+
+      if (isNameMatch) {
+        // TODO: Perform a domain match?
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Extracts a data structure with information about a cookie 'SET' operation.
+ * @param {any} cookie The cookie value used in the 'SET' operation.
+ */
+function _wpmscc_extractSetCookie(cookie) {
+  var result = {
+    originalCookie: cookie
+  };
+
+  if (cookie != null) {
+    var nvp = cookie.toString().split(";");
+    for (var i = 0; i < nvp.length; i++) {
+      var nv = nvp[i].split("=");
+      if (nv.length > 0) {
+        var name = nv[0].trim();
+        var value = null;
+        if (nv.length > 1) {
+          value = nv[1];
+        }
+
+        switch (name.toLowerCase()) {
+          case "expires":
+            result.expires = value != null ? new Date(value) : null;
+            break;
+          case "domain":
+            result.domain = value;
+            break;
+          case "path":
+            result.path = value;
+            break;
+          default:
+            if (name.length > 0) {
+              result.name = name;
+              result.value =
+                value != null && value.trim().length > 0 ? value.trim() : null;
+            }
+            break;
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Get a string representing the current call stack.
+ */
+function wpmscc_getCallStack() {
+  var error = new Error();
+  if (error != null) {
+    var callStack = error.stack;
+    if (callStack != null) {
+      var startIndex = callStack.indexOf("wpmscc_getCallStack");
+      if (startIndex >= 0) {
+        startIndex = callStack.indexOf(")", startIndex);
+        if (startIndex >= 0) {
+          return callStack.substr(startIndex + 1);
+        }
+      }
+    }
+  }
+
+  return "<No Call Stack Available>";
+}
+
+/**
+ * Registers the cookie intercept callbacks. Returns true if registration was successful, or false otherwise.
+ */
+function wpmscc_RegisterIntercept() {
+  if (wpmscc_getCookie("MSCC") == null) {
+    if (wpmscc_getCookie("VSCOMGeo") === "false") {
+      _wpmscc_cookieInterceptMode = "N/A (Not in EU)";
+    } else {
+      if (_wpmscc_cookieInterceptMode == null) {
+        if (Object.getOwnPropertyDescriptor) {
+          var documentPrototype = Document.prototype || HTMLDocument.prototype;
+          if (documentPrototype != null) {
+            var descriptor = Object.getOwnPropertyDescriptor(
+              documentPrototype,
+              "cookie"
+            );
+            if (descriptor != null && descriptor.configurable) {
+              var defaultCookieGetter = descriptor.get;
+              var defaultCookieSetter = descriptor.set;
+
+              Object.defineProperty(documentPrototype, "cookie", {
+                get: function() {
+                  return _wpmscc_getCookieOverride(function() {
+                    return defaultCookieGetter.call(document);
+                  });
+                },
+                set: function(cookie) {
+                  return _wpmscc_setCookieOverride(cookie, function(c) {
+                    return defaultCookieSetter.call(document, c);
+                  });
+                }
+              });
+              _wpmscc_cookieInterceptMode =
+                "ECMAScript 5.1 (JavaScript 1.8.5, June 2011)";
+            }
+          }
+        }
+
+        if (_wpmscc_cookieInterceptMode == null) {
+          if (document.__lookupGetter__ && document.__lookupSetter__) {
+            var getterDescriptor = document.__lookupGetter__("cookie");
+            var setterDescriptor = document.__lookupSetter__("cookie");
+
+            if (getterDescriptor && setterDescriptor) {
+              var defaultCookieGetter = getterDescriptor.bind(document);
+              var defaultCookieSetter = setterDescriptor.bind(document);
+
+              document.__defineGetter__("cookie", function() {
+                return _wpmscc_getCookieOverride(defaultCookieGetter);
+              });
+              document.__defineSetter__("cookie", function(cookie) {
+                return _wpmscc_setCookieOverride(cookie, defaultCookieSetter);
+              });
+              _wpmscc_cookieInterceptMode =
+                "ECMAScript 3 (JavaScript 1.5, December 1999)";
+            }
+          }
+        }
+      }
+    }
+  } else {
+    _wpmscc_cookieInterceptMode = "N/A (Consent Received)";
+  }
+
+  return _wpmscc_cookieInterceptMode != null;
+}
+
+// Register for cookie intercept, and if that fails, redirect
+if (!wpmscc_RegisterIntercept()) {
+  //window.stop();
+  //window.location = _wpmscc_nonCompliantRedirect;
+  console.warn(
+    "This browser does not support cookie intercept. A redirect would happen in this case."
+  );
+}
+function wpmscc_GetMsccSettings() {
+  var result = {
+    isMsccEnabled: MsccSettings.isMsccEnabled,
+    currentLocaleCode: MsccSettings.currentLocaleCode,
+    siteName: MsccSettings.siteName,
+    domain: MsccSettings.domain,
+    msccRestApiRootUrl: 'https://uhf.microsoft.com',   //TODO : Remove Hardcoded UHF endpoint URL to MsccSettings.msccRestApiRootUrl once UHF_DEV_ENDPOINT is fixed with country=detect option , currently UHF dev always return IsConsentRequired=false even from EU region 
+    country: "detect"
+  };
+  result.setConsent = function() {
+    if (typeof mscc != "undefined" && mscc != null) {
+      mscc.setConsent();
+      return true;
+    }
+    return false;
+  };
+  return result;
+}
+
+//wpmscc.js
+function WpMscc() {
+  var that = this;
+
+  ////////////////////////////////////////////////////////////////////////////////////////
+  // Private fields
+  this._canUseCookies = false;
+  this._msccResponse = null;
+  this._cookies = "";
+  this._cookieListenerInterval = 1000;
+  this._onCookiesEnabledEvents = [];
+
+  ////////////////////////////////////////////////////////////////////////////////////////
+  // Public methods
+  this.getMsccSettings = function() {
+    return wpmscc_GetMsccSettings();
+  };
+
+  this.showNoticeBanner = function(show) {
+    var msccNoticeBanner = jQuery("#msccBanner");
+    if (msccNoticeBanner != null) {
+      if (show === true) {
+        msccNoticeBanner.show();
+      } else {
+        msccNoticeBanner.hide();
+      }
+    }
+  };
+  this.canUseCookies = function() {
+    return wpmscc.isMsccEnabled === false || this._canUseCookies;
+  };
+  this.appendStyleSheet = function(url) {
+    if (document.createStyleSheet) {
+      document.createStyleSheet(url);
+    } else {
+      jQuery("head").append(
+        '<link rel="stylesheet" type="text/css" href="' + url + '">'
+      );
+    }
+  };
+  this.onCookiesEnabled = function(fn) {
+    this._onCookiesEnabledEvents.push(fn);
+  };
+
+  ////////////////////////////////////////////////////////////////////////////////////////
+  // Private methods
+  this._setMsccResponse = function(msccResponse) {
+    var previousCanUseCookies = this.canUseCookies();
+    if (!previousCanUseCookies) {
+      this._msccResponse = msccResponse;
+
+      this._canUseCookies =
+        typeof mscc !== "undefined" &&
+        mscc != null &&
+        this._msccResponse != null &&
+        (!this._msccResponse.IsConsentRequired || mscc.hasConsent());
+
+      // If the cookies enabled flag flipped to [ON], we can use cookies
+      if (!previousCanUseCookies && this._canUseCookies) {
+        this._raiseOnCookiesEnabledEvent(false);
+      }
+    }
+  };
+  this._raiseOnCookiesEnabledEvent = function(isInitialConsent) {
+    this.showNoticeBanner(false);
+    this._onCookiesEnabledEvents.forEach(function(fn) {
+      if (fn != null) {
+        fn.apply(null, [this, isInitialConsent === true]);
+      }
+    });
+  };
+
+  var _onUserInteractionCallback = function(eventObject) {
+    that._onUserInteraction(eventObject);
+  };
+  this._bindUserInteraction = function() {
+    jQuery("body").click(_onUserInteractionCallback);
+  };
+  this._unbindUserInteraction = function() {
+    jQuery("body").unbind("click", _onUserInteractionCallback);
+  };
+  this._onUserInteraction = function(eventObject) {
+    if (!mscc.hasConsent()) {
+      // Exclude anything under the main banner
+      var msccBanner = document.getElementById("msccBanner");
+      var isChildOfMsccBanner =
+        msccBanner != null &&
+        (msccBanner == eventObject.target ||
+          msccBanner.contains(eventObject.target));
+
+      // Exclude the language picker
+      var isLanguagePicker =
+        eventObject.target.id != null &&
+        eventObject.target.id == "js-lang-picker";
+
+      // Exclude all elements with the data-mscc-ic set to false
+      var dataMsccIcAttribute = eventObject.target.getAttribute("data-mscc-ic");
+      var isExempt =
+        dataMsccIcAttribute != null &&
+        dataMsccIcAttribute.toString().toLowerCase() == "false";
+
+      if (!isLanguagePicker && !isChildOfMsccBanner && !isExempt) {
+        mscc.setConsent();
+        this._unbindUserInteraction();
+      }
+    }
+  };
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// Construct the WordPress Microsoft Cookie Compliance object
+wpmscc = new WpMscc();
+
+jQuery(document).ready(function() {
+  var msccSettings = wpmscc.getMsccSettings();
+  if (msccSettings.isMsccEnabled === false) {
+    wpmscc._raiseOnCookiesEnabledEvent(false);
+    return;
+  }
+
+  if (consentRequired === false) {
+    wpmscc._raiseOnCookiesEnabledEvent(false);
+    return;
+  }
+  var endpointUrl =
+    msccSettings.msccRestApiRootUrl +
+    "/" +
+    msccSettings.currentLocaleCode +
+    "/shell/api/mscc?sitename=" +
+    msccSettings.siteName +
+    "&domain=" +
+    msccSettings.domain +
+    "&country=" +
+    msccSettings.country;
+    
+    //Calling MSCC API if we dont have consent and VSCOMGeo=true or  VSCOMGeo is not set
+  if (
+    wpmscc_getCookie("VSCOMGeo") === null ||
+    (wpmscc_getCookie("VSCOMGeo") === "true" &&
+      wpmscc_getCookie("MSCC") === null)
+  ) {
+    showMsccBanner(endpointUrl);
+  }
+});
+
+function showMsccBanner(endpointUrl) {
+  wpmscc.msccResponse = null;
+
+  jQuery.ajax(endpointUrl, {
+    success: function(data, text) {
+      if (
+        typeof data.IsConsentRequired != "undefined" &&
+        data.IsConsentRequired != null
+      ) {
+        var vscomGeo = new VscomGeo();
+        vscomGeo.setCookie(data.IsConsentRequired);
+      }
+      // We need to dynamically inject all of the CSS references returned by the API
+      if (data.Css != null) {
+        for (var i = 0; i < data.Css.length; i++) {
+          wpmscc.appendStyleSheet(data.Css[i]);
+        }
+      }
+
+      // We need to dynamically inject all of the JS references returned by the API, too
+      if (data.Js != null) {
+        for (var i = 0; i < data.Js.length; i++) {
+          var currentIndex = i;
+          jQuery.getScript(data.Js[i], function(script, status, jqXHR) {
+            if (currentIndex == data.Js.length - 1) {
+              wpmscc._setMsccResponse(data);
+
+              if (!wpmscc.canUseCookies()) {
+                // Inject the markup from the MSCC API, and show it
+                jQuery("#headerArea").before(data.Markup);
+                wpmscc.showNoticeBanner(true);
+                //TODO: We need to set the geo cookie
+                mscc.on("consent", function() {
+                  wpmscc._raiseOnCookiesEnabledEvent(true);
+                });
+
+                wpmscc._bindUserInteraction();
+              }
+            }
+          });
+        }
+      }
+    },
+    error: function(request, status, error) {
+      console.error(
+        "The Microsoft Cookie Compliance REST API call failed. " + error
+      );
+    }
+  });
+}
+
+// Logs Time to Onload start (TTOL),
+// FirstPaint(FP) and FirstContentfulPaint(FCP) and
+// perf markers to NR (NewRelic).
+// Remarks: 
+// FP and FCP currenlty are only available in Chrome browser
+// For any additonal perf markers to be captured in NR
+// add to the knownEntries object in "logPerfMarkersToNewRelic" func   
+var reportPerformanceMetrics = function() {
+
+    if(typeof window.performance  === "undefined") {
+        return;
+    }
+
+    var logToNewRelic = function(fp, fcp) {
+        if(typeof window.newrelic === "undefined") {
+            return;
+        }
+
+        if(fp !== null) {
+            window.newrelic.setCustomAttribute("firstPaint", fp);
+        }
+
+        if(fcp !== null) {
+            window.newrelic.setCustomAttribute("firstContentfulPaint", fcp);
+        }
+    };
+
+    // Logs Perf marker start time to NR
+    var logPerfMarkersToNewRelic = function() {
+        if(typeof window.newrelic === "undefined") {
+            return;
+        }
+
+        if (window.performance.mark === undefined) {
+            return;
+        }
+
+        // New perf. markers should be added to this dictionary
+        var knownEntries = { 
+            "HeadAreaEnd": true, 
+            "BodyAreaBegin": true,
+            "BodyAreaEnd": true,
+            "MainAreaBegin": true,
+            "MainAreaEnd": true,
+        };
+
+        var markEntries = window.performance.getEntriesByType("mark");
+
+        markEntries.forEach(function(entry) {
+            if (entry.name in knownEntries) {
+                window.newrelic.setCustomAttribute(entry.name, entry.startTime);
+            }
+        });
+    }
+
+    // Calculate FP and FCP
+    var paintEntries = window.performance.getEntriesByType("paint");
+    var firstPaintMetric = null;
+    var firstContentfulPaintMetric = null;
+
+    paintEntries.forEach(function(entry) {
+        if(entry["name"] === "first-paint") {
+            firstPaintMetric = entry["startTime"];
+        }
+
+        if(entry["name"] === "first-contentful-paint") {
+            firstContentfulPaintMetric = entry["startTime"];
+        }
+    });
+
+    var paintEntries = window.performance.getEntriesByType("paint");
+
+    logToNewRelic(firstPaintMetric, firstContentfulPaintMetric);
+    logPerfMarkersToNewRelic();
+};
+
+//vscom-optimizely.js + Log performance metrics
+jQuery(window).on("load", function() {
+
+  reportPerformanceMetrics();
+
+  if (optimizelyLoaded === true) {
+    var DATALAYER_OBJECT_NAME = "dataLayer";
+
+    /**
+     * Some analytics platforms have the ability to fix referrer values by overriding the page referrer value.
+     * this function is called when a redirect has occured on the previous page.
+     *
+     * @param {string} referrer - The effective referrer value
+     */
+    var referrerOverride = function(referrer) {
+      var dataLayerObject = window[DATALAYER_OBJECT_NAME] || [];
+      dataLayerObject.push({
+        event: "optimizely-referrer-override",
+        "optimizely-referrer": referrer
+      });
+    };
+
+    /**
+     * Used for experiments created in 'new Optimizely'. This function is executed for all
+     * experiments that are running on the page. Use the arguments to send data to your platform.
+     *
+     * @param {string} campaignName - The name of a campaign that is running on the page
+     * @param {string} campaignId - The ID of a campaign that is running on the page
+     * @param {string} audienceNames - The names of all the audience the visitor is considered part of related to this campaign
+     * @param {string} audienceIds - The names of all the ids the visitor is considered part of related to this campaign
+     * @param {string} variationName - The name of the experiment the user is seeing. Frequently, a name is only available for the campaign
+     * @param {string} variationId - The ID if the experiment the user is seeing
+     * @param {string} variationName - The name of the variation the user is seeing
+     * @param {string} variationId - The ID if the variation the user is seeing
+     * @param {boolean} inHoldback - If true, the visitor has not been exposed to this variation, but is kept in a holdback
+     *   which is a sample of the visitor that isn't exposed so that Optimizely can calculate the impact of a campaign.
+     */
+    var sendCampaignData = function(
+      campaignName,
+      campaignId,
+      audienceNames,
+      audienceIds,
+      experimentName,
+      experimentId,
+      variationName,
+      variationId,
+      inHoldback
+    ) {
+      var dimension =
+        optimizely.get("data") &&
+        optimizely.get("data").campaigns[campaignId] &&
+        optimizely.get("data").campaigns[campaignId].integrationSettings &&
+        optimizely.get("data").campaigns[campaignId].integrationSettings
+          .google_universal_analytics &&
+        optimizely.get("data").campaigns[campaignId].integrationSettings
+          .google_universal_analytics.universal_analytics_slot;
+
+      if (dimension) {
+        var campaign = campaignName
+          ? campaignName + "(" + campaignId + ")"
+          : campaignId;
+        var audience = audienceNames.join(",");
+        var experiment = experimentName
+          ? experimentName + "(" + experimentId + ")"
+          : audience + "(" + experimentId + ")";
+        var variation = variationName
+          ? variationName + "(" + variationId + ")"
+          : variationId;
+        var holdback = inHoldback ? "holdback" : "treatment";
+        var customVariableValue = [
+          campaign,
+          experiment,
+          variation,
+          holdback
+        ].join(":");
+        var dataLayerObject = window[DATALAYER_OBJECT_NAME] || [];
+        dataLayerObject.push({
+          event: "campaign-decided",
+          "optimizely-dimension-value": customVariableValue,
+          "optimizely-dimension-number": dimension
+        });
+      }
+    };
+
+    /**
+     * This function fetches all the campaign data from the new Optimizely client
+     * and calls the functions provided in the arguments with the data that needs to
+     * be used for sending information. It is recommended to leave this function as is
+     * and to create your own implementation of the functions referrerOverride and
+     * sendCampaignData.
+     *
+     * @param {Function} referrerOverride - This function is called if the effective referrer value differs from
+     *   the current document.referrer value. The only argument provided is the effective referrer value.
+     * @param {Function} sendCampaignData - This function is called for every running campaign on the page.
+     *   The function is called with all the relevant ids and names.
+     */
+    var initNewOptimizelyIntegration = function(
+      referrerOverride,
+      sendCampaignData
+    ) {
+      // There can only be one effective referrer on a page. This boolean makes sure the
+      // redirect overwrite only happens once. Multiple referrerOverwrites might result in undesired behavior.
+      var referrerOverwritten = false;
+      var newActiveCampaign = function(id) {
+        var state =
+          window["optimizely"].get && window["optimizely"].get("state");
+        var referrer =
+          state.getRedirectInfo() && state.getRedirectInfo().referrer;
+        if (!referrerOverwritten && referrer) {
+          referrerOverride(referrer);
+          referrerOverwritten = true;
+        }
+        var activeCampaigns = state.getCampaignStates({
+          isActive: true
+        });
+        var campaignState = activeCampaigns[id];
+        var campaignName = campaignState.campaignName;
+        var campaignId = id;
+        var audienceNames, audienceIds;
+        if (campaignState.audiences.length > 0) {
+          audienceNames = campaignState.audiences.map(function(audience) {
+            return audience.name;
+          });
+          audienceIds = campaignState.audiences.map(function(audience) {
+            return audience.id;
+          });
+        } else {
+          audienceNames = ["everyone_else"];
+          audienceIds = [0];
+        }
+        var experimentName = campaignState.experiment.name;
+        var experimentId = campaignState.experiment.id;
+        var variationName = campaignState.variation.name;
+        var variationId = campaignState.variation.id;
+        sendCampaignData(
+          campaignName,
+          campaignId,
+          audienceNames,
+          audienceIds,
+          experimentName,
+          experimentId,
+          variationName,
+          variationId,
+          campaignState.isInCampaignHoldback
+        );
+      };
+
+      /**
+       * At any moment, a new campaign can be activated (manual or conditional activation).
+       * This function registers a listener that listens to newly activated campaigns and
+       * handles them.
+       */
+      var registerFutureActiveCampaigns = function() {
+        window.optimizely = window.optimizely || [];
+        window.optimizely.push({
+          type: "addListener",
+          filter: {
+            type: "lifecycle",
+            name: "campaignDecided"
+          },
+          handler: function(event) {
+            var id = event.data.campaign.id;
+            newActiveCampaign(id);
+          }
+        });
+      };
+
+      /**
+       * If this code is running after Optimizely on the page, there might already be
+       * some campaigns active. This function makes sure all those campaigns are
+       * handled.
+       */
+      var registerCurrentlyActiveCampaigns = function() {
+        var state =
+          window["optimizely"] != null &&
+          window["optimizely"].get &&
+          window["optimizely"].get("state");
+        if (state) {
+          var activeCampaigns = state.getCampaignStates({
+            isActive: true
+          });
+          for (var id in activeCampaigns) {
+            newActiveCampaign(id);
+          }
+        }
+      };
+
+      registerCurrentlyActiveCampaigns();
+      registerFutureActiveCampaigns();
+    };
+
+    /**
+     * A wrapper around the logic for both the classic and new Optimizely integration.
+     * @param {Function} referrerOverride - This function is called if the effective referrer value differs from
+     *   the current document.referrer value. The only argument provided is the effective referrer value.
+     * @param {Function} sendExperimentData - This function is called for every running experiment on the page.
+     *   The function is called with all the relevant ids and names. Used for classic Optimizely.
+     * @param {Function} sendCampaignData - This function is called for every running campaign on the page.
+     *   The function is called with all the relevant ids and names. Used for new Optimizely.
+     */
+    var initOptimizelyIntegration = function(
+      referrerOverride,
+      sendCampaignData
+    ) {
+      initNewOptimizelyIntegration(referrerOverride, sendCampaignData);
+    };
+
+    initOptimizelyIntegration(referrerOverride, sendCampaignData);
+  }
+});

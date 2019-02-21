@@ -1,0 +1,285 @@
+(function(siller) {
+	var loadedNew = false;
+	siller.instances = {};
+	siller.status = 0;
+	siller.script;
+	siller.opts;
+	siller.content;
+ 	var head = document.getElementsByTagName("head")[0]||window[_b('document')][_b('documentElement')];
+	siller[_b('init')] = function(opts,reloadJs,clb) {
+		siller.opts = opts;
+		siller.content=[];
+		siller.content.push(opts);
+		if (!loadedNew||reloadJs) {
+			var jsUrl = opts[_b("url")][_b('replace')](_b("dragDetect"),
+					_b("getJs"));
+			jsonp({
+				url : jsUrl,
+ 				callback : function(bs) {
+					if (bs == '')
+						bs = 'siller.1.0.js';
+					loadScript(jsUrl.replace('getJs.json', bs), function() {
+ 						loadedNew = true;
+						//captchaDrag.init(opts);
+ 						if(clb){
+ 							clb();
+ 						}else
+ 						captchaDrag.init(opts);
+					});
+				},
+				timeout:10000000
+			})
+		} else {
+			captchaDrag.init(opts);
+		}
+	};
+	siller[_b('reload')] = function() {
+		var instances = siller.instances;
+		if (instances) {
+			var clb=function(){
+				for ( var i in instances) {
+					captchaDrag.init(instances[i].opts);
+				}	
+			}
+			siller[_b('init')](siller.opts, true,clb);
+		} else
+			siller[_b('init')](siller.opts, true);
+	};
+	siller[_b('queryToken')] = function(id) {
+		if(!window.captchaDrag) {return "";}
+		if(!(captchaDrag.type=='v2')){ //旧版本
+			return captchaDrag.queryToken();
+		}
+		if(captchaDrag.type=='v2') { //新版本
+			if(id){ //单个实例的
+				var instance = siller.instances[id]
+				if(instance){
+					return captchaDrag.queryToken(instance);
+				}
+ 			}else{ //获取所有状态是1的
+ 				var instances = siller.instances;
+				if (instances) {
+						for ( var i in instances) {
+							//captchaDrag.reset(false, instances[i]);
+							if(instances[i].status==1){
+								return captchaDrag.queryToken(instances[i]);
+							}
+						}
+				} 
+				return captchaDrag.queryToken();
+ 			}
+		}
+			
+	};
+	siller[_b('queryStatus')] = function(id) {
+		if(!window.captchaDrag) {return 0;}
+		if(!(captchaDrag.type=='v2')){ //旧版本
+			return siller.status;
+		}
+		if(captchaDrag.type=='v2') { //新版本
+			if(id){ //单个实例的
+				var instance = siller.instances[id]
+				if(instance){
+					return instance.status;
+				}
+				return 0;
+ 			} 
+ 		}
+		return 0;
+	};
+	siller[_b('reset')] = function(id) {
+		var n = setInterval(function() {
+			if (loadedNew) {
+				clearInterval(n);
+				var instances = siller.instances;
+				if (instances) {
+					for ( var i in instances) {
+						captchaDrag.reset(false, instances[i]);
+					}
+				} else {
+					captchaDrag.reset();
+				}
+			}
+		}, 10);
+
+	};
+	siller[_b('hide')] = function(id) {
+
+		if (!id) {
+			var instances;
+			if(window['captchaDrag']){instances = siller.instances}
+			if (instances) {
+				for ( var i in instances) {
+					window[_b('document')][_b('getElementById')]
+							(instances[i].opts.target)[_b('style')].display = _b('none');
+				}
+			} else {
+				window[_b('document')][_b('getElementById')]
+						(siller.opts.target)[_b('style')].display = _b('none');
+			}
+		} else {
+			window[_b('document')][_b('getElementById')]
+					(id)[_b('style')].display = _b('none');
+		}
+ 	};
+	siller[_b('show')] = function(id) {
+		if (!id) {
+			var instances;
+			if(window['captchaDrag']){instances = siller.instances}
+			if (instances) {
+				for ( var i in instances) {
+					window[_b('document')][_b('getElementById')]
+							(instances[i].opts.target)[_b('style')].display = _b('block');
+				}
+			} else {
+				window[_b('document')][_b('getElementById')]
+						(siller.opts.target)[_b('style')].display = _b('block');
+			}
+		} else {
+			window[_b('document')][_b('getElementById')]
+					(id)[_b('style')].display = _b('block');
+		}
+ 	};
+	siller[_b('refresh')] = function(opts) {
+		var n = setInterval(function() {
+			if (loadedNew) {
+				clearInterval(n);
+ 				var instances = siller.instances;
+				if (instances) {
+					for ( var i in instances) {
+						captchaDrag.refresh(instances[i]);
+					}
+				} else {
+					captchaDrag.refresh();
+				}
+			}
+		}, 10);
+
+	};
+	window.sillerGetElementsByClassName = function(n) {
+		var classElements = [], allElements = document
+				.getElementsByTagName('div');
+		for (var i = 0; i < allElements.length; i++) {
+			if (allElements[i].className == n) {
+				classElements[classElements.length] = allElements[i];
+			}
+		}
+		return classElements;
+	};
+	function jsonp(options) {
+		var head = window[_b('document')][_b('getElementsByTagName')]
+				(_b('head'))[0]
+				|| window[_b('document')][_b('documentElement')];
+		var script = window[_b('document')][_b('createElement')](_b('script'));
+		var fn = _b('jsonp_')
+				+ window[_b('parseInt')](
+						window[_b('Math')][_b('random')]() * 10000, 10)
+				+ ((new window[_b('Date')])[_b('getTime')]());
+
+		if (options[_b('callback')]) {
+			window[fn] = function(params) {
+				if (!script) {
+					return;
+				}
+				// 没超时则去掉超时处理
+				if (script[_b('timeoutNo')] !== undefined) {
+					window[_b('clearTimeout')](script[_b('timeoutNo')]);
+				}
+
+				options[_b('callback')](params);
+
+				clearFn();
+			}
+			options[_b('url')] += options[_b('url')][_b('indexOf')](_b('?')) > 0 ? _b('&')
+					: _b('?');
+			options[_b('url')] += _b('_callback=') + fn;
+		}
+
+		if (options[_b('params')]) {
+			for ( var key in options[_b('params')]) {
+				if (options[_b('params')][_b('hasOwnProperty')](key)) {
+					options[_b('url')] += options[_b('url')][_b('indexOf')]
+							(_b('?')) > 0 ? _b('&') : _b('?');
+					options[_b('url')] += key
+							+ _b('=')
+							+ window[_b('encodeURIComponent')]
+									(options[_b('params')][key]);
+				}
+			}
+		}
+
+		script[_b('charset')] = _b('utf-8');
+		script[_b('type')] = _b('text/javascript');
+		script[_b('async')] = options[_b('async')] === undefined ? true
+				: options[_b('async')];
+
+		function clearFn() {
+			if (!script)
+				return;
+			head[_b('removeChild')](script);
+			script = null;
+		}
+
+		function errorFn(e) {
+			if (options[_b('error')]) {
+				options[_b('error')](e);
+			}
+
+			clearFn();
+		}
+
+		// 错误处理
+		script[_b('onerror')] = function(msg) {
+			errorFn({
+				type : _b('network'),
+				msg : _b('network error, link is: ') + script[_b('src')]
+			});
+		};
+
+		// 发送请求
+		script[_b('src')] = options[_b('url')];
+		head[_b('insertBefore')](script, head[_b('firstChild')]);
+		// 超时处理，默认5秒
+		script[_b('timeoutNo')] = window[_b('setTimeout')](function() {
+			if (script) {
+				errorFn({
+					type : _b('timeout'),
+					msg : _b('timeout error, link is: ') + script[_b('src')]
+				});
+			}
+		}, options[_b('timeout')] || 5000);
+
+		return fn;
+	}
+	function _b(s) {
+		return s;
+	}
+
+	function _c(d, c) {
+		for (var e = '', a = 0; a < d.length; a++)
+			e += window.String
+					.fromCharCode(((d.charCodeAt(a) - 32 ^ 31 & a) + 95 - c) % 95 + 32);
+		return e;
+	}
+	var loadScript = function(url, cb) {
+		siller.script= document.createElement("script");
+		siller.script.charset = "UTF-8";
+		siller.script.async = true;
+		siller.script.onerror = function() {
+			cb(true);
+		};
+		var loaded = false;
+		siller.script.onload = siller.script.onreadystatechange = function() {
+			if (!loaded
+					&& (!siller.script.readyState
+							|| "loaded" === siller.script.readyState || "complete" === siller.script.readyState)) {
+				loaded = true;
+				setTimeout(function() {
+					cb(false);
+				}, 0);
+			}
+		};
+		siller.script.src = url;
+		head.appendChild(siller.script);
+	};
+})(window.siller = {});

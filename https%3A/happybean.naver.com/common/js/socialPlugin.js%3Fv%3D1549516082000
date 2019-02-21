@@ -1,0 +1,47 @@
+    (function(){
+
+        var id = "naver-splugin-sdk", t = new Date(), yyyy = t.getFullYear(), mm = t.getMonth() + 1, dd = t.getDate();
+        var s = document.createElement("script"); s.id = id; s.type = "text/javascript", s.charset = "utf-8", s.async = false;
+        var mobileM ="";
+        if(location.href.indexOf("mobile") > 0 || location.href.indexOf("//m.")> 0|| location.href.indexOf(".m.")> 0 || location.href.indexOf('-m.') > 0){
+       		mobileM = ".m";
+        }
+
+        s.src = ("https://ssl.pstatic.net/spi/js/release/ko_KR/splugin"+mobileM+".js?" + yyyy + (mm < 10 ? '0' + mm : mm) + (dd < 10 ? '0' + dd : dd));
+        var d = document.getElementsByTagName('head')[0];
+       	if(	hbean.observer == null ){
+       		s.onload= function(){
+       			init_socialplugin();
+       		}
+       	}else{
+       		hbean.observer.add("init_socialplugin()");
+       	}
+       	d.appendChild(s, d);
+    })();
+    function init_socialplugin() {
+        if (window.__splugin){
+            return;
+        }
+        if (typeof SocialPlugIn_Core == 'undefined') {
+            return;
+        }
+        initDataStyle();
+        window.__splugin = SocialPlugIn_Core({
+        	"evKey"       : "happybean",
+        	"serviceName" : "해피빈",
+            "dimmed"      : "fixed"
+           
+        });
+    }
+    function initDataStyle() {
+    	try {
+        	var el = document.getElementById("spiButton2");
+        	var style="unity-v2";
+            if(location.href.indexOf("mobile") > 0 || location.href.indexOf("//m.")> 0|| location.href.indexOf(".m.")> 0 || location.href.indexOf('-m.') > 0){
+            	style = "standard";
+            }
+            el.setAttribute("data-style", style);
+            el.setAttribute("data-blog-source-form","2");
+    	} catch(e){}
+    }
+    

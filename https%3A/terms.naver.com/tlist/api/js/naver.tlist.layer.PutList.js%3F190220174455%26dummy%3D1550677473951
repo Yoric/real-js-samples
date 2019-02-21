@@ -1,0 +1,463 @@
+/**
+* @(#)naver.tlist.layer.PutList.js 
+*@since 2014. 7. 28.
+*
+* Copyright NAVER Corp. All rights Reserved.
+* NAVER PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
+*/
+
+/**
+* @author tod2
+* @since 2014. 7. 28.
+* @description
+* 
+* 지식리스트 담기 레이어 및 기능. 큐레이션 한마디 기록을 포함한다.
+*/
+
+window.naver.tlist.layer = window.naver.tlist.layer || {};
+
+window.naver.tlist.layer.PutList = tljindo.$Class({
+	init : function(option) {
+		this.option(option);
+		this._initVar(this.option);
+		this._setTemplate();
+		this._setWrapperElement();
+		this._makeLayer();		
+		this._setWrapperLayerElement();
+		this._setAPIUrl();
+		this._attachEvent();
+	},
+	// 인스턴스 변수 초기화
+	_initVar : function(el) {
+		this._htWElement = {};
+		this._htEvent = {};
+		this._htAPIUrl = {};
+		this._oTemplate = {};
+		this._sServiceCode = "";
+		this._sContentsId = "";
+		this._aPutedList = [];
+		this._aNeedDeleteList = [];
+	},
+	// 템플릿 매핑
+	_setTemplate : function() {
+		this._oTemplate["put"] = new tljindo.$Template(window.naver.tlist.TEMPLATE_PUT_LIST);	// 리스트 담기 레이어 템플릿
+		this._oTemplate["listItem"] = new tljindo.$Template(window.naver.tlist.TEMPLATE_TLIST_ITEM);	// 리스트 항목
+		if (window.naver.tlist.TEMPLATE_PUT_MOBILE_REASON) {
+			this._oTemplate["mobileReason"] = new tljindo.$Template(window.naver.tlist.TEMPLATE_PUT_MOBILE_REASON);	// 리스트 항목
+		}
+	},
+	// 기본 객체 매핑
+	_setWrapperElement : function() {
+		this._htWElement["base"] = tljindo.$Element(this.option("layerBaseId"));
+	},
+	// 담기 UI에 사용되는 Layer 생성
+	_makeLayer : function() {
+		this._htWElement["base"].appendHTML(this._oTemplate["put"].process({layerPutId : this.option("layerPutId")}));
+		if (this._oTemplate["mobileReason"]) {
+			this._htWElement["base"].appendHTML(this._oTemplate["mobileReason"].process({layerPutId : this.option("layerPutId")}));
+		}
+	},
+	// 레이어 관련 객체 매핑
+	_setWrapperLayerElement : function() {
+		this._htWElement["listPutLayer"] = tljindo.$Element(this.option("layerPutId"));										// 리스트 담기 레이어
+		this._htWElement["listPutReasonLayer"] = tljindo.$Element(this.option("layerPutId") + "_reason");	
+		this._htWElement["listBox"] = this._htWElement["listPutLayer"].query(".__ITEM_LIST");								// 리스트 내 항목을 Wrapping 하는 레이어
+		this._htWElement["listPutCloseBtn"] = this._htWElement["listPutLayer"].query(".__BTN_CANCEL");						// 닫기 버튼
+		this._htWElement["listPutSaveBtn"] = this._htWElement["listPutLayer"].query(".__BTN_CONFIRM");						// 저장 버튼
+		
+		this._htWElement["listCreateCollection"] = this._htWElement["listPutLayer"].query(".__BTN_CREATE_LIST");			// 새 목록 만들기 버튼
+		this._htWElement["listItemList"] = null;	// 각 항목 아이템 리스트
+		if (this._htWElement["listPutReasonLayer"]) {
+			this._htWElement["listPutReason"] = this._htWElement["listPutReasonLayer"].query(".__REASON");							// 큐레이션 한마디 입력 박스(모바일용)
+			this._htWElement["listPutReasonLabel"] = this._htWElement["listPutReasonLayer"].query(".__REASON_LABEL"); 				// 큐레이션 한마디 라벨(모바일용)
+			this._htWElement["listPutReasonMobileLayerBtn"] = this._htWElement["listPutLayer"].query(".__BTN_COMMENT"); 	// 담기 리스트 레이어 큐레이터 입력(모바일용) 모바일에서는 큐레이터 한마디를 임력하눈 부분이 따로 되어있음
+			this._htWElement["listPutReasonMobileLayerBackBtn"] = this._htWElement["listPutReasonLayer"].query(".__BTN_CANCEL_REASON"); 	// 담기 리스트 레이어 뒤로가기(모바일용). 내용을 삭제하고 돌아감. 모바일에서는 큐레이터 한마디를 임력하눈 부분이 따로 되어있음
+			this._htWElement["listPutReasonSaveBtn"] = this._htWElement["listPutReasonLayer"].query(".__BTN_CONFIRM");				// 큐레이터 한마디 영역 저장 버튼. 내용을 유지하고 돌아감
+		} else {
+			this._htWElement["listPutReason"] = this._htWElement["listPutLayer"].query(".__REASON");							// 큐레이션 한마디 입력 박스
+			this._htWElement["listPutReasonLabel"] = this._htWElement["listPutLayer"].query(".__REASON_LABEL"); 				// 큐레이션 한마디 라벨
+			this._htWElement["listPutReasonCnt"] = this._htWElement["listPutLayer"].query(".__REASON_CNT");						// 큐레이션 한마디 글자수 노출 영역
+		}
+		
+	},
+	// API Url 설정
+	_setAPIUrl : function() {
+		this._htAPIUrl["domain"] = this.option("domain");
+		this._htAPIUrl["get"] = this.option("apiUrl")["get"];
+		this._htAPIUrl["put"] = this.option("apiUrl")["put"];
+	},
+	// 기본 이벤트 binding
+	_attachEvent : function() {
+		if (this._htWElement["listPutCloseBtn"]) {
+			this._htEvent["listPutCloseBtn_click"] = {
+				fn : this._htWElement["listPutCloseBtn"].attach("click", tljindo.$Fn(function(oEvent) {oEvent.stop(tljindo.$Event.CANCEL_DEFAULT);this._reasonBack(oEvent, true);this.fireEvent("cancel", {oEvent : oEvent});this.option("nclicker")(this,'kly_add.cancel','','');}, this).bind()),
+				el : this._htWElement["listPutCloseBtn"].$value()
+			};
+		}
+		
+		if (this._htWElement["listPutSaveBtn"]) {
+			this._htEvent["listPutSaveBtn_click"] = {
+				fn : this._htWElement["listPutSaveBtn"].attach("click", tljindo.$Fn(function(oEvent) {oEvent.stop(tljindo.$Event.CANCEL_DEFAULT);this._putItem(oEvent);this._reasonBack(oEvent, true);this.option("nclicker")(this,'kly_add.ok','','');}, this).bind()),
+				el : this._htWElement["listPutSaveBtn"].$value()
+			};
+		}	
+		
+		if (this._htWElement["listCreateCollection"]) {
+			this._htEvent["listCreateCollection_click"] = {
+				fn : this._htWElement["listCreateCollection"].attach("click", tljindo.$Fn(function(oEvent) {oEvent.stop(tljindo.$Event.CANCEL_DEFAULT);this.fireEvent("showCreateLayer", {oEvent : oEvent});this.option("nclicker")(this,'kly_add.new','','');}, this).bind()), 
+				el : this._htWElement["listCreateCollection"].$value()
+			};
+		}
+		
+		// 실제 글자수 카운트 시는 keyup 타이밍에 진행
+		if (this._htWElement["listPutReason"]) {
+			this._htEvent["listPutReason_keyup"] = {
+				fn : this._htWElement["listPutReason"].attach("keyup", tljindo.$Fn(function(oEvent) {if (this._htWElement["listPutReason"].attr("value").length == 0) {this._htWElement["listPutReasonLabel"].show();}this._countReason(oEvent);}, this).bind()),
+				el : this._htWElement["listPutReason"].$value()
+			};
+			this._htEvent["listPutReason_keydown"] = {
+					fn : this._htWElement["listPutReason"].attach("keydown", tljindo.$Fn(function(oEvent) {if (this._checkKeyCode(oEvent)) {this._htWElement["listPutReasonLabel"].hide();}}, this).bind()),
+					el : this._htWElement["listPutReason"].$value()
+			};
+			this._htEvent["listPutReason_focusout"] = {
+				fn : this._htWElement["listPutReason"].attach("focusout", tljindo.$Fn(function(oEvent) {if (this._htWElement["listPutReason"].attr("value").length == 0) {this._htWElement["listPutReasonLabel"].show();}}, this).bind()),
+				el : this._htWElement["listPutReason"].$value()
+			};
+		}
+		
+		if (this._htWElement["listPutReasonMobileLayerBtn"]) {
+			// 큐레이터 입력 레이어 오픈  
+			this._htEvent["listPutReasonMobileLayerBtn"] = {
+				fn : this._htWElement["listPutReasonMobileLayerBtn"].attach("click", tljindo.$Fn(function(oEvent) {oEvent.stop(tljindo.$Event.CANCEL_DEFAULT);this._reasonOpen(oEvent);this.option("nclicker")(this,'kly_add.comment','','');}, this).bind()), 
+				el : this._htWElement["listPutReasonMobileLayerBtn"].$value()
+			};
+			this._htEvent["listPutReasonMobileLayerBackBtn"] = {
+				fn : this._htWElement["listPutReasonMobileLayerBackBtn"].attach("click", tljindo.$Fn(function(oEvent) {oEvent.stop(tljindo.$Event.CANCEL_DEFAULT);this._reasonBack(oEvent, false);}, this).bind()), 
+				el : this._htWElement["listPutReasonMobileLayerBackBtn"].$value()
+			};
+			
+			this._htEvent["listPutReasonSaveBtn_click"] = {
+				fn : this._htWElement["listPutReasonSaveBtn"].attach("click", tljindo.$Fn(function(oEvent) {oEvent.stop(tljindo.$Event.CANCEL_DEFAULT);this._reasonSave(oEvent);this.option("nclicker")(this,'kly_add.ok','','');}, this).bind()),
+				el : this._htWElement["listPutReasonSaveBtn"].$value()
+			};
+		}
+		
+	},
+	// 기본 이벤트 unbinding
+	_detachEvent : function() {
+		for (p in this._htEvent) {
+			var ht = this._htEvent[p];
+			ht.fn.detach(ht.el, p.substring(p.lastIndexOf("_")));
+		}
+	},
+	// 지식리스트 객체 제거. 중복 init 시 기존의 객체를 제거할 때 등 사용 
+	_destory : function() {
+		if (this._htWElement["listPutLayer"]) {
+			this._htWElement["listPutLayer"].leave();
+			this._detachEvent();
+			this._htWElement = this._htEvent = this._htAPIUrl = this._oTemplate = null;
+		}
+	},
+	// 담기 완료 후 동작
+	_afterConfirm : function(oEvent, aListTitle, aListId, sTocIds, nCount) {
+		this.fireEvent("afterConfirm", {oEvent : oEvent, aListTitle : aListTitle, aListId : aListId, sTocIds : sTocIds, nCount : nCount});
+	},
+	// 레이어 노출
+	show : function(oEvent, sServiceCode, sContentsId) {
+		//oEvent.stop(tljindo.$Event.CANCEL_DEFAULT);
+		this._sServiceCode = sServiceCode;
+		this._sContentsId = sContentsId;
+		this._aPutedList = [];
+		this._aNeedDeleteList = [];
+		if (this._htWElement["listPutReason"]) {
+			this._htWElement["listPutReason"].text("");
+		}
+		if (this._htWElement["listPutReasonMobileLayerBtn"]) {
+			this._htWElement["listPutReasonMobileLayerBtn"].html(window.naver.tlist.TEMPLATE_PUT_MOBILE_REASON_ORIG_TEXT);
+			this._htWElement["listPutReasonMobileLayerBtn"].removeClass("__TXT_COMMENT");
+		}
+		this._htWElement["listPutLayer"].show();
+		
+		this._getList();
+	},
+	// 레이어 숨기기
+	hide : function(oEvent) {
+		tljindo.$Element(this._htWElement["listPutLayer"]).hide();
+		if (this._htWElement["listPutReasonMobileLayerBtn"]) {
+			this._htWElement["listPutReasonMobileLayerBtn"].html(window.naver.tlist.TEMPLATE_PUT_MOBILE_REASON_ORIG_TEXT);
+			this._htWElement["listPutReasonMobileLayerBtn"].removeClass("__TXT_COMMENT");
+		}
+		if (this._htWElement["listPutReasonLayer"]) {
+			tljindo.$Element(this._htWElement["listPutReasonLayer"]).hide();
+		}
+	},
+	// 리스트 Box 내 리스트 항목 추가
+	_drawListItem : function(aListData) {
+		var aHtml = [];
+		for (var i = 0; i < aListData.length; i++) {
+			aHtml.push(this._oTemplate["listItem"].process(aListData[i]));
+		}
+		this._htWElement["listBox"].appendHTML(aHtml.join(""));
+	},
+	// 리스트 담기 시의 내부 리스트 항목 리셋
+	_resetListLayer : function() {
+		this._htWElement["listBox"].html("");
+	},
+	// 리스트 담시 시의 각 내부 리스트 항목에 이벤트 binding
+	_setListItemList : function(oEvent) {		
+		 this._htWElement["listItemList"] = tljindo.$ElementList("input[name=checkedCollectionList]");
+         for(i = 0, size = this._htWElement["listItemList"].length() ; i < size ; i++) {
+                 var wElListItem = this._htWElement["listItemList"].get(i);
+                 tljindo.$Fn(function(oEvent) {this._setItemListToggle(oEvent);}, this).attach(wElListItem.$value(), "click");
+         }
+	},
+	// 리스트 항목 Toggle
+	_setItemListToggle : function(oEvent) {
+		var wElItem = tljindo.$Element(oEvent.currentElement);
+		var wElItemParent = wElItem.parent();
+		wElItemParent.toggleClass("on");
+		
+		var listId = String(wElItem.attr("value"));
+
+		if (wElItem.attr("checked")) {
+			this.option("nclicker")(this,'kly_add.check','','');
+			if (this._aPutedList.indexOf(listId) !== -1 && this._aNeedDeleteList.indexOf(listId) !== -1) {
+				this._aNeedDeleteList.splice(this._aNeedDeleteList.indexOf(listId), 1);
+			}
+		} else {
+			this.option("nclicker")(this,'kly_add.uncheck','','');
+			if (this._aPutedList.indexOf(listId) !== -1) {
+				this._aNeedDeleteList.push(listId);	
+			}
+		}
+	},
+	// 이미 담긴 리스트 기록
+	_setPutdeList : function(aListData) {
+		for (var i = 0, cnt = aListData.length; i < cnt; i++) {
+			if (aListData[i].putCount > 0)
+			this._aPutedList.push(String(aListData[i].listId));
+		}
+	},
+	// 리스트 획득
+	_getList : function() {
+		htParam = {};
+
+		var url = this._htAPIUrl["domain"] + this._htAPIUrl["get"] + "&serviceCode=" + this._sServiceCode + "&serviceContentsId=" + this._sContentsId;
+		var fnDrowListItem = tljindo.$Fn(this._drawListItem, this).bind();
+		var fnSetListItemList = tljindo.$Fn(this._setListItemList, this).bind();
+		var fnSetPutdeList = tljindo.$Fn(this._setPutdeList, this).bind(); 
+		
+		this._resetListLayer();
+		
+		window.naver.tlist.ajaxRequest(url, {
+			sReqType: "jsonp",
+			method : "get",
+			fnSuccess : function(oRes) {
+				var htData = oRes.json().message.result;
+				// 로그인 체크
+				var sStatus = htData.status.code;
+				if (window.naver.tlist.isLoginError(sStatus)) {
+					if (confirm("로그인이 필요한 서비스 입니다.\n로그인 하시겠습니까?")) {
+						location.href = window.naver.tlist.loginUrl;
+					}
+					return false;
+				}
+				
+				if (window.naver.tlist.isAPIError(sStatus)) {
+					alert("오류가 발생했습니다. 다시 시도해 주세요");
+					return false;
+				}
+				
+				// 사용자의 리스트 노출
+				var aListData = htData.list;
+				
+				fnSetPutdeList(aListData);
+				fnDrowListItem(aListData);
+				fnSetListItemList();
+			},
+			fnError : function(oRes) {
+			},
+			fnTimeout : function(oRes) {
+				alert("Timeout 오류가 발생했습니다. 다시 시도해 주세요");
+			}
+		}, htParam);
+	},
+	// 항목을 리스트에 담기
+	_putItem : function(oEvent) {
+		var aListIds = this._getSelectedItemListId();		// 담은 리스트 Id
+		var sListIds = aListIds.join(",");
+		var aListTitle = this._getSelectedItemListTitle();	// 담은 리스트 제목
+		
+		
+		// 중복 담기 방어
+		if (window.naver.tlist.status == "processing") {
+			alert("리스트에 담는 중입니다. 잠시만 기다려 주세요.");
+			return;
+		} else {
+			window.naver.tlist.status = "processing";
+		}
+		
+		htParam = {};
+		
+		var url = this._htAPIUrl["domain"] + this._htAPIUrl["put"] + "&serviceCode=" + this._sServiceCode + "&serviceContentsId=" + this._sContentsId;
+		url += "&listIds=" + sListIds;
+		url += "&deleteListIds=" + this._aNeedDeleteList.join(",");
+		url += "&reason=" + encodeURIComponent(this._htWElement["listPutReason"].text());
+		
+		var fnAfterConfirm = tljindo.$Fn(this._afterConfirm, this).bind(oEvent, aListTitle, aListIds);
+		
+		window.naver.tlist.ajaxRequest(url, {
+			sReqType: "jsonp",
+			method : "get",
+			fnSuccess : function(oRes) {
+				window.naver.tlist.status = null;
+				
+				var htData = oRes.json().message.result;
+				// 로그인 체크
+				var sStatus = htData.status.code;
+				var nCount = htData.status.count;
+				var sTocIds = htData.tocIds;
+				
+				if (window.naver.tlist.isLoginError(sStatus)) {
+					if (confirm("로그인이 필요한 서비스 입니다.\n로그인 하시겠습니까?")) {
+						location.href = window.naver.tlist.loginUrl;
+					}
+					return false;
+				} else {
+					window.naver.tlist.isLogin = true;
+				}
+				
+				if (window.naver.tlist.isBlockError(sStatus)) {
+					alert("사용이 제한된 단어가 있습니다. 다시 시도해 주세요.");
+					return false;
+				}
+				
+				if (window.naver.tlist.isAPIError(sStatus)) {
+					alert("오류가 발생했습니다. 다시 시도해 주세요");
+					return false;
+				}
+				
+				fnAfterConfirm(sTocIds, nCount);
+			},
+			fnError : function(oRes) {
+				window.naver.tlist.status = null;
+			},
+			fnTimeout : function(oRes) {
+				window.naver.tlist.status = null;
+				alert("Timeout 오류가 발생했습니다. 다시 시도해 주세요");
+			}			
+		}, htParam);
+	},
+	// 선택된 리스트 항목의 List Id의 배열 얻기
+	_getSelectedItemListId : function() {
+		var aListId = [];
+		for (var i = 0; i < this._htWElement["listItemList"].length(); i++) {
+			var wElItem = this._htWElement["listItemList"].get(i);
+			if (wElItem.attr("checked")) {
+				aListId.push(wElItem.attr("value"));	
+			}
+		}
+		return aListId;
+	},
+	// 선택된 리스트 항목의 List 제목의 배열 얻기
+	_getSelectedItemListTitle : function() {
+		var aTitle = [];
+		for (var i = 0; i < this._htWElement["listItemList"].length(); i++) {
+			var wElItem = this._htWElement["listItemList"].get(i);
+			if (wElItem.attr("checked")) {
+				aTitle.push(wElItem.attr("data-title"));
+			}
+		}
+		return aTitle;
+	},
+	//모바일 큐레이터 한마디 저장 
+	_reasonSave : function(oEvent) {
+		if (this._htWElement["listPutReasonLayer"]) {
+			this._htWElement["listPutLayer"].show();
+			this._htWElement["listPutReasonLayer"].hide();
+			
+			if (this._htWElement["listPutReason"] && this._htWElement["listPutReason"].text().length > 0) {
+				this._htWElement["listPutReasonMobileLayerBtn"].addClass("txt_comment");
+				this._htWElement["listPutReasonMobileLayerBtn"].addClass("__TXT_COMMENT");
+				this._htWElement["listPutReasonMobileLayerBtn"].removeClass("btn_comment");
+				curatorReason = this._htWElement["listPutReason"].text();
+			} else {
+				this._htWElement["listPutReasonMobileLayerBtn"].removeClass("txt_comment");
+				this._htWElement["listPutReasonMobileLayerBtn"].removeClass("__TXT_COMMENT");
+				this._htWElement["listPutReasonMobileLayerBtn"].addClass("btn_comment");
+				curatorReason = window.naver.tlist.TEMPLATE_PUT_MOBILE_REASON_ORIG_TEXT;
+				this._htWElement["listPutReason"].text("");
+				this._htWElement["listPutLayer"].removeClass("curator_comment");
+			} 
+			this._htWElement["listPutReasonMobileLayerBtn"].html(curatorReason);
+			this._htWElement["listPutLayer"].removeClass("curator_comment_v1");
+		}
+	},
+	//모바일 큐레이터 한마디 열기 
+	_reasonOpen : function(oEvent) {
+		if (this._htWElement["listPutReasonLayer"]) {
+			this._htWElement["listPutLayer"].addClass("curator_comment");
+			this._htWElement["listPutLayer"].addClass("curator_comment_v1");
+			this._htWElement["listPutReasonLayer"].show();
+			this._htWElement["listPutReasonText"] = this._htWElement["listPutLayer"].query(".__TXT_COMMENT");
+			if (this._htWElement["listPutReasonText"]) {
+				this._htWElement["listPutReason"].text(this._htWElement["listPutReasonText"].text());
+				this._htWElement["listPutReasonLabel"].hide();
+			}
+		}
+	},
+	//모바일 큐레이터 한마디 열기 
+	_reasonBack : function(oEvent, isCuratorLayer) {
+		if (this._htWElement["listPutReasonLayer"]) {
+			this._htWElement["listPutReasonText"] = this._htWElement["listPutLayer"].query(".__TXT_COMMENT");
+			if (!this._htWElement["listPutReasonText"]) {
+				this._htWElement["listPutLayer"].removeClass("curator_comment");
+			}
+			this._htWElement["listPutLayer"].removeClass("curator_comment_v1");
+			this._htWElement["listPutReasonLabel"].show();
+			this._htWElement["listPutReasonLayer"].hide();
+			this._htWElement["listPutReason"].text("");
+		}
+	},
+	// 큐레이션 한마디 글자 수 세기 
+	_countReason : function(oEvent) {
+		if (this._htWElement["listPutReasonCnt"]) {
+			naver.tlist.countListField(this._htWElement["listPutReason"], "큐레이터 한마디", 500, this._htWElement["listPutReasonCnt"]);
+		}
+	},
+	// 쓰기부분 실제 입력하는 key 여부 확인
+	_checkKeyCode : function(oEvent) {
+		var key = oEvent.key().keyCode;
+		if (key == 0) {
+			return true;
+		}
+		var KC_ENTER = 13;
+		var KC_BACKSPACE = 8;
+		var KC_TAB = 9;
+		var KC_ENG_KOR = 21;
+		var KC_SPACE = 32;
+		var KC_PAGEUP = 33;
+		var KC_PAGEDN = 34;
+		var KC_END = 35;
+		var KC_HOME = 36;
+		var KC_LARROW = 37;
+		var KC_UARROW = 38;
+		var KC_RARROW = 39;
+		var KC_DARROW = 40;
+		var KC_INSERT = 45;
+		var KC_DELETE = 46;
+		var KC_MINUS = 189;
+		var KC_NUM_0 = 48;
+		var KC_NUM_9 = 57;
+		var KC_ALPHA_A = 65;
+		var KC_ALPHA_V = 86;
+		var KC_ALPHA_Z = 90;
+		var KC_WINDOW = 91;
+		var KC_F1 = 112;
+		var KC_F12 = 123;
+		if (key == 224 || oEvent.key().meta || key == KC_BACKSPACE || (key > KC_SPACE && key <= KC_DARROW) || (key != KC_ENG_KOR && key < KC_SPACE) || oEvent.key().alt || (oEvent.key().ctrl && key != KC_ALPHA_V) || key == KC_WINDOW || (KC_F1 <= key && key <= KC_F12)) {
+			return false;
+		}
+		return true;
+	}
+}).extend(tljindo.UIComponent || tljindo.m.UIComponent);

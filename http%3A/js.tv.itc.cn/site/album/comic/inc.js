@@ -1,0 +1,2 @@
+/* sohutv 2019-01-23 14:22:22 */
+kao.add("nav",{path:"site/play/v1/nav_37d759.js",requires:["jquery","login"]}),kao.add("index",{path:"site/album/comic/index_c1172f.js",requires:["jquery"]}),kao.add("rss_play",{path:"site/album/drama/rss_851ca6.js",requires:["jquery","wemedia-ui-common"]}),messagebus.subscribe("core.loaded_nav",function(){kao("nav")},null,null,{cache:!0}),kao("index"),kao("corner",function(){$('<div class="G-later"> </div>').corner({items:["code","feedback","returntop"]}).appendTo("body")});

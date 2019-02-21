@@ -1,0 +1,2 @@
+define("json-base",[],function(){//! Copyright 2015, json-base@6.1.1 MIT Licensed, build time: Thu, 29 Oct 2015 12:16:20 GMT 
+var n;return n=function(n){return n="undefined"!=typeof JSON?JSON:null}()});

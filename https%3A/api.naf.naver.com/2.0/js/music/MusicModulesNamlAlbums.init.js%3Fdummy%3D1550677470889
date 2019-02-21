@@ -1,0 +1,10 @@
+new MusicModulesNamlAlbums({
+    cssUrl: "https://ssl.pstatic.net/static/ncc/common/css/naml.music.albums.css",
+    launcher: {
+        nmpLauncherJsUrl: naml.API_URL_HOST + "/js/music/NMPLauncher.js",
+        nmpLauncherSwfUrl: "https://ssl.pstatic.net/static/ncc/js/module/NMP_web_player_launcher.swf",
+        nmpflashObjectJsUrl: naml.API_URL_HOST + "/js/music/flashObject.js",
+        nmpFlashDivId: "nmpPlayerLauncherSwf",
+        webStreamingPlayerLauncherJsUrl: naml.API_URL_HOST + "/js/music/WebStreamingPlayerLauncher.js"
+    }
+})

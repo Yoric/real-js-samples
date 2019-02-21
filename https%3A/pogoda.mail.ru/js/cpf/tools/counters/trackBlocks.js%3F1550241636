@@ -1,0 +1,362 @@
+/**
+ * Отслеживание просмотров отдельных блоков страницы
+ * @requires 'lib/basic.js'
+ * @requires tools/layout.js
+ */
+(function ($, window, cpf) {
+	var aElems = [],
+		hndlrsAtthd = false;
+	var sClbBase = '//rs.mail.ru/d';
+	var reDelimiter = /,\s?/g;
+	var moduleOpts = cpf.Basic.moduleOpts;
+	var typeOf = cpf.Basic.typeOf;
+	var defaultType = 'rbmail';
+	var cntAdd, cntHit, cntHitEvent;
+	var extend = cpf.Basic.Extend;
+	var layout = cpf.Tools.Layout;
+	// Данные для вычисления продолжительности нахождения в разных частях страницы.
+	var duration =  {
+		blocks: [],				// Маасив блоков {{elem: $, counters: Array of function}}
+		active: null,			// Активная часть (функция, отправляющая событие)
+		tm: null,				// Идентификатор таймера
+		total: {				// Накопительный итог пребывания в разных частях:
+			ids: [],			//  массив частей: ссылки на функции, отправляющие события
+			times: []			//  корреспондирующий массив времени пребывания
+		},
+		period: 5000,			// Предустановленный период отправки данных - 5 сек
+		isWindowActive: true
+	};
+	/**
+	 * Отправляет данные.
+	 * @param {Function} counterFn Функция, дергающая счетчик.
+	 * @param {Object} block
+	 * @param {jQuery} block.elem Элемент, который делится на блоки.
+	 * @param {Array} block.counters Массив функций, отпарвляющих события. Количество функций
+	 *   определяет количестов частей, на которые разбивается элемент.
+	 * @param {number} partNum Номер активной части.
+	 */
+	function sendEvent (counterFn, block, partNum) {
+		var ids = duration.total.ids;
+		var times = duration.total.times;
+		var i, countInit = false;
+		// Убедиться, что данная часть активна. Если нет, провести пересчет.
+		// Это покрывает случай, когда после инициализации высота страницы
+		// динамически поменялась, и прежде активная часть перестала быть активной.
+		if (partNum !== getVisiblePart(block)) {
+			processDuration();
+		} else {
+			// Отправить событие, указав накопленное время пребывания в активной части.
+			i = ids.indexOf(counterFn);
+			if (~i) {
+				times[i] += duration.period;
+			} else {
+				ids.push(counterFn);
+				times.push(0);
+				i = times.length - 1;
+				countInit = true;
+			}
+			// Два варианта - накопительный итог (cumulative) и интервалы.
+			// В первом случае отправляется увеличивающаяся сумма: 5, 10, 15.
+			// Во втором случае подсвечивается начало сессии, а затем отправляются интервалы: 5, 5, 5.
+			if (block.cumulative && !countInit) {
+				counterFn({
+					value: times[i] / 1000
+				});
+			} else if (!block.cumulative) {
+				counterFn({
+					goal: (countInit ? 'v_' : 't_') + location.pathname.replace(/\/$/, ''),
+					value: countInit ? 1 : duration.period / 1000
+				});
+			}
+			duration.tm = window.setTimeout(
+				sendEvent.bind(null, counterFn, block, partNum),
+				duration.period
+			);
+		}
+	}
+	/**
+	 * Активизирует отправку событий о нахождении в указанной части
+	 * @param {Object} block
+	 * @param {jQuery} block.elem Элемент, который делится на блоки.
+	 * @param {Array} block.counters Массив функций, отпарвляющих события. Количество функций
+	 *   определяет количестов частей, на которые разбивается элемент.
+	 * @param {number} partNum Номер активной части.
+	 */
+	function activatePart (block, partNum) {
+		var counterFn = block.counters[partNum];
+		// Если активная часть не изменилась, ничего не делать
+		if (duration.active !== counterFn) {
+			duration.active = counterFn;
+			window.clearTimeout(duration.tm);
+			sendEvent(counterFn, block, partNum);
+		}
+	}
+	/**
+	 * Прекращает отправку событий о нахождении в активной части.
+	 */
+	function deactivateAllParts () {
+		duration.active = null;
+		window.clearTimeout(duration.tm);
+	}
+	/**
+	 * Возвращает номер авктивной части
+	 * @param {Object} block
+	 * @param {jQuery} block.elem Элемент, который делится на части.
+	 * @param {Array} block.counters Массив функций, отпарвляющих события. Количество функций
+	 *   определяет количество частей, на которые разбивается элемент.
+	 * @returns {number} Номер части или -1, если в блоке нет активной части
+	 */
+	function getVisiblePart (block) {
+		var scrollTop = layout.getScroll().top;
+		var winMiddle = scrollTop + window.innerHeight / 2;
+		var elemRect = layout.getClientRect(block.elem);
+		var elemOffsetTop, partHeight;
+		var topBound, bottomBound;
+		var i;
+		// Не считать пребываение в невидимых блоках
+		if (elemRect.height && elemRect.width) {
+			i = (block.counters.length - 1) || 1;
+			// высота каждой части
+			partHeight = elemRect.height / i;
+			// расстояние элемента от верхней границы документа
+			elemOffsetTop = elemRect.top + scrollTop;
+			// Определить, какая часть находится под серединой экрана
+			while (i--) {
+				topBound = elemOffsetTop + partHeight * i;
+				bottomBound = elemOffsetTop + partHeight * (i + 1);
+				if (topBound <= winMiddle && winMiddle <= bottomBound) {
+					return i;
+				}
+			}
+		}
+		return -1;
+	}
+	/**
+	 * Определяет просматриваемую часть страницы и активизирует отправку сообщений
+	 * о продолжительности нахождения в ней. Метод вызывается во время инициализации
+	 * и при скроле.
+	 * Благодаря Debounce проверка выполняется по окончанию скрола, а также
+	 * оптимизируется начальная инициализация.
+	 */
+	function originalDurationProcess () {
+		if (!duration.isWindowActive) {
+			return;
+		}
+		var blocks = duration.blocks.slice();
+		var isActive;
+		// Искать активный блок начиная с последнего. Предполагается, что
+		// в конце содержатся более глубоко вложенные блоки.
+		blocks.reverse();
+		isActive = blocks.some(function (block) {
+			var partNum = getVisiblePart(block);
+			if (~partNum) {
+				activatePart(block, partNum);
+			}
+			return ~partNum;
+		});
+		if (!isActive) {
+			deactivateAllParts();
+		} else {
+			setIdleTimer();
+		}
+	}
+	var processDuration = cpf.Basic.debounce(originalDurationProcess, 500);
+	var throttledDurationProcess = cpf.Basic.throttle(originalDurationProcess, 500);
+	function hitElemCounter (mCounterUrls, modNo) {
+		var sCounterUrl = Array.isArray(mCounterUrls) ? mCounterUrls[modNo] : mCounterUrls;
+		var sRand = 'rnd=' + (Math.random() + '').substr(2);
+		if (sCounterUrl) {
+			(new Image()).src = [sCounterUrl, sRand].join(sCounterUrl.indexOf('?') === -1 ? '?' : '&');
+		} else if (window.DEBUG) {
+			console.log('Попытка запроса отсутствующего rb-счетчика');
+		}
+	}
+	function checkElem (oScroll, oSizes, oElem) {
+		var elTarget = oElem.jElem[0];
+		var counterParam = oElem.counterParam;
+		var checkPos = oElem.checkPos;
+		var isVsbl = !(elTarget.offsetWidth === 0 && elTarget.offsetHeight === 0);
+		var modsCount = Array.isArray(counterParam) && counterParam.length || 1;
+		var bMultipleMods = modsCount > 1;
+		var bHitsCounted = false;
+		var modsPassed = 0;
+		var elementTop, viewportTop, viewportEnd, modeTop;
+		if (isVsbl) {
+			if (checkPos) {
+				var doc = elTarget && elTarget.ownerDocument;
+				var docElem = doc.documentElement;
+				var box = elTarget.getBoundingClientRect();
+				elementTop = box.top + (window.pageYOffset || docElem.scrollTop) - (docElem.clientTop || 0);
+				viewportTop = oScroll.top;
+				viewportEnd = oScroll.top + oSizes.height;
+				for (var modeNo = modsCount; modeNo--;) {
+					if (!bMultipleMods || counterParam[modeNo] !== null) {
+						modeTop = elementTop;
+						if (bMultipleMods) {
+							modeTop += elTarget.offsetHeight / (modsCount - 1) * modeNo;
+						}
+						if (viewportTop < modeTop && modeTop < viewportEnd) {
+							if (typeOf(counterParam[modeNo], 'function')) {
+								counterParam[modeNo]({rnd: Math.random()});
+							} else {
+								hitElemCounter(counterParam, modeNo);
+							}
+							if (bMultipleMods) {
+								counterParam[modeNo] = null;
+							}
+							modsPassed++;
+						}
+					} else {
+						modsPassed++;
+					}
+				}
+				bHitsCounted = modsPassed === modsCount;
+			} else {
+				bHitsCounted = true;
+				hitElemCounter(counterParam, 0);
+			}
+		}
+		return bHitsCounted;
+	}
+	function checkElems (oScroll, oSizes, oElem) {
+		var elmNo = 0;
+		if (oElem) {
+			return checkElem.apply(null, arguments);
+		} else if (aElems && aElems.length) {
+			while ((oElem = aElems[elmNo++])) {
+				if (checkElem.call(null, oScroll, oSizes, oElem) === true) {
+					aElems.splice(--elmNo, 1);
+				}
+			}
+		}
+	}
+	function onWindowScroll () {
+		checkElems({
+			top: window.pageYOffset,
+			left: window.pageXOffset
+		}, {
+			width: window.innerWidth,
+			height: window.innerHeight
+		});
+		processDuration();
+	}
+	function addElem (counterParam, checkPos) {
+		var jElem = this;
+		var oElem;
+		if (!counterParam) {
+			return;
+		}
+		oElem = {
+			jElem: jElem,
+			counterParam: counterParam,
+			checkPos: checkPos
+		};
+		if (
+			checkElems({
+				top: window.pageYOffset,
+				left: window.pageXOffset
+			}, {
+				width: window.innerWidth,
+				height: window.innerHeight
+			}, oElem) === true
+		) {
+			return;
+		}
+		aElems.push(oElem);
+		if (!hndlrsAtthd) {
+			attachHandlers();
+			hndlrsAtthd = true;
+		}
+	}
+	// Считаем, что если 30 секунд ничего не происходит – пользователь неактивен
+	var setIdleTimer = cpf.Basic.debounce(function () {
+		deactivateAllParts();
+		duration.isWindowActive = false;
+	}, 30e3);
+	function attachHandlers () {
+		$(window).on('scroll resize', function () {
+			duration.isWindowActive = true;
+			onWindowScroll();
+		}).on('blur', function () {
+			deactivateAllParts();
+			duration.isWindowActive = false;
+		}).on('focus', function () {
+			duration.isWindowActive = true;
+			processDuration();
+		}).on('click touchstart keydown mousemove', function () {
+			duration.isWindowActive = true;
+			throttledDurationProcess();
+		});
+	}
+	$.fn.initVisibleCounter = function (sConterUrl, bCheckPos) {
+		return this.each(function () {
+			addElem.call($(this), sConterUrl, bCheckPos);
+		});
+	};
+	$.fn.initScrollCounter = function (sCounterAttrName, bIsClb) {
+		return this.each(function () {
+			var jElem = $(this);
+			var sConterUrl = jElem[0].getAttribute(sCounterAttrName);
+			if (!sConterUrl) {
+				return;
+			}
+			var mCounterUrl = sConterUrl.split(reDelimiter);
+			if (bIsClb === true) {
+				mCounterUrl = mCounterUrl.map(function (sId) {
+					return sId ? [sClbBase, sId, '.gif'].join('') : '';
+				});
+			}
+			if (mCounterUrl.length === 1) {
+				mCounterUrl = mCounterUrl.pop();
+			}
+			addElem.call(jElem, mCounterUrl, true);
+		});
+	};
+	moduleOpts.setParams('TrackBlocks', {
+		initializer: function (opts, elem, model, data) {
+			cntAdd = cntAdd || cpf.Instances.cntrsCtrl.add;
+			cntHit = cntHit || cpf.Instances.cntrsCtrl.hit;
+			cntHitEvent = cntHitEvent || cpf.Instances.cntrsCtrl.hitEvent;
+			if (opts.counters) {
+				if (typeOf(opts.counters, 'string')) {
+					opts.counters = opts.counters.split(/\s*,\s*/).map(function (id) {
+						return {id: id};
+					});
+				}
+				if (typeOf(opts.counters, 'array')) {
+					var hitFns, counterFns;
+					// Счетчики на доскрол
+					hitFns = opts.counters.map(function (params) {
+						return cntHit.bind(elem, cntAdd(opts.counterType || defaultType, params));
+					});
+					addElem.call(elem, hitFns, true);
+					// Счетчики на продолжитльность просмотра определенынх частей страницы
+					// TODO проверять есть ли у типа счетчиков интерфейс отправки событий
+					if (opts.counterType === 'topmail' && !!opts.duration) {
+						counterFns = opts.counters.map(function (params) {
+							var defParams = {
+								type: 'reachGoal',
+								goal: location.pathname.replace(/\/$/, '')
+							};
+							var cntId = cntAdd(opts.counterType || defaultType, extend(defParams, params));
+							return cntHitEvent.bind(elem, cntId, opts.counterType || defaultType);
+						});
+						duration.blocks.push({
+							elem: elem,
+							cumalative: !!opts.cumulative,
+							counters: counterFns
+						});
+						processDuration();
+					}
+				}
+			}
+		},
+		paramAttrs: {
+			counters: 'data-counter-id',
+			counterType: 'data-counter-type'
+		},
+		options: {
+			duration: true
+		}
+	});
+})(this.jQuery || this.$ || this.$f, this, ru.mail.cpf);

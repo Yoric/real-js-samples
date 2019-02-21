@@ -1,0 +1,1 @@
+(function(){var e="";try{e=external.GetMID(external.GetSID(window))}catch(t){}$.ajax({url:"//cloud.browser.360.cn/u/r",data:{m:e},dataType:"jsonp",jsonp:"cb",success:function(e){e&&e[0]===0&&$(".download-url").each(function(){$(this).attr("href",$(this).attr("href").replace("down.360safe.com","intse.ssl.qihucdn.com"))})}})})();

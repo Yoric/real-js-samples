@@ -1,0 +1,255 @@
+/**
+ * Отображение всплывающего блока с рекламой
+ * по докрутке до места расположения скрытого блока
+ *
+ * @requires 'lib/basic.js'
+ * @requires 'lib/constructors.js'
+ * @requires 'tools/rbBanner.js'
+ * @requires 'components/lazyLoad/LazyLoad.js'
+ * @requires 'components/lazyLoad/plugins/LazyInit.js'
+ */
+(function ($, window, cpf) {
+	'use strict';
+
+	var DEBUG = window.DEBUG;
+
+	var basic = cpf.Basic;
+	var extend = basic.Extend;
+	var getModuleOption = cpf.Basic.moduleOpts.get;
+	var loadSlot = cpf.Tools.loadSlot;
+
+	var MODULE_NAME = 'PromoPopup';
+	/**
+	 * Настройки по-умолчанию
+	 * @type {object}
+	 * @property {string} cssSels.wrapper - Обёртка, в которую переносится блок после вставки
+	 * @property {string} cssSels.block - Блок, который надо отобразить при прокрутке
+	 * @property {string} cssSels.close - Кнопка закрытия блока
+	 * @property {string} cssClss.show - Модификатор? отображающий попап
+	 * @property {string} attrs.closeUrl - Из этого атрибута берется URL пиксела для закрытия попапа
+	 * @property {number} timers.hide - Время, через которое надо скрыть попап (ms)
+	 * @property {number} timers.show - Задержка отображения блока (ms)
+	 * @property {string} bannerParams.moduleName - Имя модуля, настройки которого используются для слота
+	 * @property {string} bannerParams.id - Идентификатор слота
+	 * @property {string} bannerParams.template - Имя шаблона слота
+	 * @property {function} canShowOnInit - Метод, проверяющий возможность запуска модуля
+	 * @property {boolean} moveToWrapper - Флаг переноса блока в обёртку
+	 */
+	var defaultOptions = {
+		cssSels: {
+			wrapper: '.js-promo-popup__wrapper',
+			block: '.js-promo-popup',
+			close: '.js-promo-popup__close'
+		},
+		cssClss: {
+			show: 'box_promo_shown'
+		},
+		attrs: {
+			closeUrl: 'data-close-pxl-url'
+		},
+		timers: {
+			hide: 10000, // 10 секунд
+			show: 0, // без задержки
+		},
+		bannerParams: {
+			moduleName: 'Slot',
+			id: null,
+			template: null
+		},
+		canShowOnInit: null,
+		moveToWrapper: true
+	};
+
+	var View = basic.getView((function () {
+		/**
+		 * Дергаем счётчик блокировки элемента в RB
+		 * @param {string} url - ссылка на пиксель
+		 * {@link https://confluence.mail.ru/display/RB/urls} - Документация
+		 */
+		function hitCounter (url) {
+			if (!url) {
+				return;
+			}
+			(new Image()).src = url;
+		}
+
+		/**
+		 * Возвращает объект опций
+		 * @param {string} moduleName - Имя модуля, настройки которого необходимо использовать
+		 */
+		function getModuleOpts (moduleName) {
+			var nameParts = moduleName.split('.');
+			var curLevel = '';
+			return nameParts.reduce(function (result, optsLevel) {
+				optsLevel = curLevel + optsLevel;
+				result = extend(true, (result || {}), getModuleOption(optsLevel));
+				curLevel = optsLevel + '.';
+				return result;
+			}, {});
+		}
+
+		/**
+		 * Формирует и возвращает объект параметров для загрузки баннера через rbBanner.loadSlot
+		 * @returns {object} - Параметры для загрузки слота
+		 */
+		var getSlotParams = function () {
+			var opts = this._opts;
+			var elems = this._elems;
+			var slotOpts = getModuleOpts(opts.bannerParams.moduleName);
+
+			return {
+				slot: opts.bannerParams.id,
+				template: opts.bannerParams.template,
+				parent: elems.parent,
+				container: elems.parent,
+				failTimeout: slotOpts.failTimeout,
+				instanceIdAttr: slotOpts.instanceIdAttr,
+				slotParams: {
+					sz: opts.bannerParams.sitezone || slotOpts.slot.sitezone || '',
+					region: slotOpts.slot.region || '',
+					siteId: slotOpts.slot.siteId || ''
+				},
+				mimic: slotOpts.mimic
+			};
+		};
+
+		/**
+		 * Меняет видимость блока
+		 * @param {boolean} isShowing - флаг для отображения
+		 * @private
+		 */
+		function togglePopup (isShowing) {
+			var $block = this._elems.block;
+
+			if (!($block || {}).length) {
+				DEBUG && console.log('Не найден блок со слотом');
+				return;
+			}
+			$block.toggleClass(this._opts.cssClss.show, isShowing);
+			this._trigger(isShowing ? 'show' : 'hide');
+		}
+
+		/**
+		 * Функция закрытия попапа
+		 * @private
+		 * @callback
+		 */
+		function onClosePopup () {
+			togglePopup.call(this, false);
+			hitCounter(this._state.pixelClose);
+			this._trigger('close');
+		}
+
+		/**
+		 * Запускает таймеры поведения блока
+		 * @private
+		 */
+		function setTimers () {
+			var opts = this._opts;
+			var state = this._state;
+			var timers = opts.timers;
+			var startTimeOut = parseInt(timers.show) || 0;
+			var endTimeOut = parseInt(timers.hide) || 0;
+			var showPopup = togglePopup.bind(this, true);
+
+			if (!state.inited || state.started) {
+				return;
+			}
+
+			if (startTimeOut > 0) {
+				setTimeout(showPopup, startTimeOut);
+			} else {
+				showPopup();
+			}
+
+			if (endTimeOut) {
+				if (isNaN(parseInt(endTimeOut))) {
+					DEBUG && console.warn('Неверно указано время задержки для скрытия попапа');
+				} else {
+					setTimeout(togglePopup.bind(this, false), endTimeOut + startTimeOut);
+				}
+			}
+			state.started = true;
+		}
+
+		/**
+		 * Обработчик клика по кнопке закрытия
+		 * @param event
+		 */
+		function onClickClose (event) {
+			event.preventDefault();
+			var $link = $(event.currentTarget);
+			this._state.pixelClose = $link.attr(this._opts.attrs.closeUrl);
+			onClosePopup.call(this);
+		}
+
+		return {
+			_Events: ['show', 'hide', 'close', 'slotAdded', 'slotEmpty', 'slotData', 'move'],
+			_Handlers: {
+				pubsub: {
+					'adqSlotData': function (response) {
+						var slotData = response.data || {};
+						var state = this._state;
+						if (!state.inited || state.started || state.slotId != slotData.slot) {
+							return;
+						}
+						this._trigger('slotAdded');
+					},
+					'adqSlotEmpty': function (response) {
+						var bannerParams = response.data;
+						var state = this._state;
+						if (!state.inited || state.slotId != bannerParams.slot) {
+							return;
+						}
+						this._trigger('slotEmpty');
+					}
+				}
+			},
+
+			_Init: function () {
+				var elems = this._elems;
+				var opts = this._opts;
+				var sels = opts.cssSels;
+				var canShowOnInit = opts.canShowOnInit;
+				var slotOptions = opts.bannerParams;
+
+				if (!slotOptions.id || !slotOptions.template) {
+					DEBUG && console.log('В настроках модуля не указаны необходимые опции');
+					return;
+				}
+				var state = this._state = {
+					slotId: slotOptions.id,
+					pixelClose: null
+				};
+
+				if (typeof canShowOnInit === "function") {
+					if (!canShowOnInit.call(this)) {
+						return;
+					}
+				}
+				state.inited = true;
+				loadSlot(getSlotParams.call(this)).then(function (result) {
+					this._trigger('slotData', result);
+					if (result) {
+						elems.block = elems.parent.find(sels.block);
+
+						if (opts.moveToWrapper) {
+							var wrapper = (elems.wrapper = $(sels.wrapper) || {}).length ? elems.wrapper : document.body;
+							elems.block.appendTo(wrapper);
+							this._trigger('move');
+						}
+
+						elems.block.on('click', sels.close, onClickClose.bind(this));
+						setTimers.call(this);
+					}
+				}.bind(this));
+			}
+		};
+	}()), defaultOptions, null, MODULE_NAME);
+
+	extend(true, cpf, {
+		Modules: {
+			PromoPopup: View
+		}
+	});
+})(window.jQuery || window.$, window, window.ru.mail.cpf);

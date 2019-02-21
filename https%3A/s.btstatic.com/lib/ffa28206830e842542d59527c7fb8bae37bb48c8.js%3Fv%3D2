@@ -1,0 +1,9 @@
+var domainStr = ';domain=' + location.hostname;
+var pathStr = ';path=/';
+var futureDate = new Date((+(new Date())) + 30*24*60*60*1000);
+var expiresStr = ';expires=' + futureDate.toUTCString();
+if(location.search.match(/ydn/) != null){
+  document.cookie = ('yjcardad=' + "other" + domainStr + pathStr + expiresStr);
+}else if(location.search.match(/pid\=aff/) != null){
+  document.cookie = ('yjcardad=' + "aff" + domainStr + pathStr + expiresStr);
+}

@@ -1,0 +1,52 @@
+!function(e) {
+    function t(n) {
+        if (a[n]) return a[n].exports;
+        var i = a[n] = {
+            "i": n,
+            "l": !1,
+            "exports": {}
+        };
+        return e[n].call(i.exports, i, i.exports, t), i.l = !0, i.exports;
+    }
+    var a = {};
+    t.m = e, t.c = a, t.d = function(e, a, n) {
+        t.o(e, a) || Object.defineProperty(e, a, {
+            "configurable": !1,
+            "enumerable": !0,
+            "get": n
+        });
+    }, t.n = function(e) {
+        var a = e && e.__esModule ? function() {
+            return e["default"];
+        } : function() {
+            return e;
+        };
+        return t.d(a, "a", a), a;
+    }, t.o = function(e, t) {
+        return Object.prototype.hasOwnProperty.call(e, t);
+    }, t.p = "", t(t.s = 0);
+}([ function(e, t, a) {
+    "use strict";
+    adv.AdBase.extend("Ad17173ZhuanquYeyouRemm", {
+        "init": function(e) {
+            this.base(e), this.emit(adv.ENUM.EVENTS.inited);
+        },
+        "setup": function(e) {
+            this.data = e, this.emit(adv.ENUM.EVENTS.setuped);
+        },
+        "play": function() {
+            for (var e, t, a = $("." + this.options.advid), n = this.data.games, i = 0; i < n.length; i++) {
+                if (e = n[i], t = a.find("a:eq(" + (e.index - 1) + ")"), t[0]) t.attr("href", e.link).text(e.name); else {
+                    t = $('<a href="' + e.link + '" target="_blank" class="link">' + e.name + "</a>");
+                    var o = $("<span>").append(t);
+                    a.find(".row").append(o);
+                }
+                e.icon && t.prepend('<img src="//ue.17173cdn.com/a/www/index/2016v2/img/ico-tg-hot.gif" alt="" width="16" height="16" style="float:left; margin:2px 2px 0 0;" data-src="//ue.17173cdn.com/a/www/index/2016v2/img/ico-tg-hot.gif" class="">'), 
+                e.isHot ? t.addClass("tg-c-red") : t.removeClass("tg-c-red"), e.underline ? t.addClass("tg-sameip") : t.removeClass("tg-sameip"), 
+                e.hotIpaCode && e.isHot ? adv.util.sendIpa(t, e.hotIpaCode) : e.ipaCode && adv.util.sendIpa(t, e.ipaCode);
+            }
+            this.emit(adv.ENUM.EVENTS.played);
+        }
+    });
+} ]);
+//# sourceMappingURL=production.js.map

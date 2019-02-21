@@ -1,0 +1,125 @@
+initPageScroll();
+
+document.addEventListener("authLoad", function () {
+  var registerButton = document.querySelector(".js-register");
+
+  if (authData.user === 1 || authData.user === 3) {
+    if (getCookie('wf_yakuza_new') !== undefined && getCookie('yakuza_registered') !== undefined) {
+      var scrollButtons = document.querySelectorAll(".js-scroll-down");
+
+      for (var i = 0; i < scrollButtons.length; i++) {
+        scrollButtons[i].addEventListener("click", function (event) {
+          slider.goTo(9);
+          showPopup(".js-popup-ok");
+        });
+      }
+
+      slider.goTo(9);
+      showPopup(".js-popup-ok");
+    }
+  }
+
+  if (authData.user === 0) {
+    registerButton.classList.add("js-reg-init")
+    registerButton.addEventListener("click", function () {
+      setCookie("yakuza_registered", "1")
+    })
+  }
+
+  if (authData.user === 2) {
+    if (getCookie('yakuza_registered') === undefined) {
+      registerButton.classList.add("js-reg-project-init")
+    } else {
+      Registration.openSignUpProject();
+    }
+  }
+
+  document.addEventListener("click", function (event) {
+    if (event.target.classList.contains("js-download"))
+      GMR.detectAndDownload()
+  });
+});
+
+var button = document.querySelector(".js-get-prize");
+button.addEventListener("click", getPrize);
+
+function getPrize() {
+  if (authData.user === 1 || authData.user === 3) {
+    if (getCookie('wf_yakuza_new') === undefined) {
+      showPopup(".js-popup-error");
+    } else {
+      showPopup(".js-popup-ok");
+    }
+    return false
+  }
+
+  setCookie("wf_yakuza_new", "1")
+
+  setProphecy();
+  showPopup(".js-popup-prize");
+}
+
+function setProphecy() {
+  var prophecies = [
+    ["Прикрывай друзей,", "И они прикроют тебя.", "Наверное."],
+    ["Не бойся киберсамурая,", "Но бойся катаны его.", "Острая зараза."],
+    ["Сильный враг впереди.", "Но одолеть его сможешь", "В кругу друзей."],
+    ["Аккуратен будь.", "В кустах гибкой травы", "Мина тебя ожидает."],
+    ["Славная битва тебя ждет.", "Но готов ли ты к ней?", "Сначала кашу доешь."]
+  ];
+
+  var index = Math.floor(Math.random() * prophecies.length);
+
+  for (var i = 0; i < 3; i++) {
+    var line = document.querySelector('.js-line-' + (i + 1))
+    line.textContent = prophecies[index][i]
+  }
+}
+
+var closeButtons = document.querySelectorAll(".js-popup-close");
+for (var i = 0; i < closeButtons.length; i++) {
+  closeButtons[i].addEventListener("click", closePopup);
+}
+
+function closePopup() {
+  var popup = document.querySelector(".js-popup-active");
+  popup.style.display = "none";
+  popup.classList.remove('js-popup-active');
+  document.body.classList.remove("popup-active");
+}
+
+function showPopup(selector) {
+  var popup = document.querySelector(selector);
+  popup.style.display = "block";
+  popup.classList.add('js-popup-active')
+  document.body.classList.add("popup-active");
+}
+
+var video = document.querySelectorAll(".js-video");
+for (var i = 0; i < video.length; i++) {
+  video[i].addEventListener("mouseover", function (event) {
+    playVideo(event);
+  });
+  video[i].addEventListener("mouseout", function (event) {
+    pauseVideo(event);
+  });
+}
+
+function playVideo(event) {
+  event.target.play();
+}
+function pauseVideo(event) {
+  event.target.pause();
+}
+
+function getCookie(name) {
+  var matches = document.cookie.match(new RegExp(
+    "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
+  ));
+  return matches ? decodeURIComponent(matches[1]) : undefined;
+}
+
+function setCookie(name, value) {
+  var date = new Date(new Date().getTime() + 40 * 3600 * 1000);
+  document.cookie = name + "=" + value + "; path=/; expires=" + date.toUTCString() + ";";
+}

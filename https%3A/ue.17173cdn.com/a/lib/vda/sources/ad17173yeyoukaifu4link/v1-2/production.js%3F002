@@ -1,0 +1,59 @@
+adv.AdBase.extend('Ad17173YeyouKaifu4Link', {
+  init: function(options) {
+    this.base(options);
+    this.emit(adv.ENUM.EVENTS.inited);
+  },
+  setup: function(data) {
+    this.data = data;
+    var advEl = this.advEl = $('.' + this.options.advid);
+    this.emit(adv.ENUM.EVENTS.setuped);
+  },
+  randomNode:function(){
+    var advEl = this.advEl;
+    this.advEl.find('.item').remove(':gt(20)');
+    var ltIndex = 20 - this.data.length;
+    var items = advEl.find('.item:gt(0):lt('+ltIndex+')');
+    var splitByTime = [[]];
+    items.each(function(i,n){
+      var $n = $(n);
+      var time = $n.attr('data-testtime');
+      splitByTime[time] = splitByTime[time] || [];
+      splitByTime[time].push($n);
+    });
+    var minIndex = 0,maxIndex=0,index;
+    for(var i = 0;i<splitByTime.length;i++){
+      minIndex = maxIndex;
+      maxIndex += splitByTime[i].length;
+      for(var j = 0;j <splitByTime[i].length;j++){
+        index = adv.util.random(maxIndex-minIndex+1)+minIndex;
+        advEl.find('.item:eq('+index+')').after(splitByTime[i][j]);
+      }
+    }
+    this.advEl.find('.item:gt('+ltIndex+')').remove();
+  },
+  template:function(){/*@preserve
+			<li class="item">
+				<div class="c2">
+					<div class="art-item">
+          	<a href="@link" target="_blank" class="c-red1">
+            @gameName
+            <img src="//ue.17173cdn.com/a/www/index/2016v2/img/ico-tg-hot.gif" alt="" style="margin-bottom:2px">
+            </a>
+					</div>
+				</div>
+				<div class="c3"><a href="@link" target="_blank" class="c-red1">@serverName</a></div>
+				<div class="c5"><a href="@link" target="_blank" class="c-red1">试玩</a></div>
+			</li>
+  */},
+  play: function() {
+    var advEl = $('.' + this.options.advid);
+    advEl.find('.rank-bd').css('height',567).css('position','relative');
+    var html,index;
+    this.randomNode();
+    for(var i = 0;i<this.data.length;i++){
+      index = adv.util.random(20-this.data.length);
+      advEl.find('.item:eq('+index+')').after(adv.razor(this.template,this.data[i]));
+    }
+    this.emit(adv.ENUM.EVENTS.played);
+  }
+});

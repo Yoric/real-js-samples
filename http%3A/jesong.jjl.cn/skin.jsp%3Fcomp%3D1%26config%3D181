@@ -1,0 +1,171 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var JESONG_MESSAGE_TEXT = {"inviteText":"","extCode":"","msgOfDisConnected":"感谢您的咨询， 再见！","welcomeMsgOfConnected":"金吉列留学，作为留学行业首部国家标准《留学服务术语》、《留学中介服务规范》起草单位，拥有25位教育留学行业专家，美、英、加、澳、欧、亚、新西兰等国合作2300所院校，每周在全国49家直营分子公司举办的近百场留学讲座场场爆满！还有海外4家分子公司等你来参观，立刻拨打400-010-8000吧！","inviteTitle":"","replyMsgAtConnected":"您好，我是金吉列留学顾问，很高兴为您解答疑问，为了更好的跟踪服务效果，请在对话结束后对我的服务满意度进行评价。\n","msgOfTrans":"您的对话将被转移给我的同事， 感谢您的咨询！"};
+var jesong={	
+	lazy : false,
+	version : '20170601',
+	language : 'en',
+	visitorReady : false,
+	forceReady : false,
+	chatRequest : false,
+	jsType : 0,
+	env:{
+		isPhone : false,
+		scheme : "http",
+		schemePort : "80",
+		server:{
+			monitor:'http://jesong.jjl.cn/',
+			chat:'http://jesong.jjl.cn/live/',
+			file:'http://jesong.jjl.cn/'
+		},
+		compId:1,
+		confId:181,
+		vId:'',
+		uId:'',
+		pId:0,
+		sid:0,
+		promotionId:0,
+		mId:'',
+		lang:'',
+		min:0
+	},
+	config:{
+		firstToRebot:0,
+		phoneChatPop:1,
+		monitor:false,
+		panel:false,
+		frameChatStyle:14,
+		forceChatLogo:""
+	},
+	monitor:{},	panel:{},win:{},icon:{},text:{}, freecall:{}, probe:{}, phone:{},
+	_isBindHost:function(){
+		var bindHosts = "";
+		if(bindHosts != ""){
+			var _hosts = bindHosts.split(",");
+			var domain = window.location.host;
+			var bindHostFlag = false;
+			for(var i=0; i < _hosts.length; i++){
+				if(domain == _hosts[i]){
+					bindHostFlag = true;
+					break;
+				}
+			}
+			return bindHostFlag;
+		}else{
+			return true;
+		}
+	},
+	_genId : function(){
+		var random4 = function(){
+			return parseInt(Math.random()*9000+1000, 10);
+		}
+		var cId = "1";
+		while(cId.length < 12){
+			cId = "0"+cId;
+		}
+		var id = ""+new Date().getTime();
+		id = id.substring(3);
+		id += random4();
+		id += random4();
+		return "01"+cId+id;
+	},
+	_createLayout : function(id, className){
+		if(!this.lazy){
+			document.write('<div id="'+id+'" class="'+className+'"></div>');
+		}else{
+			var _div = document.createElement("div");
+			_div.id = id;
+			_div.className = className;
+			document.body.appendChild(_div);
+		}
+	},
+	_loadJS : function(src){
+		if(!this.lazy){
+			document.write('<scr'+'ipt type="text/javascript" async="async" src="'+src+'"></scr'+'ipt>');
+		}else{
+		    var script = document.createElement( "script" ); 
+			script.type = "text/javascript"; 
+			script.charset = "utf-8";
+			script.src = src; 
+			document.getElementsByTagName("script")[0].parentNode.appendChild(script); 
+		}
+	},
+	_loadCSS : function(url){ 
+		if(!this.lazy){
+			document.write('<link rel="stylesheet" type="text/css" href="'+url+'"></link>');
+		}else{
+			var link = document.createElement( "link" ); 
+			link.type = "text/css"; 
+			link.rel = "stylesheet"; 
+			link.href = url; 
+			document.getElementsByTagName( "head" )[0].appendChild( link ); 
+		}
+	},
+	init:function(){
+		if(this._isBindHost()){
+			jesong.env.vId = this._genId();
+			this._createLayout("jesong_panel", "");
+			if(jesong.jsType == 1 && jesong.env.isPhone){
+				this._createLayout("jesong_chat_layout", "jesong_phone_layout jesong_phone_layout_en_1");
+			}else{
+				this._createLayout("jesong_chat_layout", "jesong_chat_layout_pc jesong_chat_layout_pc_en");
+			}
+			this._createLayout("jesong_chat_min", "jesong_chat_min_en");
+			this._createLayout("jesong_pop_msg", "");
+			if("https:" == document.location.protocol){
+				this.env.server.monitor = this.env.server.monitor.replace("http", "https");
+				this.env.server.chat = this.env.server.chat.replace("http", "https");
+				this.env.server.file = this.env.server.file.replace("http", "https");
+				this.env.schemePort = "443";
+				this.env.scheme = "https";
+				
+			}
+			this._loadCSS(this.env.server.file + "css/webcall.css?ver=20170601");
+			this._loadJS(this.env.server.file + "js/webcall.js?ver=20170601");
+			this._loadCSS(this.env.server.file + "css/force.css?ver=20170601");
+		}
+	},
+	words:{
+		welcome:JESONG_MESSAGE_TEXT.welcomeMsgOfConnected,
+		greeting:JESONG_MESSAGE_TEXT.replyMsgAtConnected,
+		disconnect:JESONG_MESSAGE_TEXT.msgOfDisConnected
+	}
+};
+
+
+
+jesong.probe = {
+	texts:"", 
+	groupIds:""
+};
+jesong.autochat={
+	bgcolor:'#3097ef',
+	width:320,
+	height:435,
+	use:0,
+	start:'09:00',
+	end:'18:00',
+	times:-1,
+	show:false,
+	welcome:JESONG_MESSAGE_TEXT.welcomeMsgOfConnected,
+	waitSendMsg:''
+};
+jesong.init();
+
+		
+

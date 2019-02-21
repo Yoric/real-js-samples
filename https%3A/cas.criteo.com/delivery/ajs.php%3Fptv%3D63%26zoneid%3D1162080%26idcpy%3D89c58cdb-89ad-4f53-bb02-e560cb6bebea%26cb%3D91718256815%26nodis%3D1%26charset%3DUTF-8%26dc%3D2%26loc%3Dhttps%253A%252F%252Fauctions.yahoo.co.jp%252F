@@ -1,0 +1,9 @@
+﻿(function(){
+var s = "<"+"div id=\'beacon_5c6d727acaacac8b113900783b654da8\' style=\'position: absolute; left: 0px; top: 0px; visibility: hidden;\'>\n";
+s += "<"+"img width=\"0\" height=\"0\" src=\"https://cat.fr.eu.criteo.com/delivery/lg.php?cppv=1&cpp=E9lxM3xGU01lcU9YMVcrQlhFbW9BWlFvVnFReEsrUkRhL0NDb2RaTGZnY2k3L1JjckZaa2ZMd0lMSFJlVGtKY2RiV0JwQk5RNnpqcExmNjdQZTNtOE9vZFVhN1BqblNWMlNKbkc0VWVRTktzLzZXMk5CakZYT3VTUjIrWEQvbENRQ2dUb2lVS3hhNnNEN0dCWlBod1VGbXlQeHVOb01jYjRWbEh0N2VHdkRHNndIbTNvam02L2g0YkpiSExBTzdzL3hwMVk1M0J3N2htU2FiWkVmRk1uSTQyNUJLaTg5T3JnQW1PREk3VGRGYUVmb3BIMzV0Nmw5WFdTQXJXbndmQm5RYXlXfA%3D%3D\"/>\n";
+s += "<"+"/div>\n";
+s += "<"+"script type=\'text/javascript\'>\n";
+s += "gCRITEO.passback();\n";
+s += "<"+"/script>\n";
+s += "\n";
+document.write(s);})();

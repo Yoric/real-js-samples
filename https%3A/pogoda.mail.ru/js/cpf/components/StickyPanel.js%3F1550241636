@@ -1,0 +1,232 @@
+(function ($, window, cpf, DEBUG) {
+	'use strict';
+
+	var MODULE_NAME = 'StickyPanel';
+
+	var getView = cpf.Basic.Constructors.getView;
+
+	/**
+	 * Дефолтные опции
+	 * @type {object}
+	 * @param {string} cssSels.Main.node  Контейнер sticky-блока
+	 * @param {string} cssClss.state.base
+	 * @param {string} cssClss.state.up
+	 * @param {string} cssClss.state.down
+	 * @param {boolean} raf
+	 * @param {boolean} horizontal
+	 * @param {*} getInitial
+	 * @param {*} getNextState
+	 */
+	var defOpts = {
+		cssSels: {
+			Main: {
+				node: '.js-stickypanel__container'
+			}
+		},
+		cssClss: {
+			state: [
+				{
+					base: 'stickypanel__container',
+					up: 'stickypanel__container_up',
+					down: 'stickypanel__container_down'
+				}
+			]
+		},
+		raf: true,
+		horizontal: false,
+		getInitial: null,
+		getNextState: null
+	};
+
+	getView((function () {
+		var $window = $(window);
+
+		var STATES = {
+			UP: -1,
+			CENTER: 0,
+			DOWN: 1
+		};
+
+		/**
+		 * Переключает классы DOM-элемента
+		 * @param  {jQuery} el         jQuery-объект
+		 * @param  {Object} classNames объект, где ключ – имя класса,
+		 *                             значение – Boolean
+		 * @return {jQuery}						 jQuery-объект
+		 */
+		function toggleClassSet (el, classNames) {
+			Object.keys(classNames).forEach(function (className) {
+				el.toggleClass(className, classNames[className]);
+			});
+			return el;
+		}
+
+		/**
+		 * Хэндлер по-умолчанию
+		 * @param  {Number} value      значение скрола
+		 * @return {Number}            возвращает значение < 0, 0 или > 0, в
+		 *                             зависимости от предполагаемой позиции
+		 *                             элемента
+		 */
+		var _defaultScrollHandler = function (/* value */) {
+			var dimensions = this._State.dimensions;
+			var el = this._Elems.Parent;
+
+			var siblingPrev = el.prev();
+			var siblingNext = el.next();
+
+			var rect1 = siblingPrev.get(0).getBoundingClientRect();
+			var rect2 = siblingNext.get(0).getBoundingClientRect();
+
+			if (this._Opts.horizontal) {
+				return STATES.UP;
+			} else {
+				if (rect1.bottom > $window.height() - dimensions.height) {
+					return -1;
+				} else if (rect2.top < dimensions.height) {
+					return 1;
+				} else {
+					return 0;
+				}
+			}
+		};
+
+		function getScroll (horizontal) {
+			if (horizontal) {
+				return window.scrollX || document.documentElement.scrollLeft;
+			} else {
+				return window.scrollY || document.documentElement.scrollTop;
+			}
+		}
+
+		function extractState (nextState) {
+			if (nextState < 0) {
+				return STATES.UP;
+			} else if (nextState === 0) {
+				return STATES.CENTER;
+			} else if (nextState > 0) {
+				return STATES.DOWN;
+			} else {
+				return null;
+			}
+		}
+
+		var _updateDimensions = function () {
+			this._State.dimensions = this.getDimensions();
+		};
+
+		/**
+		 * Чистит классы указанного класссета
+		 * @param  {Number} classSetNum номер классета
+		 */
+		var _clearClassSet = function (classSetNum) {
+			var stateClss	= this._Opts.cssClss.state[classSetNum];
+			var classData	= {};
+
+			classData[stateClss.base] = false;
+			classData[stateClss.up] = false;
+			classData[stateClss.down] = false;
+
+			toggleClassSet(this._Elems.node, classData);
+		};
+
+		var _update = function (scrollValue) {
+			var currState	= this._State.state;
+			var stateClss	= this._Opts.cssClss.state[this._State.currentClassSet];
+			var classData	= {};
+
+			classData[stateClss.base] = true;
+			classData[stateClss.up] = currState === STATES.UP;
+			classData[stateClss.down] = currState === STATES.DOWN;
+
+			toggleClassSet(this._Elems.node, classData);
+
+			_updateDimensions.call(this);
+
+			this._trigger('change', currState, scrollValue);
+		};
+
+		var _handleDispatch = function () {
+			var handler = this._Opts.getNextState || _defaultScrollHandler;
+
+			// force Numeric value with +
+			var scroll = getScroll(this._Opts.horizontal);
+			var state = +handler.call(this, scroll);
+			var nextState	= extractState(state);
+
+			if (this._State.state !== nextState) {
+				this._State.state = nextState;
+				_update.call(this, scroll);
+			}
+		};
+
+		var _dispatch = function () {
+			if (this._Opts.raf) {
+				requestAnimationFrame(_handleDispatch.bind(this));
+			} else {
+				_handleDispatch.call(this);
+			}
+		};
+
+		return {
+			_Events: ['change'],
+			_Handlers: {},
+
+			/**
+			 * Меняет номер классета на заданный, вычищает старые классы,
+			 * устанавливает новые классы из нового классета
+			 * @param {Number} classSetNum номер классета
+			 */
+			changeClassSet: function (classSetNum) {
+				if (classSetNum === this._State.currentClassSet) {
+					return;
+				}
+				_clearClassSet.call(this, this._State.currentClassSet);
+				this._State.currentClassSet = classSetNum;
+				_clearClassSet.call(this, classSetNum);
+
+				_updateDimensions.call(this);
+				(this._Opts.getInitial || function () {}).call(this);
+
+				this._State.state = null;
+
+				_dispatch.call(this);
+			},
+
+			getDimensions: function () {
+				return {
+					width: this._Elems.node.width(),
+					height: this._Elems.node.height()
+				};
+			},
+
+			_Init: function () {
+				if (this._Elems.node === null) {
+					if (DEBUG) {
+						console.warn(MODULE_NAME + ': node "' + this._opts.cssSels.Main.node + '"' + ' not found');
+					}
+					return;
+				}
+
+				this._State = {
+					state: null,
+					currentClassSet: 0
+				};
+
+				var initialHandler = this._Opts.getInitial || function () {};
+
+				_updateDimensions.call(this);
+				initialHandler.call(this);
+
+				$window.on('resize', function () {
+					_updateDimensions.call(this);
+					initialHandler.call(this);
+					_dispatch.call(this);
+				}.bind(this));
+
+				$window.on('scroll', _dispatch.bind(this));
+				_dispatch.call(this);
+			}
+		};
+	}()), defOpts, null, MODULE_NAME);
+}(this.jQuery || this.$, this, this.ru.mail.cpf, this.DEBUG));

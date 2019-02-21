@@ -1,0 +1,1308 @@
+!function (e, t) {
+    function n() {
+        var e = navigator.userAgent.toLowerCase();
+        return e.indexOf("msie") != -1 && parseInt(e.split("msie")[1])
+    }
+    function r(e, t) {
+        e[t] = function () {
+            e.push([t].concat(Array.prototype.slice.call(arguments, 0)))
+        }
+    }
+    try {
+        var o, s = "RAKE";
+        if ("DEV" === rakeLogPageInfo._$RAKE_ENV)
+            o = "https://pg.rake.skplanet.com:443/log/static/js/rake/current/";
+        else {
+            if ("LIVE" !== rakeLogPageInfo._$RAKE_ENV)
+                throw Error("Invalid $_RAKE_ENV: " + rakeLogPageInfo._$RAKE_ENV);
+            o = "https://rake.skplanet.com:443/log/static/js/rake/current/"
+        }
+        if (window.XMLHttpRequest && "withCredentials" in new XMLHttpRequest)
+            o += "rake.bundle.js";
+        else if (8 == n())
+            o += "rake.bundle-ie8.js";
+        else {
+            if (9 != n())
+                throw new Error("Unsupported IE version: " + n());
+            o += "rake.bundle-ie9.js"
+        }
+        var i = "_$SV"
+            , a = "_$cb";
+        if (t[i])
+            console.warn("RAKE snippet is already initialized");
+        else {
+            window[s] = t;
+            var c, l, p, u;
+            c = e.createElement("script"),
+                c.type = "text/javascript",
+                // c.onload = _$RAKE_CALLBACK,
+                c.async = !0,
+                c.src = o,
+                l = e.getElementsByTagName("script")[0],
+                l.parentNode.insertBefore(c, l);
+            var E = t;
+            for (p = ["autoTrack", "create", "remove", "track", "collect", "flush", "setServerPort", "setServerURL"],
+                u = 0; u < p.length; u++)
+                r(E, p[u]);
+            t[i] = 1,
+                t[a] = function (e) {
+                    window[s] = e
+                }
+        }
+    } catch (e) {
+        console && console.log && (console.log("Failed to execute RAKE snippet due to"),
+            console.log(e))
+    }
+}(document, window[window.RAKE] || []);
+
+/**
+ * 비실명 로그 분리 : rake instance 값
+ */
+var RAKE_INSTANCE = {
+    WITH: 'withUserInfo',
+    WITHOUT: 'withOutUserInfo'
+};
+
+RAKE.create({
+    instanceAlias: RAKE_INSTANCE.WITH,
+    token: rakeLogPageInfo._$RAKE_TOKEN
+});
+
+if (rakeLogPageInfo._$RAKE_TOKEN_NPI) {
+    RAKE.create({
+        instanceAlias: RAKE_INSTANCE.WITHOUT,
+        token: rakeLogPageInfo._$RAKE_TOKEN_NPI
+    });
+}
+
+if ("DEV" === rakeLogPageInfo._$RAKE_ENV) {
+    RAKE.setServerURL({
+        url: 'https://alp-rake.11st.co.kr:443/log/putlog/client',
+        instanceAlias: RAKE_INSTANCE.WITH
+    });
+    if (rakeLogPageInfo._$RAKE_TOKEN_NPI) {
+        RAKE.setServerURL({
+            url: 'https://alp-rake.11st.co.kr:443/log/putlog/client',
+            instanceAlias: RAKE_INSTANCE.WITHOUT
+        });
+    }
+} else {
+    RAKE.setServerURL({
+        url: 'https://rake.11st.co.kr:443/log/putlog/client',
+        instanceAlias: RAKE_INSTANCE.WITH
+    });
+    if (rakeLogPageInfo._$RAKE_TOKEN_NPI) {
+        RAKE.setServerURL({
+            url: 'https://rake.11st.co.kr:443/log/putlog/client',
+            instanceAlias: RAKE_INSTANCE.WITHOUT
+        });
+    }
+}
+
+
+(function (root, factory) {
+    'use strict';
+    root.rakeLog = factory();
+}(this, function () {
+    'use strict';
+
+    /**
+     * polyfill - PC 대응
+     */
+    (function () {
+        if (!document.querySelectorAll) {
+            document.querySelectorAll = function (selectors) {
+                var style = document.createElement('style'), elements = [], element;
+                document.documentElement.firstChild.appendChild(style);
+                document._qsa = [];
+
+                style.styleSheet.cssText = selectors + '{x-qsa:expression(document._qsa && document._qsa.push(this))}';
+                window.scrollBy(0, 0);
+                style.parentNode.removeChild(style);
+
+                while (document._qsa.length) {
+                    element = document._qsa.shift();
+                    element.style.removeAttribute('x-qsa');
+                    elements.push(element);
+                }
+                document._qsa = null;
+                return elements;
+            };
+        }
+
+        if (!document.querySelector) {
+            document.querySelector = function (selectors) {
+                var elements = document.querySelectorAll(selectors);
+                return (elements.length) ? elements[0] : null;
+            };
+        }
+
+        if (!Array.prototype.some) {
+            Array.prototype.some = function (fun/*, thisArg*/) {
+                'use strict';
+
+                if (this == null) {
+                    throw new TypeError('Array.prototype.some called on null or undefined');
+                }
+
+                if (typeof fun !== 'function') {
+                    throw new TypeError();
+                }
+
+                var t = Object(this);
+                var len = t.length >>> 0;
+
+                var thisArg = arguments.length >= 2 ? arguments[1] : void 0;
+                for (var i = 0; i < len; i++) {
+                    if (i in t && fun.call(thisArg, t[i], i, t)) {
+                        return true;
+                    }
+                }
+
+                return false;
+            };
+        }
+
+        if (typeof String.prototype.trim !== 'function') {
+            String.prototype.trim = function () {
+                return this.replace(/^\s+|\s+$/g, '');
+            }
+        }
+    }());
+
+    /**
+     * FIXME: rakeLog 함수는 DOMContentLoaded 이후에 실행된다
+     * 외부에서 강제로 DOMContentLoaded, pageshow를 trigger 시킬 경우 문제가 발생하기 때문에
+     * 여기에선 custom event인 DOMContentLoaded.rake, pageshow.rake를 사용하였다
+     */
+    var rakeLog = (function () {
+        'use strict';
+
+        var loggingEnable = rakeLogPageInfo && rakeLogPageInfo._$RAKE_ENV === 'LIVE' ? false : true;
+        var shuttle = new LogClientSentinelShuttle();
+        var _userAgent = window.navigator.userAgent;
+        var _impressionContents = ['PRODUCT', 'BANNER', 'EXHIBITION', 'CATALOG', 'MOVIE'];
+
+        var hasWithOutToken = rakeLogPageInfo._$RAKE_TOKEN_NPI ? true : false;
+
+        var _isIOS,
+            _isApp,
+            _isDealApp,
+            _impressionSwitch,
+            _thisPageDataMerge,
+            _thisPageInfo,
+            _thisPageActionArea;
+
+        var Utils = {
+            callAjax: function (url, callback) {
+                var xmlhttp = new XMLHttpRequest();
+                xmlhttp.onreadystatechange = function () {
+                    if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+                        callback(xmlhttp.responseText);
+                    }
+                }
+                xmlhttp.open("GET", url, true);
+                xmlhttp.setRequestHeader('Access-Control-Allow-Headers', '*');
+                xmlhttp.send();
+            },
+            jsonp: function (url, callback) {
+                var callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
+                var script = document.createElement('script');
+                script.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'cb=' + callbackName;
+                window[callbackName] = function (data) {
+                    delete window[callbackName];
+                    document.body.removeChild(script);
+                    callback(data);
+                };
+                document.body.appendChild(script);
+            },
+            extend: function () {
+                var extended = {};
+                var deep = false;
+                var i = 0;
+                var length = arguments.length;
+
+                if (Object.prototype.toString.call(arguments[0]) === '[object Boolean]') {
+                    deep = arguments[0];
+                    i++;
+                }
+
+                var merge = function (obj) {
+                    for (var prop in obj) {
+                        if (Object.prototype.hasOwnProperty.call(obj, prop)) {
+                            if (deep && Object.prototype.toString.call(obj[prop]) === '[object Object]') {
+                                extended[prop] = Utils.extend(true, extended[prop], obj[prop]);
+                            } else {
+                                extended[prop] = obj[prop];
+                            }
+                        }
+                    }
+                };
+
+                for (; i < length; i++) {
+                    var obj = arguments[i];
+                    merge(obj);
+                }
+
+                return extended;
+            },
+            getPageId: function () {
+                return _thisPageInfo.page_id ? _thisPageInfo.page_id : 'unknown';
+            },
+            isInitPageShow: function () {
+                if (this.useMultiPageId() || rakeLogPageInfo.Switch.LogDisable || rakeLogPageInfo.Switch.LogDisablePageshow) {
+                    return false;
+                }
+                return true;
+            },
+            useMultiPageId: function () {
+                if (this.getPageId() === 'unknown' && document.querySelector('[data-pageid]')) {
+                    return true;
+                }
+                return false;
+            },
+            isIframe: function () {
+                return (parent && parent != window);
+            },
+            dataMerge: function (original, target) {
+                for (var key in target) {
+                    if (original[key] === undefined) {
+                        original[key] = target[key];
+                    }
+                }
+                return original;
+            },
+            getSessionIdFromUserAgent: function () {
+                var resultObj = {
+                    AppSessionId: '',
+                    AppSessionIdXsite: '',
+                    DeviceId: ''
+                };
+
+                try {
+                    var filter = /CP_SESSION_ID \(([\w\W]+?)\)/;
+
+                    if (filter.test(_userAgent)) {
+                        var arrSessionId = _userAgent.match(filter)[1].split(';');
+                        resultObj.AppSessionId = arrSessionId[0].trim();
+
+                        if (arrSessionId.length > 1) {
+                            resultObj.AppSessionIdXsite = arrSessionId[1].trim();
+                            resultObj.DeviceId = resultObj.AppSessionIdXsite.split('_')[0];
+                        } else {
+                            resultObj.AppSessionIdXsite = resultObj.AppSessionId;
+                        }
+                    }
+                } catch (e) {
+                    Utils.sendErrorLog(e);
+                }
+
+                return resultObj;
+            },
+            getXsite: function () {
+                if (_isApp) {
+                    var xsiteRef = Utils.getCookie('XSITE_REF');
+                    if (xsiteRef != '') {
+                        return xsiteRef;
+                    } else {
+                        return Utils.getCookie('XSITE');;
+                    }
+                }
+                return Utils.getCookie('XSITE');
+            },
+            getAppVCA: function () {
+                if (_isApp) {
+                    try {
+                        var filter = /CP_ELEVENST \(([\w\W]+?)\)/;
+
+                        if (filter.test(_userAgent)) {
+                            var appInfo = _userAgent.match(filter)[1].split(';');
+                            return appInfo[1].trim();
+                        }
+                    } catch (e) {
+                        Utils.sendErrorLog(e);
+                    }
+                }
+                return '';
+            },
+            getAppAdID: function () {
+                if (_isApp) {
+                    try {
+                        var filter = /CP_ELEVENST \(([\w\W]+?)\)/;
+
+                        if (filter.test(_userAgent)) {
+                            var appInfo = _userAgent.match(filter)[1].split(';');
+                            return appInfo && appInfo[5] ? appInfo[5].trim() : '';
+                        }
+                    } catch (e) {
+                        Utils.sendErrorLog(e);
+                    }
+                }
+                return '';
+            },
+            getPCID: function () {
+                var PCID = Utils.getCookie("PCID");
+                if (PCID) {
+                    return PCID;
+                }
+
+                var expiredDate = new Date(2030, 1, 1);
+
+                var currentTimeMillis = new Date().getTime();
+                var key = '';
+                for (var i = 0; i < 10; i++) {
+                    var randomNumber = Math.ceil(Math.random() * 10) - 1
+                    key += randomNumber;
+                }
+                var value = currentTimeMillis + '' + key;
+
+                this.setCookie('PCID', value, expiredDate);
+
+                return value;
+            },
+            getSessionId: function () {
+                if (_isApp) {
+                    if (rakeLogPageInfo.AppSessionId) {
+                        return rakeLogPageInfo.AppSessionId;
+                    } else {
+                        return this.getSessionIdFromUserAgent().AppSessionId;
+                    }
+                }
+                var sessionId = this.getCookie("RAKE_SID");
+
+                if (!sessionId) {
+                    var currentTimeMillis = new Date().getTime();
+                    var key = '';
+                    for (var i = 0; i < 10; i++) {
+                        var randomNumber = Math.ceil(Math.random() * 10) - 1
+                        key += randomNumber;
+                    }
+                    sessionId = currentTimeMillis + '' + key;
+                }
+                this.setCookieWithMinutes("RAKE_SID", sessionId, 30);
+                return sessionId;
+            },
+            getSessionIdXsite: function () {
+                if (_isApp) {
+                    if (rakeLogPageInfo.AppSessionIdXsite) {
+                        return rakeLogPageInfo.AppSessionIdXsite;
+                    } else {
+                        return this.getSessionIdFromUserAgent().AppSessionIdXsite;
+                    }
+                }
+                var sessionId = this.getCookie("RAKE_SID_XSITE");
+
+                if (!sessionId) {
+                    sessionId = this.getSessionId();
+                }
+                this.setCookieWithMinutes("RAKE_SID_XSITE", sessionId, 30);
+                return sessionId;
+            },
+            getDeviceId: function () {
+                if (_isApp) {
+                    if (rakeLogPageInfo.DeviceId) {
+                        return rakeLogPageInfo.DeviceId;
+                    } else {
+                        return this.getSessionIdFromUserAgent().DeviceId;
+                    }
+                }
+                return '';
+            },
+            getUrlVars: function (url) {
+                var vars = [], hash;
+                var hashes = url.slice(url.indexOf('?') + 1).split('&');
+
+                for (var i = 0; i < hashes.length; i++) {
+                    hash = hashes[i].split('=');
+                    vars.push(hash[0]);
+                    vars[hash[0]] = hash[1];
+                }
+                return vars;
+            },
+            getBmClf: function () {
+                var bmClf = '11st';
+
+                if (_isDealApp) {
+                    bmClf = 'shockingdeal';
+                }
+
+                var domain = document.domain;
+                if (domain == 'tour.11st.co.kr' || domain == 'tour.m.11st.co.kr') {
+                    bmClf = 'tour11';
+                } else if (domain == 'soffice.11st.co.kr') {
+                    bmClf = 'seller_office';
+                }
+
+                if (this.isIotDevice()) {
+                    bmClf = 'refrigerator';
+                }
+
+                return bmClf;
+            },
+            getPocClf: function () {
+                var poc = 'pc';
+                if (_isApp || _isDealApp) {
+                    poc = 'app';
+                }
+
+                if (this.isIotDevice()) {
+                    poc = 'IoT';
+                }
+
+                return poc;
+            },
+            /** @param {number} expiresMin 지금으로부터 몇 분 후인지 */
+            setCookieWithMinutes: function (key, value, expiresMin) {
+                var _domain = '; domain=.11st.co.kr';
+                var _path = '; path=/';
+                var _expires = '';
+                if (expiresMin != null) {
+                    var date = new Date();
+                    date.setTime(date.getTime() + (expiresMin * 60 * 1000));
+                    _expires = '; expires=' + date.toGMTString();
+                }
+                document.cookie = key + '=' + value + _expires + _domain + _path;
+            },
+            /** @param {Date} expires 절대 날짜 */
+            setCookie: function (key, value, expires) {
+                var _domain = '; domain=.11st.co.kr';
+                var _path = '; path=/';
+                var _expires = '; expires=' + expires.toGMTString();
+                document.cookie = key + '=' + value + _expires + _domain + _path;
+            },
+            getCookie: function (key) {
+                var keyString = key + '=';
+                var cookieArray = document.cookie.split(';');
+                for (var i = 0; i < cookieArray.length; i++) {
+                    var cookie = cookieArray[i];
+                    while (cookie.charAt(0) == ' ') {
+                        cookie = cookie.substring(1, cookie.length);
+                    }
+                    if (cookie.indexOf(keyString) == 0) return cookie.substring(keyString.length, cookie.length);
+                }
+                return "";
+            },
+            getCookieDMPUID: function () {
+                if (!Utils.getCookie('DMP_UID')) {
+                    var img = new Image();
+                    img.src = '//idm.skplanet.com/pixel';
+                    Utils.jsonp('//idm.skplanet.com/getuid', function (data) {
+                        if (data && data.skp_dmp_uid) {
+                            Utils.setCookieWithMinutes('DMP_UID', data.skp_dmp_uid, 24 * 60);
+                        }
+                    })
+                }
+                return Utils.getCookie('DMP_UID');
+            },
+            getTMCookie: function (ckIdIndex, cookieName) {
+                var COOKIE_ID_ARR = ["TP", "TD", "TT", "TM", "TW"];
+                var classCookies = decodeURIComponent(this.getCookie(COOKIE_ID_ARR[ckIdIndex]));
+                var subCookieValue = "";
+                var subCookies = classCookies.split('#');
+                if (subCookies != null && subCookies.length > 0) {
+                    for (var index = 0; index < subCookies.length; index++) {
+                        if (subCookies[index].split('|')[0] == cookieName) {
+                            var subCookie = subCookies[index].split('|');
+                            if (subCookie.length > 1) {
+                                subCookieValue = subCookie[1];
+                                return subCookieValue;
+                            }
+                        }
+                    }
+                }
+
+                return subCookieValue;
+            },
+            appType: function () {
+                return Utils.getCookie('appType');
+            },
+            isApp: function () {
+                if (Utils.appType().indexOf('appmw') > -1) {
+                    return true;
+                } else {
+                    return false;
+                }
+            },
+            isDealApp: function () {
+                if (Utils.appType().indexOf('deal_a') > -1 || Utils.appType().indexOf('deal_i') > -1) {
+                    return true;
+                } else {
+                    return false;
+                }
+            },
+            isIOS: function () {
+                var userAgent = _userAgent.toLowerCase(),
+                    chrome = /chrome/.test(userAgent),
+                    safari = /safari/.test(userAgent),
+                    ios = /iphone|ipod|ipad/.test(userAgent);
+
+                if ((ios || safari) && !chrome) {
+                    return true;
+                } else {
+                    return false;
+                }
+            },
+            isIotDevice: function () {
+                var iotDevice = /FamilyHub|Family Hub/.test(_userAgent);
+                return iotDevice ? true : false;
+            },
+            getBirth: function () {
+                return this.getTMCookie(0, "HODY");
+            },
+            getGender: function () {
+                var gender = this.getTMCookie(0, "GND");
+                if (gender != null && gender != "undefined" && gender.length > 0
+                    && (gender == "10" || gender == "20")) {
+                    gender = gender == "10" ? "M" : "F";
+                }
+                return gender;
+            },
+            getBlindEnable: function () {
+                if (_isApp) {
+                    try {
+                        var filter = /CP_ELEVENST \(([\w\W]+?)\)/;
+
+                        if (filter.test(_userAgent)) {
+                            var appInfo = _userAgent.match(filter)[1].split(';');
+                            var blind_enable = appInfo[6];
+                            if (typeof blind_enable !== 'undefined' && blind_enable.trim() === 'blind_enable') {
+                                if (_isIOS) {
+                                    return 'voiceover';
+                                } else {
+                                    return 'talkback';
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        Utils.sendErrorLog(e);
+                    }
+                }
+                return '';
+            },
+            isVisible: function (e) {
+                return !!(e.offsetWidth || e.offsetHeight || e.getClientRects().length);
+            },
+            clone: function (obj) {
+                if (obj === null || typeof (obj) !== 'object')
+                    return obj;
+                var copy = obj.constructor();
+                for (var attr in obj) {
+                    if (obj.hasOwnProperty(attr)) {
+                        copy[attr] = obj[attr];
+                    }
+                }
+                return copy;
+            },
+            deepClone: function (obj) {
+                try {
+                    if (obj === null || typeof (obj) !== 'object')
+                        return obj;
+                    return JSON.parse(JSON.stringify(obj));
+                } catch (e) {
+                    Utils.sendErrorLog(e);
+                }
+                return obj;
+            },
+            logging: function (message) {
+                loggingEnable && console && console.log && console.log(message);
+            },
+            sendErrorLog: function (e) {
+                try {
+                    var description = 'msg:' + e.stack.toString().replace('\n', '') + ' / url:' + location.href;
+
+                    var protoc = document.location.protocol;
+                    var errURL = protoc + '//err.11st.co.kr/emw.st?';
+
+                    errURL += 'Source=' + escape(document.location.pathname);
+                    errURL += '&Description=' + escape(description);
+                    errURL += '&Query=' + escape(document.location.search);
+                    errURL += '&Server=' + escape(document.location.hostname);
+
+                    var imgObj = document.createElement('img');
+                    imgObj.setAttribute("src", errURL);
+                    imgObj.setAttribute("height", 0);
+                    imgObj.setAttribute("width", 0);
+                    document.body.appendChild(imgObj);
+                } catch (e) {}
+            },
+            date: {
+                now: function () {
+                    return Date.now() || new Date().getTime();
+                }
+            },
+            hasSelector: function (els, target) {
+                var elements = typeof els === 'string' ? document.querySelectorAll(els) : els;
+                return Array.prototype.slice.call(elements).some(function (el) {
+                    return target === el;
+                });
+            },
+            findParentNode: function (el, expr) {
+                while (el) {
+                    var nodeName = (el.nodeName || el.tagName).toLowerCase();
+
+                    for (var i = 0, len = expr.length; i < len; i++) {
+                        if (nodeName === expr[i]) {
+                            return el;
+                        }
+                    }
+                    el = el.parentNode;
+                }
+                return null;
+            },
+            getConditionalCallback: function (selector, callback) {
+                var selectors = selector.replace(/^\s+|\s+$/g, '').split(/\s*,\s*/);
+
+                return function (e) {
+                    var target = Utils.findParentNode(e.target, selectors);
+                    if (!target) {
+                        return;
+                    }
+                    if (!Utils.hasSelector(document.querySelectorAll(selector), target)) {
+                        return;
+                    }
+                    var onclick = target.getAttribute('onclick');
+                    if (onclick && onclick.indexOf('rakeLog.sendRakeLog') !== -1) {
+                        return;
+                    }
+                    callback.apply(target, arguments);
+                }
+            },
+            addEvent: window.addEventListener ?
+                function (el, eventName, fn, selector) {
+                    if (selector) {
+                        el.addEventListener(eventName, function (e) {
+                            Utils.getConditionalCallback.call(this, selector, fn).call(this, e);
+                        }, false);
+                    } else {
+                        el.addEventListener(eventName, fn, false);
+                    }
+                } :
+                function (el, eventName, fn, selector) {
+                    if (selector) {
+                        el.attachEvent('on' + eventName, function (e) {
+                            Utils.getConditionalCallback.call(this, selector, fn).call(this, e);
+                        });
+                    } else {
+                        el.attachEvent('on' + eventName, fn);
+                    }
+                },
+            triggerEvent: document.createEvent ?
+                function (el, eventName) {
+                    var event = document.createEvent('HTMLEvents');
+                    event.initEvent(eventName, true, true);
+                    el.dispatchEvent(event);
+                } :
+                function (el, eventName) {
+                    el.fireEvent('on' + eventName);
+                },
+            browser: {
+                getViewportRect: function (wrapper) {
+                    var viewportData,
+                        wrapBoundingClientRect;
+
+                    if (wrapper === window) {
+                        viewportData = {
+                            top: window.pageYOffset || document.documentElement.scrollTop,
+                            left: window.pageXOffset || document.documentElement.scrollLeft,
+                            width: (window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth),
+                            height: (window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight),
+                            topGap: 0,
+                            leftGap: 0
+                        };
+                    } else {
+                        wrapBoundingClientRect = wrapper.getBoundingClientRect();
+
+                        viewportData = {
+                            top: wrapBoundingClientRect.top + (window.pageYOffset || document.documentElement.scrollTop),
+                            left: wrapBoundingClientRect.left + (window.pageXOffset || document.documentElement.scrollLeft),
+                            width: wrapBoundingClientRect.width,
+                            height: wrapBoundingClientRect.height,
+                            topGap: wrapBoundingClientRect.top,
+                            leftGap: wrapBoundingClientRect.left
+                        };
+                    }
+
+                    return viewportData;
+                }
+            },
+            debounce: function (func, wait, immediate) {
+                var delay = (!wait) ? 300 : wait,
+                    timeout, args, context, timestamp, result;
+
+                var later = function () {
+                    var last = Utils.date.now() - timestamp;
+
+                    if (last < delay && last >= 0) {
+                        timeout = setTimeout(later, delay - last);
+                    } else {
+                        timeout = null;
+                        if (!immediate) {
+                            result = func.apply(context, args);
+                            if (!timeout) {
+                                context = args = null;
+                            }
+                        }
+                    }
+                };
+
+                return function () {
+                    var callNow;
+
+                    context = this;
+                    args = arguments;
+                    timestamp = Utils.date.now();
+                    callNow = immediate && !timeout;
+                    if (!timeout) {
+                        timeout = setTimeout(later, delay);
+                    }
+                    if (callNow) {
+                        result = func.apply(context, args);
+                        context = args = null;
+                    }
+
+                    return result;
+                };
+            },
+            viewport: function (selector, userOption) {
+                var option = Utils.extend(true, {
+                    threshold: 0
+                }, userOption);
+
+                var isLocateUpon = function (view) {
+                    var elBottom = view.el.bottom + view.viewport.top - view.viewport.topGap,
+                        viewportTop = view.viewport.top - view.threshold;
+
+                    return elBottom <= viewportTop;
+                },
+                    isLocateBelow = function (view) {
+                        var elTop = view.el.top + view.viewport.top - view.viewport.topGap,
+                            viewportBottom = view.viewport.height + view.viewport.top + view.threshold;
+
+                        return elTop >= viewportBottom;
+                    },
+                    isLocateLeft = function (view) {
+                        var elRight = view.el.right + view.viewport.left - view.viewport.leftGap,
+                            viewportLeft = view.viewport.left - view.threshold;
+
+                        return elRight <= viewportLeft;
+                    },
+                    isLocateRight = function (view) {
+                        var elLeft = view.el.left + view.viewport.left - view.viewport.leftGap,
+                            viewportRight = view.viewport.width + view.viewport.left + view.threshold;
+
+                        return elLeft >= viewportRight;
+                    };
+
+                var wrap = option.wrap ? document.querySelector(option.wrap) : document,
+                    elList = wrap.querySelectorAll(selector),
+                    visibleElements = [],
+                    coordinate = {
+                        viewport: Utils.browser.getViewportRect(option.wrap ? document.querySelector(option.wrap) : window),
+                        threshold: option.threshold
+                    },
+                    i = 0,
+                    len = elList.length;
+
+                for (; i < len; i++) {
+                    coordinate.el = elList[i].getBoundingClientRect();
+
+                    if (!isLocateUpon(coordinate) && !isLocateBelow(coordinate) && !isLocateLeft(coordinate) && !isLocateRight(coordinate)) {
+                        visibleElements.push(elList[i]);
+                    }
+                }
+
+                if (visibleElements.length > 0) {
+                    option.onViewport(visibleElements);
+                }
+            }
+        };
+
+        function initRake() {
+            _isIOS = Utils.isIOS();
+            _isApp = Utils.isApp();
+            _isDealApp = Utils.isDealApp();
+            _impressionSwitch = (_isApp || _isDealApp) ? rakeLogPageInfo.Switch.ImpMW : rakeLogPageInfo.Switch.ImpPC;
+
+            setPageInfo();
+            setHeader();
+            sendExperimentLog();
+            addHandler();
+            scrollHandler();
+        }
+
+        function setPageInfo() {
+            _thisPageInfo = (typeof rakeLogPageInfo.PageInfo !== 'undefined') ? rakeLogPageInfo.PageInfo : '';
+            _thisPageDataMerge = (typeof rakeLogPageInfo.DataMerge !== 'undefined') ? rakeLogPageInfo.DataMerge : false;
+
+            shuttle.setPage_id(Utils.getPageId());
+            shuttle.setPage_version(_thisPageInfo.page_version);
+        }
+
+        function setHeader() {
+            shuttle.setPage_id(Utils.getPageId());
+            shuttle.setPcid(Utils.getPCID());
+            shuttle.setService_country_code('KR');
+            shuttle.setService_language_code('kor');
+            shuttle.setService_currency_code('KRW');
+            shuttle.setPf_clf('PC');
+            shuttle.setPoc_clf(Utils.getPocClf());
+            shuttle.setBm_clf(Utils.getBmClf());
+            shuttle.setSession_id(Utils.getSessionId());
+            shuttle.setXsite_session_id(Utils.getSessionIdXsite());
+            shuttle.setEleven_device_id(Utils.getDeviceId());
+            shuttle.setApp_release(Utils.getAppVCA());
+            shuttle.setApp_page_type((_isApp || _isDealApp) ? 'hybrid' : '');
+            shuttle.setWeb_log_version('20190213110000');
+            shuttle.setPage_version(_thisPageInfo.page_version);
+            shuttle.setAtrb_code(Utils.getUrlVars(location.href).trTypeCd);
+            shuttle.setMember_no(Utils.getCookie('TMALL_MNC'));
+            shuttle.setBirthyear(Utils.getBirth());
+            shuttle.setGender_code(Utils.getGender());
+            shuttle.setAdvrt_no(Utils.getXsite());
+            shuttle.setAdvrt_detail(Utils.getCookie('XSITE_DETAIL'));
+            shuttle.setPartner_cd(Utils.getCookie('PARTNER_CD'));
+            shuttle.setPartner_referrer(Utils.getTMCookie(0, "PARTNER_REFERER"));
+            shuttle.setColloseo_ab(Utils.getCookie('cAB'));
+            shuttle.setUser_agent(_userAgent);
+            shuttle.setBlind_enable(Utils.getBlindEnable());
+
+            shuttle.setAuid(Utils.getCookie('AUID'));
+            shuttle.setDmpc(Utils.getCookieDMPUID());
+
+            if (_isApp) {
+                if (_isIOS) {
+                    shuttle.setIdfa(Utils.getAppAdID());
+                } else {
+                    shuttle.setGaid(Utils.getAppAdID());
+                }
+            }
+        }
+
+        function addHandler() {
+            Utils.addEvent(window, 'DOMContentLoaded.rake', pageViewEventHandler);
+            Utils.addEvent(window, 'pageshow.rake', pageViewEventHandler);
+            Utils.addEvent(document, 'scroll', Utils.debounce(scrollHandler.bind(this), 1000));
+            Utils.addEvent(document, 'click', pageAction, 'a, button, area');
+
+            if (!Utils.isInitPageShow()) {
+                return;
+            }
+
+            Utils.triggerEvent(window, 'DOMContentLoaded.rake');
+            Utils.triggerEvent(window, 'pageshow.rake');
+        }
+
+        function pageViewEventHandler(e) {
+            var action_id = '';
+
+            switch (e.type) {
+                case 'DOMContentLoaded.rake':
+                    action_id = 'dom_content_loaded';
+                    break;
+                case 'pageshow.rake':
+                    action_id = Utils.isIframe() ? 'iframe_page_show' : 'page_show';
+                    break;
+            }
+
+            pageView(action_id);
+        }
+
+        function pageView(action_id) {
+            try {
+                shuttle.setAction_id(action_id.toLowerCase());
+                shuttle.setBodyByJSonString(JSON.stringify(deleteBodyElement(_thisPageInfo)));
+            } catch (e) {
+                Utils.sendErrorLog(e);
+            }
+
+            rakeCollect();
+            rakeFlush();
+        }
+
+        function rakeCollect(npiCollect) {
+            var shuttleObj = shuttle.getImmutableJSONObject();
+            if (typeof RAKE != 'undefined') {
+
+                /**
+                 * 실명 로그 분리
+                 */
+                var shuttleObjPrivate = Utils.deepClone(shuttleObj);
+
+                delShuttleObj(shuttleObjPrivate, 'dmpc');
+                delShuttleObj(shuttleObjPrivate, 'auid');
+                delShuttleObj(shuttleObjPrivate, 'gaid');
+                delShuttleObj(shuttleObjPrivate, 'idfa');
+
+                RAKE.collect({
+                    instanceAlias: RAKE_INSTANCE.WITH,
+                    payload: shuttleObjPrivate
+                });
+
+                /**
+                 * 비실명 로그 분리
+                 */
+                npiCollect = (typeof npiCollect == "undefined") ? true : npiCollect;
+                if (!hasWithOutToken || !npiCollect) {
+                    return;
+                }
+
+                var shuttleObjNpi = Utils.deepClone(shuttleObj);
+
+                delShuttleObj(shuttleObjNpi, 'session_id');
+                delShuttleObj(shuttleObjNpi, 'xsite_session_id');
+                delShuttleObj(shuttleObjNpi, 'eleven_device_id');
+
+                delShuttleObj(shuttleObjNpi._$body['order_object'], 'order_no');
+                delShuttleObj(shuttleObjNpi._$body, 'order_no');
+                delShuttleObj(shuttleObjNpi._$body, 'hashed_mbr_id');
+
+                RAKE.collect({
+                    instanceAlias: RAKE_INSTANCE.WITHOUT,
+                    payload: shuttleObjNpi
+                });
+            }
+        }
+
+        function delShuttleObj(_obj, _prop) {
+            try {
+                if (_obj && _obj.hasOwnProperty(_prop)) {
+                    delete _obj[_prop];
+                }
+            } catch (e) {
+                Utils.sendErrorLog(e);
+            }
+
+        }
+
+        function rakeFlush() {
+
+            if (typeof RAKE != 'undefined') {
+
+                RAKE.flush({
+                    instanceAlias: RAKE_INSTANCE.WITH,
+                    timeoutAsMillis: 5000,
+                    successCallback: function () {
+                        Utils.logging('USER SUCCESS CALLBACK');
+                    },
+                    failureCallback: function () {
+                        Utils.logging('USER FAIL CALLBACK');
+                    }
+                });
+
+                if (!hasWithOutToken) {
+                    return;
+                }
+
+                RAKE.flush({
+                    instanceAlias: RAKE_INSTANCE.WITHOUT,
+                    timeoutAsMillis: 5000,
+                    successCallback: function () {
+                        Utils.logging('USER SUCCESS CALLBACK');
+                    },
+                    failureCallback: function () {
+                        Utils.logging('USER FAIL CALLBACK');
+                    }
+                });
+            }
+        }
+
+        // rake button action
+        function pageAction(event, gesture) {
+
+            var _thisGesture = (gesture) ? gesture : event.type;
+            var _this = this;
+
+            var _thisActionId = getActionId(_this);
+            if (!_thisActionId) {
+                return;
+            }
+            shuttle.setAction_id(_thisGesture + "." + _thisActionId);
+
+            setBody(_this);
+            rakeCollect();
+            rakeFlush();
+
+        }
+
+        function parentNodeSearch(ele, attr) {
+            if (ele.getAttribute(attr)) {
+                return ele;
+            } else {
+                while (ele.parentNode && ele.nodeName !== "HTML") {
+                    ele = ele.parentNode;
+                    if (ele.getAttribute(attr)) {
+                        return ele;
+                    }
+                }
+                return null;
+            }
+            return null;
+        }
+
+        function refresh() {
+            rakeLogPageInfo.Switch.LogDisable = false;
+            rakeLogPageInfo.Switch.LogDisablePageshow = false;
+
+            setPageInfo();
+
+            Utils.triggerEvent(window, 'DOMContentLoaded.rake');
+            Utils.triggerEvent(window, 'pageshow.rake');
+        }
+
+        function setBody(_this) {
+            var _thisLogBody = getBody(_this);
+            var href = _this.getAttribute("href");
+            if (href && (href.indexOf("http://") > -1 || href.indexOf("https://") > -1)) {
+                _thisLogBody.link_url = _this.getAttribute("href") || "";
+            }
+
+            if (_thisLogBody.content_type == "PRODUCT") {
+                _thisLogBody.product_no = _thisLogBody.content_no;
+                _thisLogBody.product_name = _thisLogBody.content_name;
+            }
+
+            setPosition();
+
+            if (_thisPageDataMerge) {
+                _thisLogBody = Utils.dataMerge(_thisLogBody, _thisPageInfo);
+            }
+
+            shuttle.setBodyByJSonString(JSON.stringify(deleteBodyElement(_thisLogBody)));
+
+            function setPosition() {
+                var _searchIndexWrapper, position_l1, position_l2;
+                var area = getArea(_this);
+
+                _thisPageActionArea = searchActionIdArea();
+
+                var isHeader = false,
+                    isFooter = false,
+                    _thisItem = _this;
+
+                while (_thisItem.parentNode && _thisItem.nodeName !== 'BODY') {
+                    _thisItem = _thisItem.parentNode;
+                    if (_thisItem.nodeName === 'HEADER') {
+                        isHeader = true;
+                    } else if (_thisItem.nodeName === 'FOOTER') {
+                        isFooter = true;
+                    }
+                }
+
+                if (isHeader && _thisPageActionArea.header.indexOf(area) > -1) {
+                    _searchIndexWrapper = _thisPageActionArea.header;
+                } else if (isFooter && _thisPageActionArea.footer.indexOf(area) > -1) {
+                    _searchIndexWrapper = _thisPageActionArea.footer;
+                } else {
+                    _searchIndexWrapper = _thisPageActionArea.main;
+                }
+
+                position_l1 = _searchIndexWrapper.indexOf(area) + 1;
+                _thisLogBody.position_l1 = position_l1;
+
+                if (!_thisLogBody.position_l2) {
+                    position_l2 = _this.getAttribute('data-log-index') ? _this.getAttribute('data-log-index') : 1;
+                    _thisLogBody.position_l2 = position_l2;
+                }
+            }
+        }
+
+        function getBody(ele) {
+            var logBody;
+            try {
+                if (ele.nodeName === "SELECT") {
+                    logBody = ele.options[ele.selectedIndex].getAttribute("data-log-body") ?
+                        JSON.parse(ele.options[ele.selectedIndex].getAttribute("data-log-body")) :
+                        {};
+                } else {
+                    logBody = ele.getAttribute("data-log-body") ?
+                        JSON.parse(ele.getAttribute("data-log-body")) :
+                        {};
+                }
+            } catch (e) {
+                try {
+                    if (ele.nodeName === "SELECT") {
+                        logBody = ele.options[ele.selectedIndex].getAttribute("data-log-body") ?
+                            JSON.parse(ele.options[ele.selectedIndex].getAttribute("data-log-body").replace(/'/g, '"')) :
+                            {};
+                    } else {
+                        logBody = ele.getAttribute("data-log-body") ?
+                            JSON.parse(ele.getAttribute("data-log-body").replace(/'/g, '"')) :
+                            {};
+                    }
+                } catch (e2) {
+                    loggingEnable && console && console.error && console.error(e2);
+                    Utils.sendErrorLog(e2);
+                    logBody = {};
+                }
+            }
+
+            return logBody ? logBody : '{}';
+        }
+
+        function deleteBodyElement(bodyData) {
+            try {
+                var obj = Utils.clone(bodyData);
+                delete obj.page_id;
+                delete obj.page_version;
+            } catch (e) {
+                Utils.sendErrorLog(e);
+                return '{}';
+            }
+            return obj ? obj : '{}';
+        }
+
+        function searchActionIdArea() {
+            var actionIdAreaObject = {
+                "header": [],
+                "footer": [],
+                "main": []
+            };
+
+            searchNodeArea("header");
+            searchNodeArea("footer");
+            searchNodeArea();
+
+            return actionIdAreaObject;
+
+            function searchNodeArea(ele) {
+                if (ele && !document.querySelector(ele)) {
+                    return;
+                }
+                var actionIdAreaWrapper = ele ? document.body.querySelector(ele) : document.body,
+                    actionIdAreaNodes = actionIdAreaWrapper.querySelectorAll("[data-log-actionid-area]");
+
+                Array.prototype.forEach.call(actionIdAreaNodes, function (item) {
+                    if (!Utils.isVisible(item)) return;
+                    var _thisActionIdArea = item.getAttribute('data-log-actionid-area');
+
+                    if (ele) {
+                        if (actionIdAreaObject[ele].indexOf(_thisActionIdArea) < 0) {
+                            actionIdAreaObject[ele].push(_thisActionIdArea);
+                        }
+                    } else {
+                        if (item.parentNode && item.parentNode.nodeName !== 'HEADER' && item.parentNode.nodeName !== 'FOOTER') {
+                            while (item.parentNode && item.nodeName !== 'HEADER' && item.nodeName !== 'FOOTER') {
+                                if (item.parentNode.nodeName === 'BODY' && actionIdAreaObject['main'].indexOf(_thisActionIdArea) < 0) {
+                                    actionIdAreaObject['main'].push(_thisActionIdArea);
+                                    return;
+                                }
+                                item = item.parentNode;
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function goLink(_this) {
+            if (_this && _this.href && _this.getAttribute('href') !== '#' && _this.getAttribute('href').indexOf('http') == 0) {
+                window.location.href = _this.getAttribute('href');
+            }
+        }
+
+        function getActionId(elements) {
+
+            var _this = elements,
+                _thisActionIdArea = getArea(_this),
+                _thisActionIdLabel = getLabel(_this),
+                _thisLogBody = getBody(_this),
+                _thisActionId = (_thisActionIdArea ? _thisActionIdArea : "") + (_thisActionIdLabel ? "." + _thisActionIdLabel : "");
+
+            if (Utils.getPageId().indexOf('/ticket11/') == 0 && _thisLogBody.content_type) {
+                _thisActionId = (_thisActionIdArea ? _thisActionIdArea : "area") + (_thisActionIdLabel ? "." + _thisActionIdLabel : ".label");
+            } else if (!_thisActionIdArea || !_thisActionIdLabel) {
+                return;
+            }
+
+            return _thisActionId;
+        }
+
+        function getArea(ele) {
+            var parentNode = parentNodeSearch(ele, "data-log-actionid-area");
+            return parentNode ? parentNode.getAttribute("data-log-actionid-area") : "";
+        }
+
+        function getLabel(ele) {
+            var parentNode = parentNodeSearch(ele, "data-log-actionid-label");
+            return ele.getAttribute("data-log-actionid-label") || parentNode ? parentNode.getAttribute("data-log-actionid-label") : "";
+        }
+
+        function validImpressionContent(elements) {
+            var _thisLogBody = getBody(elements);
+
+            if (_thisLogBody.send_impression && _thisLogBody.send_impression == 'N') {
+                return false;
+            }
+
+            if ((_thisLogBody.content_type && _impressionContents.indexOf(_thisLogBody.content_type) > -1)
+                || (_thisLogBody.send_impression && _thisLogBody.send_impression == 'Y')
+            ) {
+                return true;
+            }
+        }
+
+        function scrollHandler() {
+            if (!_impressionSwitch) {
+                return;
+            }
+
+            Utils.viewport('a, button', {
+                threshold: -20,
+                onViewport: function (elements) {
+                    elements.forEach(function (ele) {
+                        if (!ele.getAttribute('data-is-send-log') && validImpressionContent(ele) && getActionId(ele)) {
+                            shuttle.setAction_id('impression.' + getActionId(ele));
+                            setBody(ele);
+                            rakeCollect(false);
+                            ele.setAttribute('data-is-send-log', 'true');
+                        }
+                    });
+                    rakeFlush();
+                }
+            });
+        }
+
+        function sendRakeLog(ele, gesture) {
+            try {
+                pageAction.call(ele, event, gesture);
+            } catch (e) {
+                Utils.sendErrorLog(e);
+                console && console.log && (console.log("Failed to execute RAKE snippet due to"), console.log(e));
+            }
+        }
+
+        function sendExperimentLog() {
+            if (typeof plab != 'undefined') {
+                var tcs = '';
+
+                if (Utils.getPageId() == '/order_complete') {
+                    tcs = plab.getTcsAll(plabPageKey);
+                } else {
+                    tcs = plab.getTcs(plabPageKey);
+                }
+
+                shuttle.setAb_tcs(tcs);
+            }
+        }
+
+        function setEnableLog() {
+            loggingEnable = true;
+        }
+
+        initRake();
+
+        return {
+            refresh: refresh,
+            pageView: pageView,
+            sendRakeLog: sendRakeLog,
+            setEnableLog: setEnableLog,
+            scrollHandler: scrollHandler,
+            getShuttle: function () {
+                return shuttle;
+            }
+        };
+
+    }());
+
+    return rakeLog;
+}));

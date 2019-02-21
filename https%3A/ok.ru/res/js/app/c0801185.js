@@ -1,0 +1,1 @@
+define(function(){var a=setTimeout.bind(window,function(b){b.focus();var c=b.value&&b.value.length;if(c){b.setSelectionRange(c,c);}},0);return{activate:a};});

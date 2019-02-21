@@ -1,0 +1,84 @@
+/**
+ * @method: productDelivery
+ * @dependency: requireJS, jQuery
+ */
+(function(root, factory) {
+	'use strict';
+    if (typeof define === 'function' && define.amd) {
+        define([
+            'jquery',
+            'productCommon'
+        ], factory);
+    } else {
+        root.productDelivery = factory(
+            root.jQuery,
+            root.productCommon
+        );
+    }
+}(window || this, function($, productCommon) {
+	'use strict';
+	var prdVar = productPrdInfo;
+	
+	var productDelivery = {
+    	
+		init : function() {
+
+			// 도서산간지역 검색
+			$('#islandZipCodeSearch').click(function(e) {
+				var width = 630, height = 460;
+				var sFeatures = "width=" + width + ",height=" + height + ",status=no,help=no,scroll=no";
+				window.open("http://www.11st.co.kr/register/islandZipCodePopup.tmall?method=islandZipCodeSearch","제주도서산간", sFeatures);
+				return false;
+			});
+			
+			//배송불가지역 조회 popup
+			$('a[name=undeliverableLocalPop]').click(function(e) {
+				var url = '/product/SellerProductDetail.tmall?method=undeliverableLocalPopUp&width=450&height=290&prdNo=' + prdVar.prdNo;
+				productCommon.launchCenter(url, "resultView", 450, 290, "auto");
+				return false;
+			});
+			
+			//도착예정일 popup
+			$('#deliveryChkPop').click(function(e) {
+				var pL = parseInt((window.screen.width - 500) / 2); // 가로해상도
+				var pT = parseInt((window.screen.height - 250) / 2); // 세로해상도
+				var pProp = 'width=480,height=250,scrollbars=no,resizable=no,left=' + pL + ',top=' + pT + ',directories=no,status=no,menubar=no';
+
+				var openURL = '/jsp/product/information/yes24DeliveryCheckPopup.jsp?gubun=0&prdNo='
+					+ prdVar.prdNo + '&prdStckNo=&stckQty='
+					+ '&isLogin=' + prdVar.isLogin;
+
+				if( prdVar.isKyoboPrd == "true" ) openURL += "&searchType=K";
+
+				var newWin = window.open(openURL, 'DLVCHK', pProp);
+				if (!newWin){
+					alert('차단된 팝업창을 허용해 주세요.');
+				} else{
+					newWin.focus();
+				}
+				return false;
+			});	
+			
+			//희망후원금 자세히보기
+			$('#linkSponsor').click(function(e) {
+				window.open("http://www.11st.co.kr/browsing/WishShopMainPlace.tmall?method=getWishShopMainAct");
+				return false;
+			});
+			
+			//지정일 배송 자세히 보기
+			$("#appoint_deliveryBtn").click(function(){
+				$("#appoint_deliverylay").show();
+			});
+			$("#appoint_deliverylay").find('.btn_laycls').click(function(){
+				$("#appoint_deliverylay").hide();
+			});
+			
+			// 배송비 절약하기
+			$("#saveDlvCst").click(function(){
+				HeaderComm.MiniMall.goDelivery.prdNo(prdVar.prdNo, HeaderComm.link.target.newWindow);
+			});
+		}
+	};
+
+	return productDelivery;
+}));

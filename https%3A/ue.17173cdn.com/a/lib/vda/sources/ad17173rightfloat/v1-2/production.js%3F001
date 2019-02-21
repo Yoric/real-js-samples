@@ -1,0 +1,75 @@
+adv.AdBase.extend('Ad17173RightFloat', {
+    init: function (options) {
+        this.base(options);
+        this.emit(adv.ENUM.EVENTS.inited);
+    },
+    setup: function (data) {
+        this.data = data;
+        this.emit(adv.ENUM.EVENTS.setuped);
+    },
+    cssTmpl1: function () {/*@preserve
+<style type="text/css">
+.tg-hb-btn-close,.tg-hb .r,.tg-hb .pop,.tg-hb .c2 a{background-image:url("//ue.17173cdn.com/a/www/index/2016v2/img/tg-hb1.png");background-repeat:no-repeat}.tg-hb{position:relative;margin-bottom:10px;font-family:"Helvetica Neue","Microsoft Yahei","PingFang SC","ST Heiti","Source Han Sans CN",sans-serif;font-size:14px}.tg-hb a:hover{text-decoration:none;cursor:pointer}.tg-hb-btn-close{display:block;position:relative;z-index:5;width:15px;height:15px;margin:-7px auto 0;background-position:-302px 0}.tg-hb-btn-close:hover{background-position:-319px 0}.tg-hb .c1{position:relative;z-index:10}.tg-hb .tg-hb-btn{display:block;height:120px}.tg-hb .r{overflow:hidden;position:absolute;top:0;left:-13px;width:90px;height:120px;-webkit-animation-duration:.6s;animation-duration:.6s;-webkit-animation-fill-mode:both;animation-fill-mode:both;-webkit-animation-iteration-count:infinite;animation-iteration-count:infinite}.tg-hb .r1{background-position:0 -216px;-webkit-animation-name:ani-tg-hb-r1;animation-name:ani-tg-hb-r1}.tg-hb .r2{display:none;background-position:-90px -216px;-webkit-animation-name:ani-tg-hb-r2;animation-name:ani-tg-hb-r2}.tg-hb .r3{display:none;background-position:-180px -216px;-webkit-animation-name:ani-tg-hb-r3;animation-name:ani-tg-hb-r3}.tg-hb .pop{position:absolute;top:-44px;right:-2px;width:98px;height:76px;line-height:18px;color:#fc391c;text-align:center;background-position:-302px -17px;-webkit-animation:ani-tg-hb-pop .6s infinite both;animation:ani-tg-hb-pop .6s infinite both}.tg-hb .pop b{display:block;padding:16px 16px 0;-webkit-transform:rotate(-10deg);-ms-transform:rotate(-10deg);transform:rotate(-10deg)}.tg-hb .c2{overflow:hidden;position:absolute;z-index:20;bottom:17px;right:78px;width:0;height:215px;-webkit-transform:scale(0);-ms-transform:scale(0);transform:scale(0);transition:-webkit-transform .3s;transition:transform .3s;transition:transform .3s, -webkit-transform .3s;-webkit-transform-origin:right bottom;-ms-transform-origin:right bottom;transform-origin:right bottom}.tg-hb .c2 a{display:block;height:100%;text-align:center}.tg-hb .c2 a:hover{text-decoration:none;cursor:pointer}.tg-hb .c2 img{position:absolute;z-index:-1;top:13px;left:6px;width:288px;height:130px;border-radius:5px;background:#fff}.tg-hb .c2 .txt{display:block;padding-top:146px;font-size:18px;font-weight:bolder;line-height:33px;color:#fff}.tg-hb .c2 .btn{display:inline-block;width:88px;line-height:27px;color:#de351d;border-radius:5px;background:#fbd10d}.tg-hb .c2 .btn b{display:block}.tg-hb .c3{display:none}.tg-hb:hover .r,.tg-hb:hover .pop{-webkit-animation-play-state:paused;animation-play-state:paused}.tg-hb:hover .pop{visibility:hidden}.tg-hb:hover .c2{width:300px;-webkit-transform:scale(1);-ms-transform:scale(1);transform:scale(1)}.tg-hb:hover .c2 .btn b{-webkit-animation:ani-tg-hb-btn .2s infinite;animation:ani-tg-hb-btn .2s infinite}.tg-hb:hover .c3{display:block;position:absolute;bottom:9px;right:0;width:140px;height:160px;background:#fff;opacity:0;filter:alpha(opacity=0);cursor:pointer}@@media all and (min-width: 0){.tg-hb .c2{width:300px}.tg-hb .r2,.tg-hb .r3{display:block;display:none\0}}@@-webkit-keyframes ani-tg-hb-r1{0%,15%,45.1%,100%{opacity:1}15.1%,45%{opacity:0}}@@keyframes ani-tg-hb-r1{0%,15%,45.1%,100%{opacity:1}15.1%,45%{opacity:0}}@@-webkit-keyframes ani-tg-hb-r2{0%,15%,30.1%,100%{opacity:0}15.1%,30%{opacity:1}}@@keyframes ani-tg-hb-r2{0%,15%,30.1%,100%{opacity:0}15.1%,30%{opacity:1}}@@-webkit-keyframes ani-tg-hb-r3{0%,30%,45.1%,100%{opacity:0}30.1%,45%{opacity:1}}@@keyframes ani-tg-hb-r3{0%,30%,45.1%,100%{opacity:0}30.1%,45%{opacity:1}}@@-webkit-keyframes ani-tg-hb-pop{0%,15%,45.1%,100%{-webkit-transform:translate(0);transform:translate(0)}15.1%,30%{-webkit-transform:translate(-3px, 2px);transform:translate(-3px, 2px)}30.1%,45%{-webkit-transform:translate(-6px, 3px);transform:translate(-6px, 3px)}}@@keyframes ani-tg-hb-pop{0%,15%,45.1%,100%{-webkit-transform:translate(0);transform:translate(0)}15.1%,30%{-webkit-transform:translate(-3px, 2px);transform:translate(-3px, 2px)}30.1%,45%{-webkit-transform:translate(-6px, 3px);transform:translate(-6px, 3px)}}@@-webkit-keyframes ani-tg-hb-btn{0%,100%{-webkit-transform:scale(1);transform:scale(1)}50%{-webkit-transform:scale(1.05, 1.08);transform:scale(1.05, 1.08)}}@@keyframes ani-tg-hb-btn{0%,100%{-webkit-transform:scale(1);transform:scale(1)}50%{-webkit-transform:scale(1.05, 1.08);transform:scale(1.05, 1.08)}}
+</style>
+*/},
+    tmpl1: function () {/*@preserve
+<div class="tg-hb">
+    <div class="c1">
+        <a href="@link" target="_blank" class="tg-hb-btn">
+            <span class="r r1"></span>
+            <span class="r r2"></span>
+            <span class="r r3"></span>
+            <span class="pop"><b>@iconText</b></span>
+        </a>
+        <a href="javascript:;" class="tg-hb-btn-close"></a>
+    </div>
+    <div class="c2">
+        <img src="@img" alt="">
+        <a href="@link" target="_blank">                
+            <span class="txt">@title</span>
+            <span class="btn"><b>@btnText</b></span>
+        </a>
+    </div>
+    <div class="c3"></div>
+</div>
+*/},
+    cssTmpl2: function () {/*@preserve
+    <style type="text/css">
+.tg-hb-btn-close,.tg-hb .r,.tg-hb .pop,.tg-hb .c2 .btn,.tg-hb .c2 .m2{background-image:url("//ue.17173cdn.com/a/www/index/2016v2/img/tg-bx.png");background-repeat:no-repeat}.tg-hb{position:relative;margin-bottom:10px;font-family:"Helvetica Neue","Microsoft Yahei","PingFang SC","ST Heiti","Source Han Sans CN",sans-serif;font-size:14px}.tg-hb a:hover{text-decoration:none;cursor:pointer}.tg-hb-btn-close{display:block;position:relative;z-index:5;width:15px;height:15px;margin:-3px auto 0;background-position:-112px -410px}.tg-hb-btn-close:hover{background-position:-132px -410px}.tg-hb .c1{position:relative;z-index:20}.tg-hb .tg-hb-btn{display:block;height:108px}.tg-hb .r{overflow:hidden;position:absolute;top:0;left:-30px;width:138px;height:108px}.tg-hb .r1{background-position:0 -256px;-webkit-animation:ani-tg-hb-r .2s infinite;animation:ani-tg-hb-r .2s infinite}.tg-hb .r2{display:none;background-position:-138px -256px}.tg-hb .r3{display:none;background-position:-276px -256px}.tg-hb .pop{position:absolute;top:-62px;right:-10px;width:102px;height:78px;line-height:18px;color:#fc391c;text-align:center;background-position:0 -369px}.tg-hb .pop b{display:block;padding:18px 18px 0 16px;-webkit-transform:rotate(-10deg);-ms-transform:rotate(-10deg);transform:rotate(-10deg)}.tg-hb .c2{overflow:hidden;position:absolute;z-index:10;bottom:19px;right:50px;width:0;height:205px;padding-top:20px;-webkit-transform:scale(0);-ms-transform:scale(0);transform:scale(0);transition:-webkit-transform .3s;transition:transform .3s;transition:transform .3s, -webkit-transform .3s;-webkit-transform-origin:right bottom;-ms-transform-origin:right bottom;transform-origin:right bottom}.tg-hb .c2 a{position:absolute;z-index:10;bottom:0;left:36px;width:310px;height:205px;color:#fff;font-weight:bolder;font-style:italic}.tg-hb .c2 a:hover{text-decoration:none;cursor:pointer}.tg-hb .c2 img{width:310px;height:205px;border-radius:10px;background:#fff}.tg-hb .c2 .txt{position:absolute;bottom:0;left:43px;font-size:20px;line-height:45px}.tg-hb .c2 .btn{position:absolute;bottom:7px;right:6px;width:101px;padding-left:20px;font-size:16px;line-height:31px;text-align:center;background-position:-112px -369px}.tg-hb .c2 .m2{position:absolute;z-index:5;top:0;left:0;width:375px;height:225px}.tg-hb .c2 .m1{position:absolute;z-index:3;bottom:0;left:36px;width:310px;height:45px;background:#000;opacity:.5;filter:alpha(opacity=50);border-radius:0 0 10px 10px}.tg-hb .c3{display:none}.tg-hb:hover .r{-webkit-animation-duration:.2s;animation-duration:.2s;-webkit-animation-fill-mode:both;animation-fill-mode:both;-webkit-animation-iteration-count:1;animation-iteration-count:1}.tg-hb:hover .r1{display:none\0\9;*display:none;-webkit-animation-name:ani-tg-hb-r1;animation-name:ani-tg-hb-r1}.tg-hb:hover .r2{display:block;display:none\0\9;*display:none;-webkit-animation-name:ani-tg-hb-r2;animation-name:ani-tg-hb-r2}.tg-hb:hover .r3{display:block;-webkit-animation-name:ani-tg-hb-r3;animation-name:ani-tg-hb-r3}.tg-hb:hover .pop{visibility:hidden}.tg-hb:hover .c2{width:310px;padding-left:36px;padding-right:29px;-webkit-transform:scale(1);-ms-transform:scale(1);transform:scale(1)}.tg-hb:hover .c2 .btn{-webkit-animation:ani-tg-hb-btn 1s infinite;animation:ani-tg-hb-btn 1s infinite}.tg-hb:hover .c3{display:block;position:absolute;bottom:18px;right:0;width:140px;height:180px;background:#fff;opacity:0;filter:alpha(opacity=0);cursor:pointer}@@-webkit-keyframes ani-tg-hb-r{0%,66.7%{-webkit-transform:rotate(0);transform:rotate(0)}33.3%{-webkit-transform:rotate(3deg);transform:rotate(3deg)}100%{-webkit-transform:rotate(-3deg);transform:rotate(-3deg)}}@@keyframes ani-tg-hb-r{0%,66.7%{-webkit-transform:rotate(0);transform:rotate(0)}33.3%{-webkit-transform:rotate(3deg);transform:rotate(3deg)}100%{-webkit-transform:rotate(-3deg);transform:rotate(-3deg)}}@@-webkit-keyframes ani-tg-hb-r1{0%,40%{opacity:1}40.1%,100%{opacity:0}}@@keyframes ani-tg-hb-r1{0%,40%{opacity:1}40.1%,100%{opacity:0}}@@-webkit-keyframes ani-tg-hb-r2{0%,40%,80.1%,100%{opacity:0}40.1%,80%{opacity:1}}@@keyframes ani-tg-hb-r2{0%,40%,80.1%,100%{opacity:0}40.1%,80%{opacity:1}}@@-webkit-keyframes ani-tg-hb-r3{0%,80%{opacity:0}80.1%,100%{opacity:1}}@@keyframes ani-tg-hb-r3{0%,80%{opacity:0}80.1%,100%{opacity:1}}@@-webkit-keyframes ani-tg-hb-btn{0%,10%,25%,100%{-webkit-transform:translateX(0);transform:translateX(0)}5%,15%{-webkit-transform:translateX(-5px);transform:translateX(-5px)}}@@keyframes ani-tg-hb-btn{0%,10%,25%,100%{-webkit-transform:translateX(0);transform:translateX(0)}5%,15%{-webkit-transform:translateX(-5px);transform:translateX(-5px)}}
+    </style>
+    */},
+    tmpl2: function () {/*@preserve
+    <div class="tg-hb">
+        <div class="c1">
+            <a href="@link" target="_blank" class="tg-hb-btn">
+                <span class="r r1"></span>
+                <span class="r r2"></span>
+                <span class="r r3"></span>
+                <span class="pop"><b>@iconText</b></span>
+            </a>
+            <a href="javascript:;" class="tg-hb-btn-close"></a>
+        </div>
+        <div class="c2">
+            <img src="@img" alt="">
+            <a href="@link" target="_blank">                
+                <span class="txt">@title</span>
+                <span class="btn">@btnText</span>                                
+            </a>
+            <b class="m1"></b>
+            <b class="m2"></b>
+        </div>
+        <div class="c3"></div>
+    </div>
+    */},
+    play: function () {
+        var me = this,
+            advEl = $('.' + this.options.advid),
+            html = $(adv.razor(this['tmpl' + this.data.template], this.data))
+        advEl.prepend(html)
+        $('head').append(adv.razor(this['cssTmpl' + this.data.template], ''))
+        html.find('.tg-hb-btn-close').on('click', function () {
+            html.remove()
+        })
+        this.emit(adv.ENUM.EVENTS.played);
+    }
+});

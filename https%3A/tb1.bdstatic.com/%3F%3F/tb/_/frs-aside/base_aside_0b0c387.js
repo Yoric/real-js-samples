@@ -1,0 +1,1 @@
+_.Module.define({path:"frs-aside/pagelet/base_aside",sub:{initial:function(e){1==e.brandAdsenseSwitch&&$.JsLoadManager.use("https://ecma.bdimg.com/lego-tpl/acde942d-7ec3-483c-aae9-eeffbc714af4.js",function(){var a=new LegoJsSdk("http://carp.baidu.com/tieba","branding_ads",{word:e.forumName,sec_dir:e.forumSecLvName,srcid:1453});a.render()})}}});

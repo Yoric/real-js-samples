@@ -1,0 +1,306 @@
+/**
+ * @method: addDiscountPrice
+ * @dependency: requireJS, jQuery, prdVar
+ */
+(function(root, factory) {
+	'use strict';
+    if (typeof define === 'function' && define.amd) {
+        define([
+            'jquery',
+            'prdDtlHtmlGenInfo'
+        ], factory);
+    } else {
+        root.addDiscountPrice = factory(
+            root.jQuery,
+            root.PrdDtlHtmlGenInfo
+        );
+    }
+}(window || this, function($, PrdDtlHtmlGenInfo) {
+	'use strict';
+	var prdVar = productPrdInfo;
+	var prcVar = productPrcInfo;
+	
+	//addDiscountedPrice
+	var addDiscountPrice = {
+		
+		mywayPrmtYn : "N",
+		mywayPrmtYnByHTMLGen : "N",
+		isGateSkMember : "",
+		skMemberDscRt : "",
+		sktPointDscRt : "",
+		sktPointDscRtByHTMLGen : "",
+		tMembershipLimitAmt : "",
+		mileageDscRt : "",
+		mileageDscRtByHTMLGen : "",
+		mileageLimitAmt : "",
+		cardDscRt : "",
+		cardDscRtByHTMLGen : "",
+		cardDscNm : "",
+		directTargetIds : ["skMemberDscPrc"],
+
+		init : function() {
+			this.mywayPrmtYn            = prcVar.mywayPrmtYn;
+			this.mywayPrmtYnByHTMLGen   = prcVar.mywayPrmtYnByHTMLGen;
+			this.isGateSkMember         = prcVar.isGateSkMember;
+			this.skMemberDscRt          = prcVar.skMemberDscRt;
+			this.sktPointDscRt          = prcVar.sktPointDscRt;
+			this.sktPointDscRtByHTMLGen = prcVar.sktPointDscRtByHTMLGen;
+			this.tMembershipLimitAmt    = prcVar.tMembershipLimitAmt;
+			this.mileageDscRt           = prcVar.mileageDscRt;
+			this.mileageDscRtByHTMLGen  = prcVar.mileageDscRtByHTMLGen;
+			this.mileageLimitAmt        = prcVar.mileageLimitAmt;
+			this.cardDscRt              = prcVar.cardDscRt;
+			this.cardDscRtByHTMLGen     = prcVar.cardDscRtByHTMLGen;
+			this.cardDscNm              = prcVar.cardDscNm;
+		},
+		
+		preVisibleProcess : function() {
+			var isPrdFnMyCupn = (("Y" == prdVar.isPrdFnMyCupnYn ? true : false) && (true== prdVar.isDpCalc));
+			if( !isPrdFnMyCupn || !funcCheckIsLogin() ) {
+				this.visibleProcess();
+			}
+		},
+		
+		visibleProcess : function(){
+			require(['prdDtlHtmlGenInfo'] , function(PrdDtlHtmlGenInfo){
+				var appendId = "";		
+				
+				if( PrdDtlHtmlGenInfo.isHTMLPage && getBookMarkYn() ) {
+					appendId = "ByHTMLGen";
+				}
+
+				if(getBookMarkYn()) {
+					$("#addPriceDetail"+appendId+" > li").each(function(){
+						for(var i=0; i<addDiscountPrice.directTargetIds.length; i++){
+							if(addDiscountPrice.directTargetIds[i] === this.id){
+								$("#"+this.id).css("display", addDiscountPrice.isDisplayBlockVer() ? "block" : "table-row");
+								break;
+							}
+						}
+					});
+				} else {
+					$("#addPriceDetail"+appendId+" > li").each(function(){
+						for(var i=0; i<addDiscountPrice.directTargetIds.length; i++){
+							if(addDiscountPrice.directTargetIds[i] === this.id){
+								$("#"+this.id).remove();
+								break;
+							}
+						}
+					});
+				}
+				
+				var passShow = true;
+				var pXsiteExcept = $("#pXsiteExcept").val();
+				
+				if(PrdDtlHtmlGenInfo.isHTMLPage && $("li[name=otherCasePrmt]").length > 0  && (pXsiteExcept.indexOf("|"+ TMCookieUtil.getCookie("XSITE") +"|")  >= 0 )) {
+					$("li[name=removeCasePrmt]").remove();
+				} else if(PrdDtlHtmlGenInfo.isHTMLPage && $("li[name=otherCasePrmt]").length == 0 && (pXsiteExcept.indexOf("|"+ TMCookieUtil.getCookie("XSITE") +"|")  >= 0 )) {
+					$("dscPrcAreaByHTMLGen").remove();
+					$("dscPrcArea").remove();
+					passShow = false;
+				}
+	
+				// 0원 이하 입력된 항목 Remove 처리
+				addDiscountPrice.removeDscPrcCheck("#addPriceDetail"+appendId+" > li");
+
+                var minDiscount = 0;
+				if($("#addPriceDetail"+appendId+" > li").length > 0 && !prdVar.isSnsMember){
+					var arrDscPrice = [];
+					var prcObjId = "#addPriceDetail"+appendId+" > li";
+
+					$(prcObjId).each(function(){
+						var dscprice = Number($(this).find("em:last").html().replaceAll(",", ""));
+						if(prcVar.dscPrc != dscprice){
+							arrDscPrice.push(dscprice);
+						}
+					});
+
+					if(arrDscPrice.length > 0) {
+						//최저할인금액
+						minDiscount    = Math.min.apply(null, arrDscPrice);
+						var minDiscountTxt = [];
+						$("#minDscPrc"+appendId).html(addDiscountPrice.getCommaString(minDiscount)+"원"+prcVar.optPrcText);
+
+                        $("#addPriceDetail"+appendId+" > li.tMembershipTr").insertAfter("#addPriceDetail"+appendId+" > li.cardDscTr");
+
+						$(prcObjId).each(function(){
+							if( minDiscount == Number($(this).find("em:last").html().replaceAll(",", "")) ){
+								//최저할인가
+								minDiscountTxt.push($(this).find("em:first").html());
+							}
+						});
+						$("#minDiscountTxt"+appendId).html(minDiscountTxt[0]);
+					} else {
+						passShow = false;
+					}
+					if(passShow) {
+						$("#dscPrcArea"+appendId).show();		
+					}
+				} else {
+					$("#dscPrcArea"+appendId).remove();
+				}
+
+				if( (minDiscount == 0 && prcVar.pcsCardDscAmt > 0) ||
+						(minDiscount > 0 && prcVar.pcsCardDscAmt > 0 && minDiscount > prcVar.pcsCardDscAmt ) ) {
+                    $("#dscPrcArea"+appendId).remove();
+					$("#dscPrcAreaPcs").show();
+				}
+
+				if( appendId != "" ) {
+					$("#dscPrcArea").remove();
+				}
+			});
+		},
+
+		removeDscPrcCheck : function(objId) {
+			if( $(objId).length > 0 ) {
+				var tmpPrc = 0;
+				$(objId).each(function(){
+					tmpPrc = Number($(this).find("em:last").html().replaceAll(",", ""));
+					if( tmpPrc <= 0 ) {
+						$(this).remove();
+					}
+				});
+			}
+		},
+		setMywayPrmtArea : function(data, cupnPrcCheckYn) {
+			require(['prdDtlHtmlGenInfo','productPrice'] , function(PrdDtlHtmlGenInfo, productPrice){
+				var addHtmlArr = null;
+				var isAddDiscount = false;
+				var realRt = "";
+
+				if( addDiscountPrice.getNumberValue(data.sktPointPrmtPrc) > 0 ) {
+					isAddDiscount = true;
+					addHtmlArr = new Array();
+
+					if(data.sktPointRealDscRt >= 1) {
+						addHtmlArr.push('<p><span class="ico"></span><em>T멤버십 할인</em>(' + String(parseFloat(data.sktPointRealDscRt)).Digit2Comma() + '%할인 '+ productPrice.tMembershipLimitAmtStr +')</p>');
+					} else {
+						addHtmlArr.push('<p><span class="ico"></span><em>T멤버십 할인</em>(' + productPrice.tMembershipLimitAmtStr.replace(", ", "") +')</p>');
+					}
+					addHtmlArr.push('<span style="display: none"><em>' +  String(Number(data.sktPointPrmtPrc)).Digit2Comma() + '</em>원</span>');
+					var addHtml = addHtmlArr.join("");
+
+					addDiscountPrice.setMywayPrmtHTML("tMembershipTr", addHtml, true, data);
+				}
+
+				if( addDiscountPrice.getNumberValue(data.mileagePrc) > 0 ) {
+					isAddDiscount = true;
+					addHtmlArr = new Array();
+					var mileageTxt = "마일리지 할인가";
+					if (data.isMileageGradeDiscount == true) {
+						mileageTxt = data.buyGrdNm + " 마일리지 할인";
+					}
+					if(data.mileageRealDscRt >= 1) {
+						addHtmlArr.push('<p><span class="ico"></span><em>' + mileageTxt + '</em>(' + String(parseFloat(data.mileageRealDscRt)).Digit2Comma() + '%할인 '+ productPrice.mileageLimitAmtStr + ')</p>');						
+					} else {
+						addHtmlArr.push('<p><span class="ico"></span><em>' + mileageTxt + '</em>(' + productPrice.mileageLimitAmtStr.replace(", ", "") + ')</p>');												
+					}
+					addHtmlArr.push('<span style="display: none"><em>' +  String(Number(data.mileagePrc)).Digit2Comma() + '</em>원</span>');
+					var addHtml = addHtmlArr.join("");
+	
+					addDiscountPrice.setMywayPrmtHTML("mileageDscTr", addHtml, false, data);
+				}
+
+				if( addDiscountPrice.getNumberValue(data.cardDscPrc) > 0 ) {
+					isAddDiscount = true;
+					addHtmlArr = new Array();
+
+					if(data.cardLimitAmt == 1) {
+						if(data.cardRealDscRt >= 1) {
+							addHtmlArr.push('<p><span class="ico"></span><em>카드추가 할인</em>(' + String(parseFloat(data.cardRealDscRt)).Digit2Comma() + '%, ' + addDiscountPrice.cardDscNm + '카드 결제 시)</p>');
+						} else {
+							addHtmlArr.push('<p><span class="ico"></span><em>카드추가 할인</em>(' + addDiscountPrice.cardDscNm + '카드 결제 시)</p>');
+						}
+					} else if(data.cardRealDscRt >= 1) {
+						if(Number(data.cardLimitAmt) > 0) {
+							addHtmlArr.push('<p><span class="ico"></span><em>카드추가 할인</em>(' + String(parseFloat(data.cardRealDscRt)).Digit2Comma() + '%, 최대 ' + String(Number(data.cardLimitAmt)).Digit2Comma() + '원, '+ addDiscountPrice.cardDscNm + '카드 결제 시)</p>');
+						} else {
+							addHtmlArr.push('<p><span class="ico"></span><em>카드추가 할인</em>(' + String(parseFloat(data.cardRealDscRt)).Digit2Comma() + '%, '+ addDiscountPrice.cardDscNm + '카드 결제 시)</p>');
+						}
+					} else {
+						if(Number(data.cardLimitAmt) > 0) {
+							addHtmlArr.push('<p><span class="ico"></span><em>카드추가 할인</em>(최대 ' + String(Number(data.cardLimitAmt)).Digit2Comma() + '원, ' + addDiscountPrice.cardDscNm + '카드 결제 시)</p>');
+						} else {
+							addHtmlArr.push('<p><span class="ico"></span><em>카드추가 할인</em>(' + addDiscountPrice.cardDscNm + '카드 결제 시)</p>');
+						}
+					}
+					addHtmlArr.push('<span style="display: none"><em>' +  String(Number(data.cardDscPrc)).Digit2Comma() + '</em>원</span>');
+
+					var addHtml = addHtmlArr.join("");
+
+					addDiscountPrice.setMywayPrmtHTML("cardDscTr", addHtml, false, data);
+				}
+
+				// 쿠폰적용가 있고, 추가 할인가 없을 경우
+				if( cupnPrcCheckYn == "Y" && !isAddDiscount) {
+					var appendId = "";
+					if( PrdDtlHtmlGenInfo.isHTMLPage && getBookMarkYn() ) {
+						appendId = "Gen";
+					}
+					$("#divMyCupnPrc"+appendId).css("display", "block");
+					$("#myCupnPrc"+appendId).html(addDiscountPrice.getCommaString(Number(prdVar.selPrc) - Number(data.myCupnDscPrc)));
+				}
+				addDiscountPrice.visibleProcess();
+			});
+		},
+
+		setEventPrmtHtml : function(cls, addHtml){
+			var jqueryStr = '#addPriceDetail > li.'+cls;
+			var jqueryStByHtmlGen = '#addPriceDetailByHTMLGen > li.'+cls;
+			if($(jqueryStr).length > 0){
+				$(jqueryStr).html(addHtml);
+			}else{
+				$("#addPriceDetail").append('<li class="'+cls+'" name="removeCasePrmt">'+addHtml+'</li>');
+			}
+
+			if($(jqueryStByHtmlGen).length > 0){
+				$(jqueryStByHtmlGen).html(addHtml);
+			}else{
+				$("#addPriceDetailByHTMLGen").append('<li class="'+cls+'" name="removeCasePrmt">'+addHtml+'</li>');
+			}
+		},
+		
+		setMywayPrmtHTML : function(cls, addHtml, isSktPrmt, data) {
+			var _this = this;
+			require(['prdDtlHtmlGenInfo','productPrice'] , function(PrdDtlHtmlGenInfo, productPrice){
+
+				_this.setEventPrmtHtml(cls, addHtml);
+				if( PrdDtlHtmlGenInfo.isHTMLPage && getBookMarkYn() ) {
+					if( isSktPrmt ) {
+						productPrice.tMembershipByHTMLGen = data.sktPointDscRt;
+					}
+				}
+			});
+		},
+		getNumberValue : function(data) {
+			if( data != null && typeof(data) != "undefined" && !isNaN(data) ) {
+				return Number(data);
+			}
+
+			return 0;
+		},
+		
+		isDisplayBlockVer : function(){
+			return !((isIE && document.documentMode > 7) || !isIE);
+		}, 
+		
+		getCommaString : function(val) {
+			var pVal = val + "";
+			if (val == undefined || val == "" || !IsNumeric(val)) return 0;
+			if (pVal.length > 3) {
+				var result = "";
+				for (var i = pVal.length, j = 0; i >= 0; i--, j++) {
+					if (i != pVal.length && i%3 == 0 && i != 0) {
+						result += ",";
+					}
+					result += pVal.charAt(j);
+				}
+				return result;
+			} else {
+				return pVal;
+			}
+		}
+	};
+	return addDiscountPrice;
+}));

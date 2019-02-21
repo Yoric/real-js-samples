@@ -1,0 +1,90 @@
+!function(a) {
+    function i(e) {
+        if (t[e]) return t[e].exports;
+        var s = t[e] = {
+            "i": e,
+            "l": !1,
+            "exports": {}
+        };
+        return a[e].call(s.exports, s, s.exports, i), s.l = !0, s.exports;
+    }
+    var t = {};
+    i.m = a, i.c = t, i.d = function(a, t, e) {
+        i.o(a, t) || Object.defineProperty(a, t, {
+            "configurable": !1,
+            "enumerable": !0,
+            "get": e
+        });
+    }, i.n = function(a) {
+        var t = a && a.__esModule ? function() {
+            return a["default"];
+        } : function() {
+            return a;
+        };
+        return i.d(t, "a", t), t;
+    }, i.o = function(a, i) {
+        return Object.prototype.hasOwnProperty.call(a, i);
+    }, i.p = "", i(i.s = 0);
+}([ function(a, i, t) {
+    "use strict";
+    adv.AdBase.extend("Ad17173Carousel", {
+        "init": function(a) {
+            this.base(a), this.emit(adv.ENUM.EVENTS.inited);
+        },
+        "setup": function(a) {
+            if (this.data = a, 2 == this.data.items.length) {
+                var i = t(1);
+                this.data.advid = this.options.advid, this.data.initIndex = Math.floor(Math.random() * this.data.items.length), 
+                this.data.html = adv.razor(i, this.data), this.emit(adv.ENUM.EVENTS.setuped);
+            }
+        },
+        "play": function() {
+            var a = this, i = $("." + this.data.advid);
+            this.preloadNum = 0, this.preloadImage(function() {
+                i.empty().append(a.data.html).show(), a.slide = new ue.SlidePad(i.find(".slide-tg-avatar")), 
+                a.data.items[0].adskey && adv.util.sendIpa(i.find("li:eq(0)"), a.data.items[0].adskey, !0), 
+                a.data.items[1].adskey && adv.util.sendIpa(i.find("li:eq(1)"), a.data.items[1].adskey, !0), 
+                a.data.items[0].adskey && adv.util.sendIpa(i.find("li:eq(2)"), a.data.items[0].adskey, !1), 
+                a.data.items[1].adskey && adv.util.sendIpa(i.find("li:eq(3)"), a.data.items[1].adskey, !1), 
+                a.data.items[0].adskey && adv.util.sendIpa(i.find("li:eq(4)"), a.data.items[0].adskey, !1), 
+                a.data.items[1].adskey && adv.util.sendIpa(i.find("li:eq(5)"), a.data.items[1].adskey, !1), 
+                a.onResizehandler();
+                var t = null;
+                $(window).on("resize", function() {
+                    t || (t = setTimeout(function() {
+                        a.onResizehandler(), clearTimeout(t), t = null;
+                    }, 100));
+                }), a.emit(adv.ENUM.EVENTS.played);
+            });
+        },
+        "preloadImage": function(a) {
+            var i = this, t = $(new Image());
+            t.load(function() {
+                i.preloadNum++, i.data.items.length > i.preloadNum ? i.preloadImage(a) : a();
+            });
+            var e = this.data.items[this.preloadNum].image;
+            t.attr("src", e);
+        },
+        "onResizehandler": function() {
+            $("." + this.data.advid).find("li").css({
+                "width": $("body").width() + "px"
+            }), $("body").width() > $(window).width() ? (this.slide.mark.prev.css({
+                "margin-left": "0px",
+                "left": "50px"
+            }), this.slide.mark.next.css({
+                "margin-right": "0px",
+                "right": "50px"
+            })) : (this.slide.mark.prev.css({
+                "margin-left": "-576px",
+                "left": "50%"
+            }), this.slide.mark.next.css({
+                "margin-right": "-576px",
+                "right": "50%"
+            })), this.slide.calcSize(), this.slide.mark.panel.stop(), this.slide.resetPosition(), 
+            this.slide.toggling = !1;
+        }
+    });
+}, function(a, i) {
+    a.exports = '<div class="slide-wrap slide-tg-avatar ue-slide-pad" data-ui-toggle="3" data-ui-index="@initIndex">\n<div class="slide-con">\n    <ul class="slide-list" data-ui-mark="panel">\n    @for(var i = 0; i < items.length; i++) {\n        <li data-ui-mark="item">\n        <a href="@items[i].link" target="_blank" class="con" style="background-image:url(@protocol@items[i].image)"></a>\n        </li>\n    }\n    </ul>\n</div>\n<div class="slide-nav" data-ui-mark="nav"></div>\n<a href="javascript:;" class="slide-btn slide-btn-prev" data-ui-mark="prev"><i class="ico ico-prev">上一页</i><b class="mask"></b></a>\n<a href="javascript:;" class="slide-btn slide-btn-next" data-ui-mark="next"><i class="ico ico-next">下一页</i><b class="mask"></b></a>\n</div>';
+} ]);
+//# sourceMappingURL=production.js.map

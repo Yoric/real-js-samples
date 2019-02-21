@@ -1,0 +1,227 @@
+var currentParallax = null;
+var slider = new Siema({
+  selector: ".page",
+  duration: 0,
+  draggable: false,
+  perPage: 1,
+  onInit: function () { },
+  onChange: function () {
+    if (!isMobileView()) {
+      var slide = document.querySelector('[data-slide="' + this.currentSlide + '"]')
+
+      slide.classList.add('slide--active', 'animating')
+
+      animateSlideIn(slide.dataset.slide);
+
+      setTimeout(function () {
+        var scene = slide.querySelector('.parallax');
+        slide.classList.remove('animating');
+
+        if (scene) {
+          if (currentParallax !== null) currentParallax.destroy();
+          currentParallax = new Parallax(scene);
+        }
+      }, 1000)
+    }
+  }
+});
+
+function isMobileView() {
+  var width_screen = document.documentElement.clientWidth;
+  return width_screen <= 960;
+}
+
+function initPageScroll() {
+  _mouseWheelHandler = function (event) {
+    if (document.body.classList.contains("popup-active")) {
+      return false;
+    } else {
+      event.preventDefault();
+      var delta = event.wheelDelta || -event.detail;
+
+      if (delta < 0) {
+        move('forward');
+      } else {
+        move('backward');
+      }
+    }
+  };
+
+  _keyboardHandler = function (event) {
+    if (document.body.classList.contains("popup-active")) {
+      return false;
+    } else {
+      if (event.keyCode === 40) move('forward');
+      if (event.keyCode === 38) move('backward');
+    }
+  }
+
+  _swipeEvents = function () {
+    var startX,
+      startY;
+
+    document.addEventListener("touchstart", touchstart);
+
+    function touchstart(event) {
+      var touches = event.touches;
+      if (touches && touches.length) {
+        startX = touches[0].pageX;
+        startY = touches[0].pageY;
+        document.addEventListener("touchmove", touchmove);
+      }
+    }
+
+    function touchmove(event) {
+      var touches = event.touches;
+      if (touches && touches.length) {
+        event.preventDefault();
+        var deltaX = startX - touches[0].pageX;
+        var deltaY = startY - touches[0].pageY;
+
+        if (deltaX >= 50) {
+          var event = new Event('swipeLeft');
+          document.dispatchEvent(event);
+        }
+        if (deltaX <= -50) {
+          var event = new Event('swipeRight');
+          document.dispatchEvent(event);
+        }
+        if (deltaY >= 50) {
+          var event = new Event('swipeUp');
+          document.dispatchEvent(event);
+        }
+        if (deltaY <= -50) {
+          var event = new Event('swipeDown');
+          document.dispatchEvent(event);
+        }
+
+        if (Math.abs(deltaX) >= 50 || Math.abs(deltaY) >= 50) {
+          document.removeEventListener('touchmove', touchmove);
+        }
+      }
+    }
+
+  };
+
+  document.addEventListener("mousewheel", _mouseWheelHandler);
+  document.addEventListener("DOMMouseScroll", _mouseWheelHandler);
+  document.addEventListener("keydown", _keyboardHandler);
+  _swipeEvents();
+  document.addEventListener("swipeDown", function () {
+    if (document.body.classList.contains("popup-active")) {
+      return false;
+    } else {
+      move('backward');
+    }
+  });
+
+  document.addEventListener("swipeUp", function () {
+    if (document.body.classList.contains("popup-active")) {
+      return false;
+    } else {
+      move('forward');
+    }
+  });
+  document.addEventListener("click", function (event) {
+    if (event.target.classList.contains('js-next')) {
+      move('forward');
+    }
+  })
+
+
+  this.move = function (direction) {
+    var slide = document.querySelector('.slide--active')
+    if (!slide) {
+      slide = slider.currentSlide === 0 ? document.querySelector('.slide--start') : document.querySelector('.slide--final');
+    }
+    if (slide.classList.contains('animating')) return false;
+
+    var promise = new Promise(function (resolve) {
+      //before side change
+      if (isMobileView()) {
+        resolve(true);
+      } else {
+        if (currentParallax !== null) currentParallax.disable();
+        slide.classList.add('animating');
+        animateSlideOut(slide.dataset.slide);
+
+        setTimeout(function () {
+          slide.classList.remove('slide--active', 'animating');
+          resolve(true);
+        }, slide.dataset.delay);
+      }
+    });
+
+    promise.then(function (result) {
+      if (direction === 'forward') {
+        slider.next();
+      } else {
+        slider.prev()
+      }
+    });
+  };
+}
+
+function animateSlideIn(slideNumber) {
+  var slide = document.querySelector('.slide--active')
+
+  var layers = slide.querySelectorAll('.parallax_layer')
+  switch (slideNumber) {
+    case '5':
+    case '6':
+      {
+        for (var i = 0; i < layers.length; i++) {
+          layers[i].style.opacity = '1';
+        }
+        break;
+      }
+    default:
+      {
+        for (var i = 0; i < layers.length; i++) {
+          layers[i].style.transform = 'translateX(0) translateY(0)';
+        }
+      }
+  }
+}
+
+function animateSlideOut(slideNumber) {
+  var slide = document.querySelector('.slide--active')
+
+  switch (slideNumber) {
+    case '1':
+      {
+        var layer1 = slide.querySelector('.parallax_layer--1');
+        var layer2 = slide.querySelector('.parallax_layer--2');
+        layer1.style.transform = 'translateX(-200vw)';
+        layer2.style.transform = 'translateX(200vw)';
+        break;
+      }
+    case '3':
+      {
+        var layer2 = slide.querySelector('.parallax_layer--2');
+        layer2.style.transform = 'translateX(-100vw)';
+        break;
+      }
+    case '5':
+    case '6':
+      {
+        var layers = slide.querySelectorAll('.parallax_layer')
+        for (var i = 0; i < layers.length; i++) {
+          layers[i].style.opacity = '0';
+        }
+        break;
+      }
+    case '7':
+      {
+        var layer3 = slide.querySelector('.parallax_layer--3');
+        layer3.style.transform = 'translateX(200vw)';
+        break;
+      }
+  }
+}
+
+document.addEventListener("click", function (event) {
+  if (event.target.classList.contains("js-scroll-down")) {
+    slider.goTo(9);
+  }
+});

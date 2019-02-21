@@ -1,0 +1,3 @@
+try {
+document.getElementById("dsGnbBanner").innerHTML = "<a href=http://ds.11st.co.kr/click/11st/11st_sub/sub@subGNB?ads_id=51232&creative_id=43417&click_id=41937&noCache=20190221124458&category=0 target=_blank><img src=http://i.011st.com/ds/2019/01/30/1130/6d772dddb7b2df46bcf38590fa98fdd4.jpg width=160 height=60 alt=할인쿠폰증정  border=0 ></a>";
+} catch(e) {}

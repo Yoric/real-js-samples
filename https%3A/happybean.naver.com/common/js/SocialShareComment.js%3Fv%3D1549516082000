@@ -1,0 +1,1064 @@
+var $J = jQuery.noConflict();
+
+
+/**
+	사용법
+	<hb:script src="/common/js/SocialShareComment.js" />
+	<script type="text/javascript">
+
+		comment.articleNo = "게시물번호";
+		comment.serviceName = "서비스명";
+
+		$J(document.body).ready(function() {
+			$J.post('${domain.event}/comment/social/' + comment.articleNo, function(data){
+
+				var $data = $J(data);
+				$data.find("[placeholder]").placeholder();	// IE placeholder 대응
+				$J("#commentRect").html($data);
+
+			}).fail(function(){
+				alert("통신 오류가 발생하였습니다.");
+			});
+		});
+
+	</script>
+	<div id="commentRect"></div>	 //덧글 노출 영역
+ *
+ */
+function SocialShareComment() {
+	this.articleNo = null;
+	this.actionPath = "/comment/social";
+	this.pageSize = 50;
+	this.page = 1;
+	this.createAction = "SocialShareCommentCreate";
+	this.removeAction = "CommentRemove";
+	this.modifyAction = "CommentModifyMe";
+	this.replyAction = "CommentReply";
+	this.replyListAction = "";
+	this.recommendAction = "CommentRecommend";
+	this.checkAction = null;
+	this.result = "";
+	this.fundNo = "";
+
+	this.clubMember = false;
+
+	this.currentPage = "current";
+	this.defaultMessage = "";
+	this.callbackFunction = null;
+	this.serviceName = "";
+
+	this.preTarget = 1;
+	this.orderBy = '';
+	//찬성 반대 여부
+	this.apply = true;
+	//추가 파라미터
+	this.addParam = {};
+
+	this.param = function() {
+		var params = "page.page=" + this.page
+		+ "&result=" + this.result
+		+ "&orderBy=" + this.orderBy + "&fundNo=" + this.fundNo
+		+ "&" + jQuery.param( this.addParam );
+		return params;
+	};
+
+	this.replyPage = 1;
+	this.replyPageSize = 10;
+	this.replyResult = "";
+	this.addReplyParam = {};
+
+	this.replyParam = function() {
+		var params = "page.page=" + this.replyPage
+		+ "&result=" + this.replyResult
+		;
+		return params;
+	};
+
+	this.goPre = function(page,articleNo) {
+		if (page > 1) {
+			page--;
+		}
+		return this.goPage(page);
+	};
+
+	this.goNext = function(page, articleNo) {
+
+		page++;
+		return this.goPage(page,articleNo);
+	};
+
+	this.goPage = function(page,articleNo) {
+		if(articleNo != null){
+			this.articleNo = articleNo;
+		}
+		if ( page != null) {
+			this.page = page;
+		}
+		try {
+			var url = this.actionPath + "/" + this.articleNo;
+			var params = this.param();
+			$J.get(url, params, function(data) {
+				comment.listComment(data);
+			});
+		} catch (e) {
+		} finally {
+			return false;
+		}
+	};
+
+	this.listComment = function(data) {
+		var test = jQuery.trim(data);
+		//응답이 Limit;로 시작되는경우 글쓰기 제한 처리를 한다. 뒷부분이 금지에 대한 사유임
+		if ( test.match("^Limit;") == "Limit;") {
+			var result = data.split(';');
+			if(result[1] != '' && result[1] != null) {
+				var regExp = /\\r\\n/g;
+				alert(result[1].replace(regExp, '\r\n'));
+			} else {
+				alert("죄송합니다.\n요청이 금지 되었습니다.");
+			}
+/*			$J.post('http://local.happybean.naver.com/comment/social/' + comment.articleNo, function(data){
+
+				var $data = $J(data);
+				$data.find("[placeholder]").placeholder();
+				$J('#commentRect').html(data);
+			});*/
+		}
+		else {
+			$J('#commentRect').html(data);
+		}
+		if ($J.isFunction(this.callbackFunction)){
+			this.callbackFunction();
+		}
+	};
+
+	this.checkAndAddComment = function() {
+		var element = $J('#cmntcontent').get(0);
+		var defaultMessage = $J(element).attr('attTtl');
+		var content = $J.trim($J(element).val());
+		content = (content == defaultMessage)? '' : content;
+
+		var url = this.actionPath + "/" + this.checkAction;
+		var params = this.param();
+
+		$J.getJSON(url, params, function(data) {
+			if (data.result) {
+				alert(data.message);
+				$J('#cmntcontent').val('');
+			} else {
+				comment.addComment();
+			}
+		});
+		return false;
+	};
+
+	this.addComment = function(isApply) {
+		var element = $J('#cmntcontent').get(0);
+		var defaultMessage = $J(element).attr('attTtl');
+		var content = $J.trim($J(element).val());
+		content = (content == defaultMessage)? '' : content;
+
+		var url = this.actionPath + "/" + this.articleNo + "/" + this.createAction;
+		var params = this.param() + "&content=" + encodeURIComponent(content);
+
+		//해피에너지 헤더
+		var titleValue = $J.trim($J('.cct_happyenergy_radio:checked').val());
+		if (titleValue) {
+			params += "&title=" + titleValue;
+		}
+		//클럽멤버
+		if (this.clubMember) {
+			params += "&clubMember="+this.isClbMbr;
+		}
+		//club 찬반
+		if ( isApply ) {
+			params += "&apply=" + isApply;
+		}
+		var callbackObj = {
+			'invoke' : function(){
+				$J.post(url, params, function(data) {
+					comment.listComment(data);
+				});
+			}
+		};
+
+		var prohibit_params = "comment=" + encodeURIComponent(content);
+		prohibitWord.prohibitWordFilter4Object(prohibit_params, callbackObj, "commentRect");
+		return false;
+	};
+
+	this.modifyComment = function(commentSeq, content, element) {
+		var url = this.actionPath + "/" + this.articleNo + "/" + commentSeq + "/" + this.modifyAction;
+		var params = this.param() + '&commentSeq=' + commentSeq + '&content=' + encodeURIComponent(content);
+
+		var callbackObj = {
+			'invoke' : function(){
+				$J.post(url, params, function(data) {
+					comment.listComment(data);
+				});
+			}
+		};
+
+		var prohibit_params = "comment=" + encodeURIComponent(content);
+		prohibitWord.prohibitWordFilter4Object(prohibit_params, callbackObj, "commentRect");
+		return false;
+	};
+
+	this.deleteComment = function(commentSeq,upperCommentSeq) {
+		if (confirm("삭제하시겠습니까?")) {
+			var url = this.actionPath + "/" + this.articleNo +"/" + commentSeq + "/" + this.removeAction;
+			var params = this.param() + '&commentSeq=' + commentSeq+ '&upperCommentSeq=' + upperCommentSeq;
+			$J.get(url, params, function(data) {
+				comment.listComment(data);
+			});
+		}
+	};
+
+	this.replyComment = function(upperCommentSeq, commentObjectMemberNickName, content, element) {
+		var targetValue = "";
+		var url = this.actionPath + "/" + this.articleNo +"/" + upperCommentSeq + "/" + this.replyAction;
+		var params = this.param() + '&clubMember=' + this.clubMember + '&targetValue=' + targetValue
+			+ '&upperCommentSeq='+upperCommentSeq +'&commentObjectMemberNickName='+ encodeURIComponent(commentObjectMemberNickName)
+			+ '&content=' + encodeURIComponent(content);
+
+		var callbackObj = {
+			'invoke' : function(){
+				$J.ajax({
+					url : url,
+					type: 'POST',
+					data : params,
+					success:function(data)
+					{
+						comment.listComment(data);
+					},
+					error:function(data)
+					{
+						comment.listComment(data.responseText);
+					}
+				});
+			}
+		};
+
+		var prohibit_params = "comment=" + encodeURIComponent(content);
+		prohibitWord.prohibitWordFilter4Object(prohibit_params, callbackObj, "commentRect");
+		return false;
+	};
+
+	this.doLogin = function() {
+		if (confirm("로그인이 필요합니다.") == true) {
+			var targetUrl = top.location.href;
+			var hash = top.location.hash;
+			//이벤트 iframe을 가진페이지에서 인증후 리다이렉션시 iframe쪽 url이 제대로 열리기 위
+			//이벤트 캠페인 번호를 추가해주도록 한다. 이때 hash에 최근 선택한 이벤트 캠페인 번호가 들어있으므로
+			//이값이 존재하는 경우에만 리턴 url에 새로운 캠페인 번호를 추가하도록 한다.
+			if (hash.indexOf("#campaignNo=") >= 0) {
+				targetUrl = targetUrl.replace(/&campaignNo=[0-9]+/g, '');
+				targetUrl = targetUrl.replace("#", "&");
+			}
+			targetUrl = targetUrl+'#commentRect';
+			top.location.href="https://nid.naver.com/nidlogin.login?url=" +  encodeURIComponent(targetUrl);
+		}
+		return false;
+	};
+
+	this.checkCommentType = function(type) {
+		if (type == 0) {
+			alert("네티즌만 댓글을 입력할 수 있습니다.");
+		} else {
+			alert("후원파트너만 댓글을 입력할 수 있습니다.");
+		}
+	};
+
+	this.orderList = function(orderByWhat){
+		if(orderByWhat == "rcmd"){
+			this.orderBy = orderByWhat;
+			this.goPage(1, this.articleNo);
+		}else{
+			this.orderBy = '';
+			this.goPage(1, this.articleNo);
+		}
+	}
+
+	this.selectedSnsNames = new Array();
+
+	this.checkbox = function(providerId) {
+		var $label = $J("label[for=" + providerId + "]");
+		var $icon = $label.children().first();
+
+		if ($icon.hasClass("ico_" + providerId + "_on") == false) {
+			$icon.removeClass("ico_" + providerId).addClass("ico_" + providerId + "_on");
+			$label.prev().prop("checked", true).addClass("_marking_class_checked");
+		}
+
+		this.changeMaxCount(providerId);
+	}
+
+	this.changeMaxCount = function(snsName) {
+		if (snsName != null && $J.inArray(snsName, this.selectedSnsNames) == -1)
+			this.selectedSnsNames.push(snsName);
+
+		var maxCount = 1000;
+		if ($J.inArray("twitter", this.selectedSnsNames) > -1) {
+			maxCount = 115;
+		}
+		else {
+			maxCount = 1000;
+		}
+
+		$J(".cmt_area_v2 .wrt_frm .txt_count ._marking_class_reply_count").text(maxCount);
+	}
+
+	String.prototype.cut = function(len) {
+        var str = this;
+        var l = 0;
+        for (var i=0; i<str.length; i++) {
+                l += (str.charCodeAt(i) > 128) ? 2 : 1;
+                if (l > len) return str.substring(0,i);
+        }
+        return str;
+	};
+
+	String.prototype.lenb = function() {
+	    var str = this;
+	    var l = 0;
+	    for (var i=0; i<str.length; i++)
+	        l += (str.charCodeAt(i) > 128) ? 2 : 1;
+
+	    return l;
+	};
+
+}
+
+$J(document).ready(function($) {
+	$J.ajaxSetup({
+		'scriptCharset': "utf-8"
+		,'contentType': "application/x-www-form-urlencoded; charset=utf-8"
+		,'beforeSend': function(xhr) {xhr.setRequestHeader("ajax", "true");}
+		,'error': function(XMLHttpRequest, textStatus, errorThrown) {
+			if(XMLHttpRequest.status == 506){
+				alert("양해 부탁드립니다! 도배, 욕설 등으로 인한 서비스 품질 저하를 방지하기 위하여\n\r덧글 입력 뒤 일정시간 동안 추가 입력을 제한하고 있습니다. \n\r소중한 참여에 항상 감사드리며, 건강한 덧글을 부탁드립니다.");
+			}else{
+				//alert("처리중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요");
+			}
+		}
+	});
+
+	// SNS 연동 여부에서 마우스 오버 시 보여줄 한글 툴팁 맵.
+	// B-3에서 사용한다.
+	var snsNameMap = {
+		twitter: "트위터",
+		facebook: "페이스북"
+	};
+
+	var characterLengthMinLimit = 10;
+
+	// 문자열 뒤에 특정 문자열을 붙일 때 사용.
+	$.fn.appendValue = function(options) {
+		return $(this).val($(this).val() + options.value);
+	}
+
+	// 로그인 확인 함수.
+	// 로그인이 안돼있다면 관련 로직을 실행하고
+	// 이미 돼있다면 콜백 함수를 실행시킨다.
+	function isLoggedIn(callback) {
+		if (comment.loggedin == false) {
+			comment.doLogin();
+		} else {
+			return callback.call();
+		}
+	}
+
+	// 로그인 여부를 확인한 후, 안했으면 로그인 절차를 실행시킨다.
+	function checkLoginIfNotDoLogin() {
+		if (comment.loggedin == false) {
+			comment.doLogin();
+		}
+
+		return comment.loggedin;
+	}
+
+	// 글을 작성할 수 있는 권한 여부만 체크한다.
+	function isVerifyWriter() {
+		return comment.loggedin;
+	}
+
+	function checkLoginStatus(callback)	{
+		var returnVal = false;
+		if (comment.loggedin == false) {
+			returnVal = comment.doLogin();
+		} else {
+			callback.call();
+			returnVal = true;
+		}
+		return returnVal;
+	}
+
+	/*
+	 * ===================================================================================
+	 * A. 댓글 폼 관련 기능들
+	 * 1. SNS 체크 박스
+	 * 2. SNS 체크 박스 아이콘
+	 * 3. 댓글 도움말
+	 * 4. 댓글 도움말 닫기 버튼
+	 * ===================================================================================
+	 */
+
+	// A-1. SNS 체크 박스
+	$(document).on("click", ".cmt_area_v2 .jq_write_share a", function(e) {
+		var $checkbox = $(this);
+
+		var providerId = $checkbox.attr("id");
+		var socialDomain = $checkbox.attr("data-domain");
+		var svcurl = encodeURIComponent(socialDomain + "/comment/check/auth.nhn?providerId=" + providerId);
+
+		if ($checkbox.attr("aria-selected") == "false") {
+
+			// 이미 연동된 SNS는 팝업창을 띄우지 않음
+			if ($checkbox.hasClass("_marking_class_checked") == true) {
+				comment.checkbox(providerId);
+				$checkbox.attr("aria-selected", true);
+				return;
+			};
+
+			isLoggedIn(function() {
+				// 소셜 연동 여부 체크를 성공하면 comment.checkbox()를 호출함
+				var url = "https://nid.naver.com/oauth/idLink.nhn?servicekey=happybean&type=" + providerId + "&viewtype=1&svcurl=" + svcurl;
+				window.open(url, "_authPopup", 'width=400px, height=300px, top=200, left=300, alwaysRaised=yes, toolbar=no, scrollbars=no');
+
+				$checkbox.attr("aria-selected", true);
+				return;
+			});
+
+			// SNS 인증하지 않고 창을 닫는 경우를 위해
+			$checkbox.attr("aria-selected", false);
+		} else {
+			$checkbox.attr("aria-selected", false);
+			var removeItemIndex = $J.inArray($checkbox.attr("id"), comment.selectedSnsNames);
+			comment.selectedSnsNames.splice(removeItemIndex, 1);
+			comment.changeMaxCount(null);
+		}
+	});
+
+	// A-3. 댓글 도움말
+	$(document).on("click", ".cmt_area_v2 .jq_cmt_help_sns", function(e){
+		e.preventDefault();
+		$(".cmt_area_v2 .jq_cmt_lyr").toggle();
+	});
+
+	// A-4. 댓글 도움말 닫기 버튼
+	$(document).on("click", ".cmt_area_v2 .jq_cmt_lyr_close", function(e){
+		e.preventDefault();
+		$(".cmt_area_v2 .jq_cmt_lyr").hide();
+	});
+
+	/*
+	 * ===================================================================================
+	 * B. 댓글 기능
+	 * 1. 댓글 textarea 워드카운팅 및 초과 입력 시 에러표시
+	 * 2. 댓글/답글 placeholder(디폴트 문구)
+	 * 3. 댓글 리스트 소셜 스크랩 여부 아이콘에 한글 툴팁표시
+	 * 4. 댓글 등록 처리
+	 * 5. 댓글 수정 버튼
+	 * 6. 댓글/답글 수정 처리
+	 * 7. 댓글/답글 삭제 처리
+	 * 8. 댓글/답글 등록/수정 전 유효성 확인
+	 * ===================================================================================
+	 */
+
+	// B-1. 댓글 textarea 워드카운팅
+	$(document).on("click", ".cmt_area_v2 textarea", function(e) {
+		checkLoginIfNotDoLogin();
+	}).on("focus", ".cmt_area_v2 textarea", function(e) {
+		var $textarea = $(this);
+		if (isVerifyWriter()) {
+			$textarea.wordcount({
+				countElement : $textarea.parent().find("strong.jq_text_cnt")
+			});
+		} else {
+			$textarea.blur();
+		}
+	}).on("focus", ".cmt_area_v2 textarea", function(e) {
+		var $textarea = $(this);
+		var $li = $textarea.closest("li");
+		var $span = $textarea.parent().find("span.jq_text_allwd");
+		var $button = $textarea.parents(".wrt_frm").next().find("input");
+
+		// 한글 입력을 할 때 key 관련 자바스크립트 이벤트가 제대로 동작하지 않는다.
+		// 따라서 일정 시간을 두고 입력한 글자 수를 체크하는 식으로 해야한다.
+		var intervalId;
+
+		intervalId = setInterval(function() {
+			var src = $button.attr("src");
+			var maximum = parseInt($span.text());
+			var current = $textarea.val() == $textarea.attr("placeholder") ? 0 : $textarea.val().length;
+
+			// 수정 관련 폼이면
+			if ($li.hasClass("re_modi") || $li.hasClass("modify")) {
+
+				/*
+				 * 공통댓글 재편성에 의한 삭제
+				 */
+
+			// 등록 폼이면
+			} else {
+				// 에러메시지 표시 및 딤드처리
+				if (current > maximum) {
+					$(".cmt_area_v2 .jq_cmt_help_cnt").show();
+				// 초과했다가 글자 수가 줄어든 경우
+				} else if (current <= maximum)  {
+					$(".cmt_area_v2 .jq_cmt_help_cnt").hide();
+				}
+			}
+		}, 200);
+
+		$textarea.data("intervalId", intervalId);
+	}).on("blur", ".cmt_area_v2 textarea", function(e) {
+		var intervalId = $(this).data("intervalId");
+		if (intervalId != null)
+			clearInterval(intervalId);
+	});
+
+	// B-3. 댓글 리스트 소셜 스크랩 여부 아이콘에 한글 툴팁표시
+	$(document).on("reply_addinfo_loaded", ".cmt_area_v2 .add_info span", function(e) {
+		e.preventDefault();
+
+		$(this).each(function() {
+			$(this).attr("title", snsNameMap[$(this).attr("class")]);
+		});
+	});
+
+	// B-4. 댓글 등록 처리
+	$(document).on("click", ".cmt_area_v2 ._marking_class_reply_btn", function(e) {
+		e.preventDefault();
+
+		var $input = $(this);
+
+		if (checkValidForSubmit($input)) {
+			var $textarea = $input.closest(".jq_cmt_write_form").find("textarea");
+			var $div = $input.parents(".jq_cmt_write_form");
+			var $checkboxes = $div.find(".jq_write_share a.share");
+
+			var checked = new Array();
+			$checkboxes.each(function() {
+				if ($(this).attr("aria-selected") == 'true')
+					checked.push($(this).attr("id"));
+			});
+
+			isLoggedIn(function() {
+				var content = $textarea.val();
+				var url = comment.actionPath + "/" + comment.articleNo + "/" + comment.createAction;
+
+				comment.addParam = {
+						content: content, // jQuery.param() 함수에서 encode를 한 번 해준다.
+						snsInterlockContent: checked.toString(),
+						serviceName: comment.serviceName
+				}
+
+				var params = comment.param();
+				var callbackObj = {
+						"invoke": function() {
+							$.ajax({
+								url : url,
+								type: 'POST',
+								data : params,
+								success:function(data)
+								{
+									comment.listComment(data);
+									comment.addParam = {};
+
+									$input.removeData("ajaxRequest");
+
+								},
+								error:function(data)
+								{
+									comment.listComment(data.responseText);
+									$input.removeData("ajaxRequest");
+								}
+							});
+						}
+				};
+
+				var prohibit_params = "comment=" + encodeURIComponent(content);
+				prohibitWord.prohibitWordFilter4Object(prohibit_params, callbackObj, "commentRect");
+				$input.data("ajaxRequest", true);
+			});
+		}
+	});
+
+	// B-5. 댓글 수정 버튼
+	$(document).on("click", ".cmt_area_v2 .cmt_modify_link", function() {
+
+		var $a = $(this);
+		isLoggedIn(function() {
+			var $li = $a.closest("li");
+			var $comment = $li.find(".js_cmtcnt");
+
+			var clicks = $a.data('clicks');
+			if (!clicks) {
+				if ($li.next().hasClass("reply"))	{
+					$a.siblings(".cmt_reply_link").click();
+				}
+
+				$a.text("수정취소");
+				$li.addClass("modify");
+				var commentText = $comment.text().trim();
+				var $modifyTemplate = $("#modify_form_template").clone();
+				$comment.hide();
+				$modifyTemplate.removeAttr("id").find("textarea").val(commentText).end().insertAfter($comment).show();
+				/* 포커스를 줘야 글자수가 바뀐다 */
+				$modifyTemplate.find("textarea").focus().trigger("keyup");
+			}
+			else {
+				$a.text("수정");
+				$li.removeClass("modify");
+				$comment.show().next().remove();
+			}
+
+			$a.data("clicks", !clicks);
+		});
+
+		return false;
+	});
+
+	// B-6. 댓글/답글 수정 처리
+	$(document).on("click", ".cmt_area_v2 .jq_cmt_wrap .modify .jq_cmt_write_form ._marking_class_modify_btn, .cmt_area_v2 .jq_cmt_wrap ._marking_subreply .jq_cmt_write_modi_form ._marking_class_modify_btn", function(e) {
+		e.preventDefault();
+		var $button = $(this);
+
+		if (checkValidForSubmit($button)) {
+			var $textarea = $button.parent().parent().find("textarea");
+			var content = $textarea.val();
+			var element = $textarea.get(0);
+			var $li = $button.closest("li");
+			var commentNo = $li.attr("data-cment-trbk-seq");
+			var upperNo = $li.attr("data-upr-cment-trbk-seq");
+
+			// 답글 수정일 경우 다시 답글 리스트를 보여줌
+			if ($li.hasClass("_marking_subreply")) {
+				comment.callbackFunction = function() {
+					var $li = $(".cmt_area_v2 .jq_cmt_wrap li[data-cment-trbk-seq=" + upperNo + "]");
+					$li.find(".cmt_reply_link").click();
+					comment.callbackFunction = null;
+				};
+			}
+
+			comment.modifyComment(commentNo, content, element);
+		}
+
+	});
+
+	// B-7. 댓글/답글 삭제 처리
+	$(document).on("click", ".cmt_area_v2 .cmt_delete_btn, .cmt_area_v2 .reply_delete_btn", function(e) {
+		e.preventDefault();
+
+		var $li = $(this).closest("li");
+		var upperno = $li.hasClass("subreply") ? $li.attr("data-upr-cment-trbk-seq") : "";
+		var cmntno = $li.attr("data-cment-trbk-seq");
+
+		comment.callbackFunction = function() {
+			var $li = $(".cmt_area_v2 .jq_cmt_wrap li[data-cment-trbk-seq=" + cmntno + "]");
+			comment.callbackFunction = null;
+		};
+
+		comment.deleteComment(cmntno, upperno);
+	});
+
+	// B-8. 댓글/답글 등록/수정 전 유효성 확인
+	function checkValidForSubmit($target) {
+		return isLoggedIn(function() {
+
+			var $maximum = $target.parent().find("span.jq_text_allwd");
+			var $textarea = $target.parent().parent().find("textarea");
+
+			var current = $textarea.val() == $textarea.attr("placeholder") ? 0 : $textarea.val().length;
+
+			if ($target.data("ajaxRequest") != null) {
+				return false;
+			} else if (current > $maximum.text()) {
+				alert($maximum.text() + "자까지만 입력하실 수 있습니다.");
+				return false;
+			} else if (current == 0 || $target.hasClass("_marking_class_over")) {
+				alert("입력된 내용이 없습니다.");
+				return false;
+			} else if ( current < characterLengthMinLimit )	{
+				alert("덧글은 10자 이상 입력 가능합니다.");
+				return false;
+			} else {
+				return true;
+			}
+		});
+	}
+
+	/*
+	 * ===================================================================================
+	 * C. 답글
+	 * 1. 답글 등록 처리
+	 * 2. 답글 목록
+	 * ===================================================================================
+	 */
+
+	// C-1. 답글 등록 처리
+	$(document).on("click", ".cmt_area_v2 ._marking_class_reply_reply_btn", function(e) {
+		e.preventDefault();
+
+		var $button = $(this);
+
+		if (checkValidForSubmit($button)) {
+			var $textarea = $button.parent().parent().find("textarea");
+			var content = $textarea.val();
+			var element = $textarea.get(0);
+
+			var $upperLi = $button.closest("li");
+			var upperNo = $upperLi.attr("data-upr-cment-trbk-seq");
+			var index = $upperLi.attr("index");
+			var upperNick = $upperLi.attr("data-nickname");
+			var jq_index = $upperLi.attr("index");
+
+			comment.callbackFunction = function() {
+				var $li = $(".cmt_area_v2 .jq_cmt_wrap li[data-cment-trbk-seq=" + upperNo + "]");
+				if(jq_index != null) {
+					$li.find("#jq_cmt_reply_link").first().click().focus();
+				}else {
+					$li.find("#jq_cmt_reply_link").last().click().focus();
+				}
+				$button.removeData("ajaxRequest");
+				comment.callbackFunction = null;
+			};
+
+			$button.data("ajaxRequest", true);
+			comment.replyComment(upperNo, upperNick, content, element);
+		}
+	});
+
+	// C-2. 답글 목록
+	$(document).on("click", ".cmt_area_v2 .cmt_reply_link", function() {
+
+		var $a = $(this);
+		var $li = $(this).closest("li");
+		var ajaxRequest = null;
+
+		var clicks = $a.data('clicks');
+		if (!clicks) {
+			if ($li.hasClass("modify") == true) {
+				$a.siblings(".cmt_modify_link").click();
+			}
+
+			var url = comment.actionPath + "/" + comment.articleNo + "/" + $li.attr("data-cment-trbk-seq");
+			var param = comment.replyParam();
+			ajaxRequest = $.ajax({
+				url: url,
+				type: "POST",
+				data: param,
+				success: function(data) {
+					$li.append(data);
+					$("input[placeholder], textarea[placeholder]").placeholder();
+
+					if ($li.hasClass("delete") == true) {
+						$li.next().children(".wrt_frm_area").remove();
+					}
+
+					ajaxRequest = null;
+				},
+				error: function(xhr, textStatus, errorThrown) {
+					// 답글 목록을 가져오던 중, 취소 됐을 경우
+				}
+			});
+		}
+		else {
+
+			if (ajaxRequest != null) {
+				ajaxRequest.abort();
+				return;
+			}
+			$li.find("div.jq_cmt_reply_wrap").remove();
+			$li.find("li.reply").remove();
+		}
+
+		$a.data("clicks", !clicks);
+
+		return false;
+	});
+
+	/*
+	 * ===================================================================================
+	 * D. 답글 페이징
+	 * 1. 답글 페이징 목록
+	 * 2. 페이지 이동(숫자 클릭)
+	 * 3. < 버튼
+	 * 4. > 버튼
+	 * ===================================================================================
+	 */
+
+	// D-1. 답글 페이징 목록
+	function getReply(target) {
+		var $a = $(target);
+		var $cmtReplyList = $a.closest(".jq_cmt_reply_wrap");
+		var $cmtReplyListPrev = $cmtReplyList.prev(); //.cmt_bottom
+		var $cmt = $cmtReplyList.parent();
+		var url = comment.actionPath + "/" + comment.articleNo + "/" + $cmt.attr("data-cment-trbk-seq");
+
+		var param = comment.replyParam();
+
+		$.post(url, param, function(data) {
+		        $cmtReplyList.remove();
+		        $cmtReplyListPrev.after(data);
+		        $("input[placeholder], textarea[placeholder]").placeholder();
+		        $(document).scrollTop($cmt.offset().top);
+		});
+	}
+
+	// D-2. 페이지 이동(숫자 클릭)
+	$(document).on("click", ".cmt_area_v2 .jq_reply_go_page", function(e) {
+		e.preventDefault();
+		comment.replyPage = $(this).attr("data-page");
+		getReply(this);
+	});
+
+	// D-3. < 버튼
+	$(document).on("click", ".cmt_area_v2 .jq_pre_reply", function(e) {
+		e.preventDefault();
+		comment.replyPage = parseInt(comment.replyPage) - 1;
+		getReply(this);
+	});
+
+	// D-4. > 버튼
+	$(document).on("click", ".cmt_area_v2 .jq_next_reply", function(e) {
+		e.preventDefault();
+		comment.replyPage = parseInt(comment.replyPage) + 1;
+		getReply(this);
+	});
+
+	/*
+	 * ===================================================================================
+	 * E. 답글의 답글
+	 * 1. 답글의 답글 목록
+	 * 2. 답글의 답글 수정
+	 * ===================================================================================
+	 */
+
+	// E-1. 답글의 답글 목록
+	$(document).on("click", ".cmt_area_v2 ._marking_reply_reply_link", function() {
+
+		var $a = $(this);
+		isLoggedIn(function() {
+			var $li = $a.closest("li");
+			var $upperLi = $a.closest(".jq_cmt_reply_wrap");
+
+			var clicks = $a.data('clicks');
+			if (!clicks) {
+				// 다른 답글 버튼이 눌러져 있을 때 처리
+				$(".cmt_area_v2 .jq_cmt_reply_wrap .jq_reply_reply_form").parent().find("._marking_reply_reply_link").click();
+
+				// 다른 수정버튼이 눌러져 있을 때 처리
+				$(".cmt_area_v2 ._marking_subreply ._marking_class_modify").closest("li").find("._marking_reply_modify_link").click();
+
+				$a.find("span.fix").text("답글취소");
+				var $wrappedTemplate = $("#reply_reply_form_template").clone();
+				var $form = $wrappedTemplate.children("form").unwrap();
+
+				var newPlaceholderMsg = $li.attr("data-nickname") + "님께 답글쓰기";
+				$form.find("textarea").attr("placeholder", newPlaceholderMsg);
+				$li.append($form);
+				$("input[placeholder], textarea[placeholder]").placeholder();
+				$form.removeAttr("id").show();
+			}
+			else {
+				$a.find("span.fix").text("답글");
+				$li.find(".jq_cmt_write_form").remove();
+			}
+
+			$a.data("clicks", !clicks);
+		});
+
+		return false;
+	});
+
+	// E-2. 답글의 답글 수정
+	$(document).on("click", ".cmt_area_v2 ._marking_reply_modify_link", function() {
+
+		var $a = $(this);
+		var $li = $a.closest("li");
+		var $comment = $li.find(".js_cmtcnt");
+		var $modifyForm = null;
+
+		var clicks = $a.data('clicks');
+		if (!clicks) {
+			// 다른 답글 버튼이 눌러져 있을 때 처리
+			$(".cmt_area_v2 .jq_cmt_reply_wrap .jq_reply_reply_form").parent().find("._marking_reply_reply_link").click();
+
+			// 다른 수정버튼이 눌러져 있을 때 처리
+			$(".cmt_area_v2 ._marking_subreply ._marking_class_modify").closest("li").find("._marking_reply_modify_link").click();
+
+			$a.text("수정취소");
+			$li.addClass("re_modi");
+			$comment.addClass("_marking_class_modify").hide();
+
+
+			var $commentClone = $comment.clone();
+			var $form = $("#reply_reply_modify_form_template").clone();
+			var comment = $commentClone.children("strong").remove().end().text().trim();
+			$li.find(".jq_user_wrap").after($form.removeAttr("id").find("textarea").val(comment).end().show());
+			$form.find("textarea").focus().trigger("keyup");
+		}
+		else {
+			$a.text("수정");
+			$comment.removeClass("_marking_class_modify");
+			$comment.show();
+			$li.removeClass("re_modi");
+			$li.find(".jq_cmt_write_modi_form").remove();
+		}
+
+		$a.data("clicks", !clicks);
+
+		return false;
+	});
+
+	/*
+	 * ===================================================================================
+	 * F. 기타 기능
+	 * 1. 추천 처리
+	 * 2. 최신순/추천순 정렬 처리
+	 * 3. 댓글/답글/답글의답글 신고 처리
+	 * 4. 아이디 숨기기
+	 * ===================================================================================
+	 */
+
+	// F-1. 추천 처리
+	$(document).on("click", ".cmt_area_v2 .rcmd", function(e) {
+		e.preventDefault();
+
+		var $a = $(this);
+		if ($a.hasClass("mine")) {
+			alert("자신의 글은 추천할 수 없습니다.");
+			return;
+		}
+
+		var $li = $a.closest("li");
+
+		isLoggedIn(function() {
+			comment.addParam = {
+				cmentTrbkSeq: $li.attr("data-cment-trbk-seq"),
+				artclNo: comment.articleNo
+			};
+
+			var param = comment.param();
+			var url = comment.actionPath + "/" + comment.articleNo + "/" + $li.attr("data-cment-trbk-seq") + "/" + comment.recommendAction;
+
+			$.ajax({
+				url: url,
+				data: param,
+				dataType: "json",
+				success: function(data) {
+
+					comment.addParam = {};
+
+					if (data.isSuccess) {
+						var recommendCount = parseInt(data.rcmdCnt);
+						recommendCount = recommendCount > 999 ? "999+" : recommendCount;
+						$a.find("strong").text(recommendCount);
+					} else {
+						alert(decodeURIComponent(data.errorMsg));
+					}
+				}
+			});
+		});
+	});
+
+	// F-2. 최신순/추천순 정렬 처리
+	$(document).on("click", ".cmt_area_v2 ._marking_class_listorderrcmdyn", function(e){
+		e.preventDefault();
+		comment.orderList($(this).attr("data-orderByRcmdYn"));
+	});
+
+	// F-3. 댓글/답글/답글의답글 신고 처리
+	$(document).on("click", ".cmt_area_v2 ._marking_class_declaration_link", function(e) {
+
+		if(!checkLoginIfNotDoLogin()){
+			return false;
+		}
+		e.preventDefault();
+		var $a = $(this);
+		var $li = $a.closest("li");
+
+		var $commentClone = $li.find(".js_cmtcnt").clone();
+		var content = $commentClone.children("strong").remove().end().text().trim();
+		var commentNo = $li.attr("data-cment-trbk-seq");
+
+		var $template = getDeclarationFormTemplate();
+		var $itemId = $template.find("[name=itemId]");
+		var $itemDt = $template.find("[name=itemDt]");
+		var $itemTitle = $template.find("[name=itemTitle]");
+		var $itemWriterId = $template.find("[name=itemWriterId]");
+		var $itemWriterNick = $template.find("[name=itemWriterNick]");
+		var $itemEncyptWriterId = $template.find("[name=itemEncyptWriterId]");
+
+		if (comment.serviceName == "ISSUE_RDONABOX" || comment.serviceName == "PLAN_SPET")	{
+			$itemId.appendValue({value: comment.articleNo + ";"});
+		}
+
+		$itemWriterId.val($li.attr("data-masking-user-id"));
+		$itemWriterNick.val($li.find(".nick").first().text());
+		$itemId.appendValue({value: commentNo});
+		// 컨텐츠 내용이 없을 때 신고한 경우엔 displayName 때문이므로, 컨텐츠에 displayName을 세팅한다.
+		$itemTitle.val(content == "" ? $itemWriterNick.val() : content);
+		$itemDt.val($li.attr("data-date"));
+		$itemEncyptWriterId.val($li.attr("data-encrypt-user-id"));
+
+		if ($itemWriterId.val() == "h") {
+			alert("해피빈 운영자가 작성한 게시글은 신고할 수 없습니다.");
+			return;
+		}
+
+		if ($itemTitle.val() == null) {
+			alert("제목이 누락되었습니다. 다시 시도해주세요.");
+			return;
+		}
+
+		if ($itemWriterId.val() == null ) {
+			alert("작성자가 누락되었습니다. 다시 시도해주세요.");
+			return;
+		}
+
+        var runenv = document.URL.substring(document.URL.indexOf("//") + 2, document.URL.indexOf(".") + 1);
+
+		var declarationUrl = "";
+
+		var envArray = ["local.", "dev.", "qa.", "pub.", "nokdu.", "gangnang.", "wandoo."
+			, "dev-fund.", "dev-billing.", "dev-api.", "dev-biz.", "dev-campaign.",
+			, "qa-fund.", "qa-billing.", "qa-api.", "qa-biz.", "qa-campaign.",
+			, "pub-fund.", "pub-billing.", "pub-api.", "pub-biz.", "pub-campaign.",
+			, "local-fund.", "local-billing.", "local-api.", "local-biz.", "local-campaign."
+			, "dev-m.", "dev-m-fund.", "dev-m-event.", "dev-m-campaign."
+			, "qa-m.", "qa-m-fund.", "qa-m-event.", "qa-m-campaign."
+			, "pub-m.", "pub-m-fund.", "pub-m-event.", "pub-m-campaign."
+			, "local-m.", "local-m-fund.", "local-m-event.", "local-m-campaign."];
+
+		if(envArray.indexOf(runenv) == -1) {
+			declarationUrl = "https://srp.naver.com/main.nhn";
+		} else {
+			declarationUrl = "https://dev-srp.naver.com/main.nhn";
+		}
+
+
+		window.open("", "declarationPopup", "width=" + 550 + ",height=" + 600);
+		$template.attr("action", declarationUrl);
+		$template.attr("target", "declarationPopup");
+		$(".cmt_area_v2").append($template);
+
+		$template.submit();
+		$template.remove();
+	});
+
+	function getDeclarationFormTemplate() {
+		if (comment.serviceName == "ISSUE_RDONABOX" || comment.serviceName == "PLAN_SPET") {
+			return $("#rdonaDeclarationForm").clone();
+		} else if (comment.serviceName == "SHAREBOX") {
+			return $("#shareboxDeclarationForm").clone();
+		} else {
+			return $("#declarationForm").clone();
+		}
+	}
+
+});
+
+var comment = new SocialShareComment();

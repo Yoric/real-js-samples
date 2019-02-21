@@ -1,0 +1,1 @@
+_satellite.pushBlockingScript(function(a,b,c){var d=_satellite.pushAsyncScript,e=_satellite.pushBlockingScript,f=function(a){return function(b){a(function(){try{b.apply(this,arguments)}catch(a){_satellite.notify(a,1)}})}};_satellite.pushAsyncScript=f(d),_satellite.pushBlockingScript=f(e)});

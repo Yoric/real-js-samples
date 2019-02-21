@@ -1,0 +1,712 @@
+(function (root, factory) {
+	'use strict';
+	if (typeof define === 'function' && define.amd) {  // jshint ignore:line
+		// AMD. Register as an anonymous module.
+		define(['jquery'], factory);    // jshint ignore:line
+	} else {
+		// Browser globals
+		root.skp11 = root.skp11 || {};
+		root.skp11.common = root.skp11.common || {};
+		root.skp11.common.Slider = factory(
+			root.jQuery
+		);
+	}
+}(this, function ($) {  // jshint ignore:line
+	'use strict';
+	function Slider(options) {
+		// 16-09-07 강태진 추가 - 옵션에서 셀렉트를 텍스트로 넘겨 주는 경우 처리. ui.template.js 에서는 텍스트로 넘겨준다.
+		if ($.type(options.selector) === 'string') {
+			options.selector = $(options.selector);
+		}
+		if ($.type(options.arrows) === 'string') {
+			options.arrows = $(options.arrows);
+		}
+		if (options.selector.data('generated') || options.selector.length === 0) {
+			return;
+		}
+
+		var defaults = {
+			// common
+			type: 'slide',
+			mode: 'horizon',
+			childrenSelector: null,
+			childrenWidth: 0,
+			childrenLength: 0,
+			initCount: 0,
+			initRandom: false,
+			boxHeight: 0,
+			loop: true,
+			duration: 500,
+			easing: 'cubic-bezier(0.255, 0.675, 0.405, 0.995)',
+			useCss: true,
+			tabBugFix: true,
+			wrapperClass: 'virtual-wrap',
+			//fix el left
+			elLeft: 0,
+
+			//content padding, margin
+			pl: 0,
+			pr: 0,
+			ml: 0,
+			mr: 0,
+			//children padding, margin
+			cpl: 0,
+			cpr: 0,
+			cml: 0,
+			cmr: 0,
+
+			//dots
+			dots: false,
+			dotsMode: 'horizon',
+			dotSelector: null,
+			dotsMargin: 2,
+			dotActiveClass: null,
+			dotActiveEvent: 'click',
+
+			//controls
+			arrows: null,
+			controls: true,
+			nextSelector: '.in_next',
+			prevSelector: '.in_prev',
+			btnActiveClass: null, // 값을 주면 해당 클래스가 선언된 버튼만 작동 
+			btnDisableClass: null, // 값을 주면 해당 클래스가 선언된 버튼만 작동되지 않음. btnActive 와 btnDisble 은 둘중 하나만 사용
+
+			//carousel
+			carouselEnd: true, // carousel 갯수를 맞춰서 슬라이드의 빈공간이 보여지지 않게 자동조정
+			carousel: 1,
+			carouselBox: 1,
+
+			//auto
+			auto: true,
+			pause: 4000,
+			hoverStop: true,
+
+			//callbacks
+			onSlideLoad: null,
+			onSlideBefore: null,
+			onSlideAfter: null,
+			onSliderResize: null,
+
+			//counter // element.
+			counterTotal: null,
+			counterIndex: null,
+
+			//이벤트중지
+			onEvent: true,
+
+			skipGenerated: false,        //16-10-12 수정
+
+			//move next page
+			isMoveNext : false,
+			
+			//GATag
+			isUseGATag: false,
+			evCategory: null,
+			evAction: null,
+			evLable: null
+		};
+
+		this.setting = ($.extend(defaults, options));
+		var _this = this;
+		//image load complete and action.
+		if (this.setting.selector.find('img').length) {
+			var path = this.setting.selector.find('img').filter(function () {
+					return $(this).attr('src') !== '';
+				}).last().attr('src'),
+				loadChkImg, chkInterval, chkCnt = 0;
+			if ((navigator.appVersion.indexOf("MSIE 7.") > 0) || (navigator.appVersion.indexOf("MSIE 8.") > 0)) {
+				//ie7,8
+				loadChkImg = $('<img/>').attr('src', path).css({'position': 'fixed', 'left': -9999 + 'px'});
+				loadChkImg.appendTo('body');
+				chkInterval = setInterval(function () {
+					chkCnt = chkCnt + 1;
+					if (chkCnt > 100 || loadChkImg.height() > 0) {
+						clearInterval(chkInterval);
+						loadChkImg.remove();
+						_this.init();
+					}
+				}, 100);
+			} else {
+				//modern browser
+				loadChkImg = new Image();
+				loadChkImg.src = path;
+				loadChkImg.onload = function () {
+					_this.init();
+				};
+				loadChkImg.onerror = function () {
+					_this.init();
+				};
+			}
+		} else {
+			_this.init();
+		}
+	}
+
+	Slider.prototype.init = function () {
+		if (this.setting.onSlideBefore !== null) {
+			this.setting.onSlideBefore();
+		}
+		var _this = this;
+		this.$el = _this.setting.selector;
+		this.$el.css({'margin': 0, 'padding': 0});
+		this.children = _this.$el.children();
+		//this.childrenTag = this.children.first()[0].tagName;
+		this.childrenTag = this.children.first().tagName;  // 개발 요청으로 임시 수정 - 16-09-07 강태진 : 테스트해봐야할듯
+
+		//if(!this.setting.slack){
+		!this.setting.pl && (this.setting.pl = parseInt(this.$el.css('paddingLeft')) || 0);
+		!this.setting.pr && (this.setting.pr = parseInt(this.$el.css('paddingRight')) || 0);
+		!this.setting.ml && (this.setting.ml = parseInt(this.$el.css('marginLeft')) || 0);
+		!this.setting.mr && (this.setting.mr = parseInt(this.$el.css('marginRight')) || 0);
+		!this.setting.cpl && (this.setting.cpl = parseInt(this.children.css('paddingLeft')) || 0);
+		!this.setting.cpr && (this.setting.cpr = parseInt(this.children.css('paddingRight')) || 0);
+		!this.setting.cml && (this.setting.cml = parseInt(this.children.css('marginLeft')) || 0);
+		!this.setting.cmr && (this.setting.cmr = parseInt(this.children.css('marginRight')) || 0);
+		//}
+
+		this.childrenWidth = this.setting.childrenWidth ? this.setting.childrenWidth : _this.children.first().outerWidth() + Math.abs(_this.setting.cml + _this.setting.cmr);
+		this.childrenLength = _this.children.length;
+		this.autoInterval = '';
+		this.fixWidth = (_this.setting.pl + _this.setting.ml + (_this.setting.cpl - _this.setting.cpr));
+		this.carouselFix = (_this.setting.carousel + (_this.setting.carouselBox - 1));
+		this.initLeft = -(_this.childrenWidth * (_this.setting.slack ? (_this.carouselFix + 1) : _this.carouselFix)) - _this.fixWidth + _this.setting.elLeft;
+
+		if (!_this.setting.carouselEnd) {
+			this.initLeft = -(_this.setting.pl + _this.setting.ml);
+		}
+		this.useCss = _this.setting.useCss && (function () {
+			var props = ['WebkitPerspective', 'MozPerspective', 'OPerspective', 'msPerspective'];
+			for (var i in props) {
+				if (document.createElement('div').style[props[i]] !== undefined) {
+					_this.cssPrefix = props[i].replace('Perspective', '').toLowerCase();
+					_this.animProp = '-' + _this.cssPrefix + '-transform';
+					return true;
+				}
+			}
+			return false;
+		}());
+
+		//16-10-12수정
+		if (this.setting.skipGenerated) {
+			this.install();
+		}
+
+		if (!this.$el.data('generated')) {
+			if ((this.childrenLength > this.setting.carousel)/* || this.setting.carousel === 1*/) { // 2016-09-26 수정
+				this.install();
+			} else {
+				//2016-09-26 수정
+				//$(_this.setting.arrows).find(_this.setting.prevSelector).addClass('disable');
+				//$(_this.setting.arrows).find(_this.setting.nextSelector).addClass('disable');
+				$(_this.setting.arrows).find(_this.setting.prevSelector).addClass('disable').hide();
+				$(_this.setting.arrows).find(_this.setting.nextSelector).addClass('disable').hide();
+				if (typeof(_this.setting.controlBtns) === 'object') {
+					_this.setting.controlBtns.hide();
+				}
+			}
+		}
+	};
+
+	Slider.prototype.install = function () {
+		var _this = this;
+
+		_this.children.each(function () {
+			var $t = $(this);
+			$t.data('src') && $t.find('img').attr('src', $t.data('src'));
+		});
+		_this.$el.wrap('<div class="' + _this.setting.wrapperClass + '"><div class="virtual-box"></div></div>');
+		if (this.setting.type !== 'sementic') {
+			(this.setting.cml) && _this.children.css({
+				'margin-right': this.setting.cmr + 'px',
+				'margin-left': this.setting.cml + 'px'
+			});
+			if (_this.childrenWidth >= _this.$el.width() && !_this.setting.slack) {
+				_this.children.css('width', _this.$el.width() + 'px');
+			}
+
+			var wrapMargin = (function () {
+				return _this.setting.slack ? {'margin': 'auto'} : (_this.setting.ml ? {
+					'margin-left': _this.setting.ml,
+					'margin-right': _this.setting.mr,
+					'overflow': 'hidden'
+				} : {'overflow': 'hidden'});
+			})();
+			(_this.setting.cml || _this.setting.cmr) && (wrapMargin.left = -(_this.setting.cml) + 'px');
+
+			this.wrap = _this.$el.parent().css({
+				'width': this.setting.elWidth ? this.setting.elWidth : (this.$el.outerWidth(true) - (this.setting.pl + this.setting.pr + this.setting.ml + this.setting.mr)) + 'px',
+				'height': ((this.setting.boxHeight) ? this.setting.boxHeight : this.$el.children().outerHeight(true)) + 'px',
+				'position': 'relative',
+				'padding-left': this.setting.pl + 'px',
+				'padding-right': this.setting.pr + 'px'
+			}).css(wrapMargin).parent().css({'max-width': 100 + '%', 'position': 'relative'});       // 16-10-13 border 라인 문제로 인해 virtual-wrap의 overflow: hidden 제거
+			//}).css(wrapMargin).parent().css({'max-width': 100 + '%', 'overflow':'hidden','position':'relative'});
+
+
+			_this.$el.css({
+				//'width': _this.setting.mode === 'horizon' ? (_this.childrenWidth * (_this.childrenLength + (_this.setting.carousel * (_this.setting.slack ? 4 : 2)))) + 'px' : 'auto', // 2016-09-08 황인재
+				'width': _this.setting.mode === 'horizon' ? (_this.childrenWidth * (_this.childrenLength + (_this.carouselFix * (_this.setting.slack ? 4 : 2)))) + 'px' : 'auto',
+				'position': 'relative'
+			});
+		}
+
+		//slider.maxPageCnt
+		this.maxPageCnt = _this.childrenLength / _this.setting.carousel;
+		this.counterTotal = _this.setting.counterTotal;
+		this.counterIndex = _this.setting.counterIndex;
+
+		//arrow
+		if (this.setting.type !== 'sementic') {
+			this.elArrows = $(_this.setting.arrows);
+			this.elPrev = this.elArrows.find(_this.setting.prevSelector);
+			this.elNext = this.elArrows.find(_this.setting.nextSelector);
+			// next 버튼이 없는 경우
+			//if(!this.elArrows.length || !this.elArrows.find(_this.setting.nextSelector).length){
+			//	this.elArrows = $('<div/>').css({'position':'fixed','left':-9999+'px','top':-9999+'px'}).insertAfter(_this.$el);
+			//	this.elNext = $('<button type="button" class="next">next</button>').appendTo(this.elArrows); // 16-10-03 type="button" 추가. 없는 경우 from안에서 서브밋이 되거나 이상 동작함.
+			//}
+		} else {
+			this.elArrows = _this.$el.closest('.' + this.setting.wrapperClass).next(_this.setting.arrows);
+			this.elPrev = this.elArrows.find(_this.setting.prevSelector);
+			this.elNext = this.elArrows.find(_this.setting.nextSelector);
+		}
+
+		//carousel clone append
+		//slide, gallery
+		if (_this.setting.type === 'slide' || _this.setting.type === 'gallery') {
+			if (_this.setting.slack && this.children.length <= 1) {
+				// 쇼킹딜 메인 배너 1개일 경우 처리 - 16-09-07 강태진
+				_this.initLeft = 0;
+				_this.setting.auto = false;
+				_this.setting.onEvent = false;
+			} else {
+				_this.children.each(function (i) {
+					var _child = $(this).data('index', i).css({'float': 'left', 'position': 'relative'});
+
+					if (_this.setting.carouselEnd) {
+						if (!_this.setting.slack) {
+							(i < _this.carouselFix) && _child.clone().addClass('virtual-clone').appendTo(_this.$el);
+							//(i < (_this.setting.carousel )) && _child.clone().addClass('virtual-clone').appendTo(_this.$el);
+							(i > _this.childrenLength - _this.carouselFix - 1) && _child.clone().addClass('virtual-clone').insertBefore(_this.children.first());
+							//(i > _this.childrenLength - _this.setting.carousel - 1) && _child.clone().addClass('virtual-clone').insertBefore(_this.children.first());
+
+						} else {
+							(i < _this.setting.carousel + 1) && _child.clone().addClass('virtual-clone').appendTo(_this.$el);
+							(i > _this.childrenLength - _this.setting.carousel - 2) && _child.clone().addClass('virtual-clone').insertBefore(_this.children.first());
+						}
+					}
+
+				});
+			}
+		} else if (_this.setting.type === 'fade') {
+			//fade
+			_this.children.each(function (i) {
+				var _child = $(this).data('index', i);
+				_child.css({'position': 'absolute', 'left': -9999 + 'px', 'opacity': 0});
+				if (_child.index() > _this.setting.initCount - 1 && _child.index() < _this.setting.initCount + _this.setting.carousel) {
+					_child.css({'left': _this.childrenWidth * i + 'px', 'opacity': 1});
+				}
+			});
+			_this.elArrows.css({'z-index': 2}).children().css({'z-index': 2});
+		} else {
+			// sementic
+			this.children.css({'z-index': 0}).find(this.setting.childrenSelector).css({'left': -100 + '%'});
+			this.children.eq(this.setting.initCount).css('z-index', 1).find(this.setting.childrenSelector).css({'left': 0 + '%'});
+		}
+
+		//controller create
+		//dots
+		if (this.setting.dots) {
+			if (this.setting.type !== 'sementic') {
+				if (typeof(_this.setting.dotSelector) === 'object') {
+					this.dots = _this.setting.dotSelector.css('z-index', 2);
+				} else {
+					this.dots = _this.wrap.parent().next(_this.setting.dotSelector).css('z-index', 2);
+				}
+				this.dot = _this.dots.children().first().removeClass(_this.setting.dotActiveClass).clone();
+			} else {
+				this.dots = this.$el;
+				this.dot = _this.dots.find(_this.setting.dotSelector).clone();
+			}
+
+			if (this.setting.type !== 'sementic') {
+				_this.dots.html('');
+				for (var i = 0; i < Math.ceil(_this.maxPageCnt); i++) {
+					if (_this.dot.clone().children().length) {
+						_this.dots.append(_this.dot.clone().children().html(i + 1).parent().css({
+							'margin-left': _this.setting.dotsMargin + 'px',
+							'margin-right': _this.setting.dotsMargin + 'px'
+						}));
+					} else {
+						if (_this.dot.clone().text()) {
+							_this.dots.append(_this.dot.clone().html(i + 1).css({
+								'margin-left': _this.setting.dotsMargin + 'px',
+								'margin-right': _this.setting.dotsMargin + 'px'
+							}));
+						} else {
+							_this.dots.append(_this.dot.clone());
+						}
+					}
+				}
+				this.dot = _this.dots.children();
+				_this.dot.first().addClass(_this.setting.dotActiveClass);
+			}
+		}
+
+		this.eventBind();
+		
+		if(_this.setting.isMoveNext){
+			setTimeout(function () {
+				_this.elNext.trigger('click')
+			}, 100);
+		}
+	};
+
+	Slider.prototype.btnChk = function () {
+		var _this = this;
+		if (!this.setting.loop) {
+			//loop btn disble chk
+			//next
+			((_this.activeIdx + _this.setting.carousel) >= _this.childrenLength) ? this.elNext.addClass(this.setting.btnDisableClass).removeClass(this.setting.btnActiveClass) : this.elNext.removeClass(this.setting.btnDisableClass).addClass(this.setting.btnActiveClass); // 16-10-28 MPQA-5100 수정
+			//prev
+			(_this.activeIdx < _this.setting.carousel) ? this.elPrev.addClass(this.setting.btnDisableClass).removeClass(this.setting.btnActiveClass) : this.elPrev.removeClass(this.setting.btnDisableClass).addClass(this.setting.btnActiveClass);
+		} else {
+			this.elPrev.removeClass(this.setting.btnDisableClass).addClass(this.setting.btnActiveClass);
+			this.elNext.removeClass(this.setting.btnDisableClass).addClass(this.setting.btnActiveClass);
+		}
+	};
+
+	// 16-10-16 슬라이드 함수 생성
+	Slider.prototype._slide = function (direction) {
+		var _this = this;
+
+		if (!_this.isSlide && !$(this).hasClass(_this.setting.btnDisableClass)) {
+			if (direction) {
+				_this.goSlide(_this.activeIdx + _this.setting.carousel, 'next');
+			} else {
+				_this.goSlide(_this.activeIdx - _this.setting.carousel, 'prev');
+			}
+		}
+	};
+
+	Slider.prototype.eventBind = function () {
+		var _this = this, meIdx;
+		if (_this.setting.onEvent) {
+			this.isSlide = false;
+			this.activeIdx = _this.setting.initCount;
+			this.chkMax = _this.childrenLength - _this.setting.carousel;
+
+			if (_this.setting.btnActiveClass && !_this.setting.loop) {
+				this.elArrows.on({
+					// 16-10-16 슬라이드 한군데서 관리하도록 수정
+					'click': function () {
+						if(!$(this).hasClass(_this.setting.btnDisableClass)){
+							_this._slide($(this).attr('class').indexOf('next') > -1);   //16-10-19 수정 ( disable클래스 비동작 수정 )
+						}
+						//_this._slide($(this).attr('class').indexOf('next') > -1);     //16-10-19 수정원본
+					}
+				}, '.' + _this.setting.btnActiveClass);
+			} else if (_this.setting.btnDisableClass && !_this.setting.loop) {
+				this.elArrows.on({
+					// 16-10-16 슬라이드 한군데서 관리하도록 수정
+					'click': function () {
+						if(!$(this).hasClass(_this.setting.btnDisableClass)){
+							_this._slide($(this).attr('class').indexOf('next') > -1);   //16-10-19 수정 ( disable클래스 비동작 수정 )
+						}
+						//_this._slide($(this).attr('class').indexOf('next') > -1);     //16-10-19 수정원본
+					}
+				}, 'a, button');
+			} else {
+				this.elArrows.on({
+					// 16-10-16 슬라이드 한군데서 관리하도록 수정
+					'click': function () {
+						_this._slide($(this).attr('class').indexOf('next') > -1);
+					}
+				}, 'a, button');
+			}
+
+			if (this.setting.dots) {
+				var tMove = function () {
+					if ($(this).siblings().length) {
+						meIdx = $(this).index();
+					} else {
+						meIdx = $(this).closest('li').index();
+					}
+					_this.goSlide((meIdx * _this.setting.carousel), true);
+					
+					if(_this.setting.isUseGATag === true){
+						ga('send','event', _this.setting.evCategory, _this.setting.evAction, _this.setting.evLable);
+					}
+				};
+
+				_this.dots.on(_this.setting.dotActiveEvent, 'a, button', tMove);
+			}
+
+			//play btn bind
+			if (typeof(_this.setting.controlBtns) === 'object') {
+				_this.setting.controlBtns.click(function () {
+					if (!$(this).is('.play')) {
+						_this.setting.auto = false;
+						_this.stopSlide();
+					} else {
+						_this.setting.auto = true;
+						_this.autoSlide();
+					}
+				});
+			}
+
+			//tab focus bug fix
+			if (_this.setting.tabBugFix) {
+				_this.elPrev.on({
+					'focusin': function () {
+						_this.$el.hide();
+						setTimeout(function () {
+							_this.$el.show();
+						}, 1);
+					}
+				});
+			}
+
+			//auto
+			if (_this.setting.auto) {
+				this.autoSlide();
+			}
+			_this.$el.on({
+				'mouseenter focusin': function () {
+					_this.stopSlide(true);
+				},
+				'mouseleave focusout': function () {
+					_this.setting.auto && _this.autoSlide(true);
+				}
+			});
+
+			//define slide type and finish load
+			this.move = this.move();
+			this.$el.data('generated', true);
+			this.setting.initRandom && this.goSlide(Math.ceil(Math.random() * this.maxPageCnt) - 1);
+			if (this.setting.onSlideLoad !== null) {
+				this.setting.onSlideLoad();
+			}
+			this.btnChk();
+			this.isSlide = false;
+		} else {
+			// 쇼킹딜 메인 배너 1개일 경우 처리 - 16-09-07 강태진
+			this.elArrows.on('click', function (e) {
+				e.preventDefault();
+			});
+			this.dots.on('click', function (e) {
+				e.preventDefault();
+			});
+		}
+		this.counterIndex && this.counter(0);
+
+	};
+
+	Slider.prototype.autoSlide = function (n) {
+		var _this = this;
+		//_this.isSlide = false;
+		clearTimeout(_this.autoInterval);
+		_this.autoInterval = setTimeout(function () {
+			// 16-10-16 트리거 방식이 아닌 함수 호출
+			_this._slide(true);
+		}, _this.setting.pause);
+
+		((typeof(this.setting.controlBtns) !== 'undefined') && (this.setting.controlBtns.is('.play')) && !n) && this.setting.controlBtns.removeClass('play').addClass('stop');
+	};
+
+	Slider.prototype.stopSlide = function (n) {
+		this.isSlide = false;
+		clearTimeout(this.autoInterval);
+		((typeof(this.setting.controlBtns) !== 'undefined') && (!this.setting.controlBtns.is('.play')) && !n) && this.setting.controlBtns.addClass('play').removeClass('stop');
+	};
+
+	//callbacks
+	Slider.prototype.onSlideAfter = function (x) {
+		if (typeof(this.setting.onSlideAfter) !== 'function') {
+			return;
+		}
+		this.setting.onSlideAfter({
+			index: x,
+			page: Math.ceil(this.activeIdx / this.setting.carousel) + 1,
+			totalPage: parseInt(this.childrenLength / this.setting.carousel) + 1
+		});
+	};
+
+	Slider.prototype.move = function () {
+		var _this = this;
+		//type slide
+		if (_this.setting.type === 'slide') {
+			//use css3
+			if (_this.useCss) {
+				_this.$el.css({'left': _this.initLeft + 'px'});
+				return function (n, x, y) {
+					//if(!d){this.isSlide = true;}
+					_this.isSlide = true;
+					_this.activeIdx = x;
+					if (_this.setting.initCount) {
+						_this.$el.css({'left': n + 'px'});
+						_this.fixIdx(x, y);
+						_this.setting.initCount = 0;
+						_this.isSlide = false;
+						return;
+					}
+					_this.$el.css('-' + _this.cssPrefix + '-transition', 'left ' + _this.setting.duration / 1000 + 's ' + _this.setting.easing)
+						.on('transitionend webkitTransitionEnd oTransitionEnd MSTransitionEnd', function () {
+							_this.fixIdx(x, y);
+							_this.$el.off('transitionend webkitTransitionEnd oTransitionEnd MSTransitionEnd');
+						})
+						.css({'left': n + 'px'});
+				};
+				//use animate
+			} else {
+				_this.$el.css('left', _this.initLeft + 'px');
+				return function (n, x, y) {
+					this.isSlide = true;
+					_this.activeIdx = x;
+					_this.$el.animate({'left': n + 'px'}, _this.setting.duration, function () {
+						_this.fixIdx(x, y);
+					});
+				};
+			}
+			//type gallery
+		} else if (_this.setting.type === 'gallery') {
+			_this.$el.css({'left': _this.initLeft + 'px'});
+			return function (n, x, y) {
+				_this.$el.css({'left': n + 'px'});
+				_this.activeIdx = x;
+				_this.fixIdx(x, y);
+			};
+			//type fade
+		} else if (_this.setting.type === 'fade') {
+			//use css3
+			if (_this.useCss) {
+				_this.children.css('-' + _this.cssPrefix + '-transition', 'opacity ' + _this.setting.duration / 1000 + 's');
+				return function (n, x, y) {
+
+					this.isSlide = true;
+					_this.activeIdx = x;
+					var targetE = _this.$el.find(_this.childrenTag).eq(x).nextUntil(_this.$el.find(_this.childrenTag).eq(x + _this.setting.carousel)).addBack();
+					var elseE = _this.children.not(targetE);
+
+					targetE.each(function (i) {
+						$(this).css({'left': (i * _this.childrenWidth) + 'px', 'z-index': 2, 'opacity': 1});
+					}).first().on('transitionend webkitTransitionEnd oTransitionEnd MSTransitionEnd', function () {
+						elseE.css({'left': -9999 + 'px', 'z-index': 1, 'opacity': 0});
+						_this.fixIdx(x, y);
+						_this.activeIdx = x;
+						$(this).off('transitionend webkitTransitionEnd oTransitionEnd MSTransitionEnd');
+					});
+				};
+			}
+			//use animate
+			else {
+				_this.children.css('opacity ' + _this.setting.duration / 1000 + 's');
+				return function (n, x, y) {
+					this.isSlide = true;
+					_this.activeIdx = x;
+					var targetE = _this.$el.find(_this.childrenTag).eq(x).nextUntil(_this.$el.find(_this.childrenTag).eq(x + _this.setting.carousel)).addBack();
+					var elseE = _this.children.not(targetE);
+
+					targetE.each(function (i) {
+						$(this).css({
+							'left': (i * _this.childrenWidth) + 'px',
+							'z-index': 2
+						}).animate({'opacity': 1}, function () {
+							elseE.css({'left': -9999 + 'px', 'z-index': 1}).animate({'opacity': 0});
+							_this.fixIdx(x, y);
+						});
+					});
+
+				};
+			}
+
+		}
+		// sementic
+		else if (_this.setting.type === 'sementic') {
+			return function (n, x, y) {
+				this.isSlide = true;
+				this.activeIdx = x;
+				this.children.css('z-index', 0).find(this.setting.childrenSelector).css({'left': -100 + '%'});
+				this.children.eq(x).css('z-index', 1).find(this.setting.childrenSelector).css({'left': 0 + '%'});
+				this.fixIdx(x, y);
+			};
+		}
+	};
+
+	Slider.prototype.fixIdx = function () {
+		var _this = this;
+		this.isSlide = false;
+
+		//type slide, gallery
+		if (_this.setting.type === 'slide' || _this.setting.type === 'gallery') {
+			if (arguments[1] === 'right') {
+				_this.useCss && _this.$el.css('-' + _this.cssPrefix + '-transition', 'left ' + 0 + 's');
+				_this.$el.css({'left': _this.initLeft + 'px'});
+				_this.activeIdx = 0;
+				_this.chkEnd = '';
+			} else if (arguments[1] === 'left') {
+				_this.useCss && _this.$el.css('-' + _this.cssPrefix + '-transition', 'left ' + 0 + 's');
+				_this.$el.css({'left': -(_this.childrenWidth * (_this.childrenLength + (_this.setting.slack ? 1 : 0))) - _this.fixWidth + _this.setting.elLeft + 'px'});
+				_this.activeIdx = _this.childrenLength - _this.carouselFix; // 2016-09-08 황인재
+				_this.chkEnd = '';
+			}
+		}
+
+		if (this.setting.type !== 'sementic') {
+			if (this.setting.dots) {
+				this.dot.eq(Math.ceil(_this.activeIdx / _this.setting.carousel)).addClass(_this.setting.dotActiveClass).siblings().removeClass(_this.setting.dotActiveClass);
+			}
+		} else {
+			this.children.removeClass(this.setting.dotActiveClass);
+			this.children.eq(arguments[0]).addClass(this.setting.dotActiveClass);
+		}
+
+		(this.setting.auto) && this.autoSlide();
+		_this.onSlideAfter(_this.activeIdx);
+		this.btnChk();
+		this.counterIndex && this.counter(_this.activeIdx);
+	};
+
+	Slider.prototype.counter = function (i) {
+		this.counterTotal.html(this.maxPageCnt);
+		this.counterIndex.html(i + 1);
+	};
+
+	Slider.prototype.goSlide = function (index, isDot) {
+		var _this = this;
+		if (_this.isSlide) {
+			_this.isSlide = false;
+			return;
+		}
+
+		if ((_this.setting.type === 'slide' || _this.setting.type === 'gallery') && _this.setting.carouselEnd) {
+			//if (index < 0) { // 2016-09-08 황인재
+			if (index < (_this.setting.carousel - this.carouselFix)) {
+				if (index === -_this.carouselFix && _this.setting.loop) {
+					_this.chkEnd = 'left';
+				} else {
+					//index = 0 // 2016-09-08 황인재
+					index = (_this.setting.carousel - this.carouselFix);
+				}
+			}
+
+			if (index > _this.chkMax) {
+				if ((index > _this.chkMax && _this.setting.loop) && (index === _this.childrenLength)) {
+					_this.chkEnd = 'right';
+				} else {
+					index = _this.chkMax;
+				}
+			}
+		} else if (_this.setting.type === 'fade' || _this.setting.type === 'sementic') {
+			if (index < 0) {
+				index = _this.childrenLength - _this.carouselFix;
+			}
+			if (index > _this.childrenLength - 1) {
+				index = 0;
+			}
+		}
+		this.nowPos = _this.initLeft - (_this.childrenWidth * index);
+		this.move(_this.nowPos, index, _this.chkEnd, isDot);
+	};
+	return Slider;
+}));

@@ -1,0 +1,1 @@
+MG_Utils.domReady(function(){var e=document.getElementById("js-popularPornstars"),o=document.getElementById("js-popularCategories");e&&o&&(Math.floor(100*Math.random()+1)<=50?(MG_Utils.removeClass(e,"hidden"),o.parentNode.removeChild(o)):(MG_Utils.removeClass(o,"hidden"),e.parentNode.removeChild(e)))});

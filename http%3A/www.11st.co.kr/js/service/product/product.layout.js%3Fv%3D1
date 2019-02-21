@@ -1,0 +1,621 @@
+;(function (root, factory) {
+	'use strict';
+	if (typeof define === 'function' && define.amd) {   // jshint ignore:line
+		// AMD
+		define([                                            // jshint ignore:line
+			'jquery',
+			'handlebars'
+		], factory);
+	} else {
+		// Browser globals
+		root.skp11 = root.skp11 || {};
+		root.skp11.product = root.skp11.product || {};
+		root.skp11.product.ProductLayout = factory(
+			root.jQuery,
+			root.Handlebars
+		);
+	}
+}(this, function ($, Handlebars) {
+	'use strict';
+	var ProductLayout;
+	var prdVar = productPrdInfo;
+
+	ProductLayout = function () {
+		this.$win = $(window);
+		this.$doc = $(document);
+		/*this.$product = $('.prdc_view.cfix');
+		this.$option = $('.prdc_ezop_wrap');
+		this.$optionMain = $('.prdc_ezop_wrap > .option_listbox > .ui_option_box');
+		this.$optionEtc = $('.ui_option_etc');
+		this.$optionClose = $('.prdc_ezop_btn > button.op_btn');
+		this.$anchor = $('.prdc_view > .prdc_tab > div');
+		this.$optionContent = $('.ui_option_box > .option_wrap_layer > .lay_op > .op_conts');*/
+		
+		// 신규 수정 내용
+		this.$product = $('.product_detail_explain_wrap');
+		this.$option = $('.floating_option_wrap');
+		this.$anchorTap = $('.product_detail_explain_wrap > .quick_nav_wrap');
+		this.$anchor = $('.product_detail_explain_wrap > .quick_nav_wrap > .quick_nav_inner > .product_tab_area');
+		this.$buyMoreBtn = $('.total_wrap > .total_area');
+		this.$optionList = $('.option_list_wrap');	// 높이값 세팅시 사용 옵션 리스트
+		this.$addOption = $('.option_choice_wrap');	// 높이값 세팅시 사용 추가 상품 리스트
+		// 신규 수정 내용 끝
+
+		this.anchorHeight = this.$anchor.height();
+		this.toolBarHeight = $('#toolBar').height();
+		this.windowHeight = $(window).height();
+		this.minHeight = 300;
+		this.optionTitleHeight = 42;
+		this.isScroll = true;
+
+		// 눈도장 관련 객체
+		/*this.$bookMarkContent = $('.nwbook_conts');
+		this.$bookMarkPlus = $('.prdc_ezop_btn > .eye_btn > button.btn_eye_plus');
+		this.$bookMark = $('.prdc_ezop_btn > .eye_btn > button.btn_eye_mark');
+		this.source = $('#bookMarkTemplate').html();
+		this.handlebars = Handlebars.compile(this.source);*/
+
+		this.contentHeight;
+		this.leftContentTop;
+	};
+
+	ProductLayout.prototype.init = function () {
+		var _this = this;
+
+		if(!prdVar.isRental) _this.limitedSet();
+		_this.layoutUpdateNew();
+		_this.getDataNew();
+		_this.mainResetNew();
+		_this.bindEventNew();
+		_this.calPositionNew();
+		_this.deliverySet();
+		/*_this.layoutUpdate();
+		_this.getData();
+		_this.mainReset();
+		_this.bindEvent();
+		_this.calPosition();
+		_this.bookMark();*/
+	};
+	
+	ProductLayout.prototype.layoutUpdateNew = function () {
+		var _this = this;
+
+		_this.windowHeight = $(window).height();
+		_this.productInfoTop = $('#tabProductInfo').offset().top - _this.anchorHeight;
+		_this.productReviewTop = $('#tabProductReview').offset().top - _this.anchorHeight;
+		_this.productQnATop = $('#tabProductQnA').offset().top - _this.anchorHeight;
+		_this.productReturnTop = $('#tabProductReturn').offset().top - _this.anchorHeight;
+		_this.anchorPositonTop = _this.$anchor.offset().top;
+		_this.leftContentTop = $('.view_left').offset().top + $('.view_left').height() - _this.windowHeight;
+		if(prdVar.isStandardPrd) {
+			if($("#product_group_layer").css('display') == 'block') {	// 자세히 보기 레이어가 열려 있을 경우
+				_this.$option.css('height', _this.windowHeight);
+			} else {
+				_this.$option.css('height', _this.windowHeight - _this.anchorHeight);
+			}
+		} else {
+			_this.$option.css('height', _this.windowHeight - _this.anchorHeight);
+		}
+	};
+	
+	ProductLayout.prototype.getDataNew = function () {	// 하단 옵션 높이값 구하기
+		var _this = this;
+
+		_this.contentHeight = _this.windowHeight - _this.anchorHeight;
+		if (_this.contentHeight < _this.minHeight) {
+			_this.contentHeight = _this.minHeight;
+		}
+		/*[D] 옵션 레이어가 길어질 경우 height값 추가
+        옵션 : .floating_option_wrap - .sum_section - 72px
+        추가구성품 : .floating_option_wrap - .sum_section - 128px
+        [D] 옵션 결과가 길어질 경우 height값 추가
+		.floating_option_wrap - .sum_section - .option_choice_section - .option_case_section*/
+		var botRstH		= 137;	// 하단 결과 영역
+		if($('#botDoubleBtnArea').length > 0 && $('#botDoubleBtnArea').css('display') == 'block') {	// 11페이 버튼이나 장바구니 버튼이 있을 경우
+			botRstH		= 207;
+		}
+		if($("#ui_option_layer2")) {	// 하단 옵션 레이어 높이값 세팅
+			$("#ui_option_layer2").css('height', _this.$option.height() - (botRstH + 72));
+		}
+		if($("#ui_option_etc_layer2")) {
+			if($("#ui_option_layer2").length > 0) {	// 옵션이 있는 추가 상품 레이어
+				$("#ui_option_etc_layer2").css('height', _this.$option.height() - (botRstH + 128));
+			} else {	// 단품일 경우 추가상품 레이어
+				$("#ui_option_etc_layer2").css('height', _this.$option.height() - (botRstH + 72));
+			}
+		}
+		if(prdVar.isStandardPrd) {	// 그룹상품일 경우 레이어 높이 조정
+			if($("#stdPrdListBot")) {	// 하단 상품 레이어 높이값 세팅
+				$("#stdPrdListBot").css('height', _this.$option.height() - (botRstH + 72));
+			}
+			if($("#ui_std_option_layer2")) {	// 하단 옵션 레이어 높이값 세팅
+				$("#ui_std_option_layer2").css('height', _this.$option.height() - (botRstH + 128));
+			}
+		}
+		if($('.option_result_section')) {
+			var minusH		= 0;
+			var optPaddigH	= 32;	// 옵션 영역 padding값 상단 하단 16씩
+			if($('.amount_guide').length > 0 && $('.amount_guide').css("display") == "block") minusH = 16
+			var optionChoiceH	= $('.option_choice_section').height() + optPaddigH; // padding값추가
+			var optionCaseH		= $('.option_case_section').height();
+			if(prdVar.isStandardPrd) {
+				var botOptAreaH = $('.floating_option_wrap').height();
+				var botOptH		= 88;
+				$('.option_result_section').css('height', botOptAreaH - (botRstH + botOptH));
+			} else {
+				$('.option_result_section').css('height', _this.$option.height() - optionChoiceH - optionCaseH - minusH - botRstH);
+			}
+			
+		}
+	};
+	
+	ProductLayout.prototype.mainResetNew = function () {	// 상세 탭및 하단 옵션 높이값 세팅
+		var _this = this;
+
+		_this.$product.removeClass('is_fixed');
+		_this.$option.css({'height': _this.contentHeight});
+	};
+	
+	ProductLayout.prototype.mainFixedNew = function (top) {
+		var _this = this;
+
+		_this.$product.addClass('is_fixed');
+		_this.$anchorTap.css({'top': top});
+	};
+	
+	ProductLayout.prototype.bindEventNew = function () {
+		var _this = this;
+
+		_this.$win.on('scroll', function () {
+			if($(".smt_optly").css("display") == "none") {
+				_this.calPositionNew(); 
+			}
+		}).on('resize', function () {
+			_this.$product.removeClass('is_fixed');
+			_this.layoutUpdateNew();
+			_this.getDataNew();
+			_this.calPositionNew();
+		// 16-10-28 추가
+		}).on('anchorPosition', function (e, target) {
+			//_this.anchorPositionNew($(target));
+		});
+
+
+		_this.$anchor.on('click', 'a', function (e) {
+			e.preventDefault();
+			var $target = $($(this).attr('href'));
+			_this.isScroll = false;
+			//_this.$win.scrollTop($target.offset().top - _this.anchorHeight);
+			$('html, body').stop().animate({
+				'scrollTop': $target.offset().top - _this.anchorHeight
+			}, 200, function () {
+				_this.isScroll = true;
+			});
+			$(this).parent()
+				.addClass('selected')
+				.siblings()
+				.removeClass('selected');
+		});
+		
+		_this.$buyMoreBtn.on('click', function (e){
+			if($(this).hasClass('is_open')){
+				$(this).removeClass('is_open');
+			} else {
+				$(this).addClass('is_open');
+			}
+		});
+
+		/*$("#ui_optionNew2Btn").on('click', function(e){
+			e.preventDefault();
+			if($("#ui_optionNew2").hasClass('is_open')) {
+				$("#ui_optionNew2").removeClass('is_open');
+			} else {
+				$("#ui_optionNew2").addClass('is_open');
+			}
+		});
+		$("#ui_addPrdNew2").on('click',  function(e){
+			e.preventDefault();
+			if($("#ui_addPrdNew2").hasClass('is_open')) {
+				$("#ui_addPrdNew2").removeClass('is_open');
+			} else {
+				$("#ui_addPrdNew2").addClass('is_open');
+			}
+		});*/
+		// 배송비 클릭시
+		$('#botOrginDeliArea > .btn_txt_type').on('click', function (e){
+			e.preventDefault();
+			if($(this).hasClass('disable')) {
+				var html = $(this).html();
+				$(this).removeClass('disable');
+				$('#botOrginDeliArea > .btn_txt_type').each(function(){
+					var tempHtml	= $(this).html();
+					if(tempHtml != html) $(this).addClass('disable');
+				});
+				if($('#sel_delivery')) {
+					var obj = document.frmMain;
+					if(html == '착불') {
+						$('#sel_delivery').val('02');
+						$(obj).find("[name=prdDlvCstStlTyp]").val('02');
+					} else if (html == '선결제') {
+						$('#sel_delivery').val('01');
+						$(obj).find("[name=prdDlvCstStlTyp]").val('01');
+					}
+				}
+			}
+		});
+		//상단 배송비 결제 변경시
+		$('#sel_delivery').on('change', function(){
+			var selDeliVar	= $('#sel_delivery').val();
+			$('#botOrginDeliArea > .btn_txt_type').removeClass('disable');
+			$('#botOrginDeliArea > .btn_txt_type').each(function(){
+				var tempHtml	= $(this).html();
+				if(selDeliVar == '01') {
+					if(tempHtml == '착불') $(this).addClass('disable');
+				} else if (selDeliVar == '02') {
+					if(tempHtml == '선결제') $(this).addClass('disable');
+				}
+			});
+		});
+		$('.ui_samrt_layer >  .btn_close').click(function(evt){
+			// 스마트 옵션 자세히 보기가 닫힐 경우 클래스 추가 및 삭제
+			if($('.product_detail_explain_wrap').hasClass('is_layer')) {
+				$('.product_detail_explain_wrap').removeClass('is_layer');
+			}
+			_this.calPositionNew();
+		});
+	};
+	
+	ProductLayout.prototype.calPositionNew = function () {
+		var _this = this,
+			scrollTop = _this.$win.scrollTop();
+		_this.leftContentTop = $('.view_left').offset().top + $('.view_left').height() - _this.windowHeight;
+
+		if (_this.anchorPositonTop > scrollTop) {
+			_this.mainResetNew();
+		} else if (_this.leftContentTop < scrollTop) {
+			_this.mainFixedNew(_this.leftContentTop - scrollTop);
+		} else {
+			_this.mainFixedNew(0);
+			_this.anchorFixedNew(scrollTop);
+		}
+	};
+	
+	ProductLayout.prototype.anchorFixedNew = function (scrollTop) {
+		var _this = this, calcTop = scrollTop + 20;
+		
+		_this.productInfoTop = $('#tabProductInfo').offset().top - _this.anchorHeight;
+		_this.productReviewTop = $('#tabProductReview').offset().top - _this.anchorHeight;
+		_this.productQnATop = $('#tabProductQnA').offset().top - _this.anchorHeight;
+		_this.productReturnTop = $('#tabProductReturn').offset().top - _this.anchorHeight;
+		
+		// 16-10-16 추가
+		if ((navigator.appVersion.indexOf("MSIE 7.") > 0) || (navigator.appVersion.indexOf("MSIE 8.") > 0)) {
+			//ie7,8
+			_this.$anchor.hide().show();
+		}
+		
+		if (_this.productReturnTop <= calcTop && _this.isScroll) {
+			_this.$anchor.find('li')
+				.removeClass('selected')
+					.eq(3)
+						.addClass('selected');
+		} else if (_this.productQnATop <= calcTop && _this.isScroll) {
+			_this.$anchor.find('li')
+				.removeClass('selected')
+					.eq(2)
+						.addClass('selected');
+		} else if (_this.productReviewTop <= calcTop && _this.isScroll) {
+			_this.$anchor.find('li')
+				.removeClass('selected')
+					.eq(1)
+						.addClass('selected');
+		} else if (_this.productInfoTop <= calcTop && _this.isScroll) {
+			_this.$anchor.find('li')
+				.removeClass('selected')
+					.eq(0)
+						.addClass('selected');
+		}
+	};
+	
+	ProductLayout.prototype.deliverySet = function () {	// 하단 배송비 가격 세팅
+		var _this = this;
+		var deliHtml	= $('div[name=dlvCstInfoView]').find('div.col.first').html();
+		var startIndex	= 0;
+		var endIndex	= 0;
+		var rtnStr		= 0;
+		if(deliHtml != undefined && deliHtml != '' && deliHtml.indexOf('배송비') >= 0) {
+			startIndex	= deliHtml.indexOf(':');
+			endIndex	= deliHtml.indexOf('(');
+			
+			if(startIndex < 0) startIndex = 0;
+			if(endIndex < 0) endIndex = deliHtml.length;
+			
+			try {
+				if(startIndex > 0 && endIndex > 0) {
+					var drawHtml;
+					rtnStr	= deliHtml.substring(startIndex + 1, endIndex);
+					if(rtnStr != '' && rtnStr.trim() == '무료' ){
+						drawHtml = '<span class="benefit_free">무료배송</span>';
+						if(endIndex > 0) {
+							var addDelTxt	= deliHtml.substring(endIndex, deliHtml.length);
+							if(addDelTxt != '') $('#botDeliEtcArea').html('<p class="txt_notice">'+addDelTxt+'</p>');
+						}
+					} else if (rtnStr != '' && rtnStr.indexOf('원') >= 0 ) {
+						drawHtml = '<span class="benefit_price"><strong class="num">'+rtnStr+'</strong></span>';
+						if(endIndex > 0) {
+							var addDelTxt	= deliHtml.substring(endIndex, deliHtml.length);
+							if(addDelTxt != '') $('#botDeliEtcArea').html('<p class="txt_notice">'+addDelTxt+'</p>');
+						}
+					} else {
+						$('#botDeliEtcArea').html('<p class="txt_notice">'+rtnStr+'</p>');
+					}
+					if($('#botDeliArea'))$('#botDeliArea').html(drawHtml);
+				}
+			} catch (e){
+				
+			}
+		} else {
+			if($('.delevery_bot_area').find('a').length == 0) {	// 배송영역에 노출되는 부분이 없을 경우 비노출 처리
+				$('.delevery_bot_area').hide();
+			}
+		}
+	};
+	
+	ProductLayout.prototype.limitedSet = function () {	// 하단 구매제한 문구세팅
+		var _this = this;
+		var limitHtml	= $('p.txt_s').html();
+		var $target	= $('.amount_guide');
+		
+		if(limitHtml != undefined && limitHtml != '' && $target) {
+			$target.find('span').html(limitHtml);
+			$target.show();
+		}
+	};
+
+	ProductLayout.prototype.layoutUpdate = function () {
+		var _this = this;
+
+		_this.windowHeight = $(window).height();
+		_this.productInfoTop = $('#tabProductInfo').offset().top - _this.anchorHeight;
+		_this.productReviewTop = $('#tabProductReview').offset().top - _this.anchorHeight;
+		_this.productQnATop = $('#tabProductQnA').offset().top - _this.anchorHeight;
+		_this.productReturnTop = $('#tabProductReturn').offset().top - _this.anchorHeight;
+		_this.anchorPositonTop = _this.$anchor.parent().offset().top;
+		_this.leftContentTop = $('.view_left').offset().top + $('.view_left').height() - _this.windowHeight;
+	};
+
+	ProductLayout.prototype.getData = function () {
+		var _this = this;
+
+		_this.contentHeight = _this.windowHeight - _this.$optionEtc.outerHeight(true) - _this.toolBarHeight - 83;
+		if (_this.contentHeight < _this.minHeight) {
+			_this.contentHeight = _this.minHeight;
+		}
+	};
+
+	ProductLayout.prototype.mainFixed = function (top) {
+		var _this = this;
+
+		_this.$anchor.css({'top': top});
+		_this.$option.addClass('fixed').css({'top': top});
+		_this.$optionMain.css({'height': _this.contentHeight});
+		_this.$optionContent.css({'height': _this.contentHeight - _this.optionTitleHeight });
+	};
+
+	ProductLayout.prototype.mainReset = function () {
+		var _this = this;
+
+		_this.$anchor.css({'top': ''});
+		_this.$option.removeClass('fixed').css({'top': ''});
+		_this.$optionMain.css({'height': _this.contentHeight});
+		_this.$optionContent.css({'height': _this.contentHeight - _this.optionTitleHeight });
+	};
+
+	ProductLayout.prototype.anchorFixed = function (scrollTop) {
+		var _this = this, calcTop = scrollTop + 20;
+
+		_this.$anchor.addClass('fixed');
+		
+		// 16-10-16 추가
+		if ((navigator.appVersion.indexOf("MSIE 7.") > 0) || (navigator.appVersion.indexOf("MSIE 8.") > 0)) {
+			//ie7,8
+			_this.$anchor.hide().show();
+		}
+		
+		if (_this.productReturnTop <= calcTop && _this.isScroll) {
+			_this.$anchor.find('li')
+				.removeClass('selected')
+					.eq(3)
+						.addClass('selected');
+		} else if (_this.productQnATop <= calcTop && _this.isScroll) {
+			_this.$anchor.find('li')
+				.removeClass('selected')
+					.eq(2)
+						.addClass('selected');
+		} else if (_this.productReviewTop <= calcTop && _this.isScroll) {
+			_this.$anchor.find('li')
+				.removeClass('selected')
+					.eq(1)
+						.addClass('selected');
+		} else if (_this.productInfoTop <= calcTop && _this.isScroll) {
+			_this.$anchor.find('li')
+				.removeClass('selected')
+					.eq(0)
+						.addClass('selected');
+		}
+	};
+
+	ProductLayout.prototype.anchorReset = function () {
+		var _this = this;
+
+		_this.$anchor
+			.removeClass('fixed')
+			.find('li')
+			.removeClass('selected')
+			.eq(0)
+			.addClass('selected');
+	};
+	
+	// 16-10-28 추가 : 사용법 $(window).trigger('anchorPosition', '#ifrmReview');
+	ProductLayout.prototype.anchorPosition = function ($target) {
+		var _this = this;
+		$('html, body').stop().animate({
+			'scrollTop': $target.offset().top - _this.anchorHeight
+		}, 200, function () {
+			_this.isScroll = true;
+		});
+	};
+
+	ProductLayout.prototype.bindEvent = function () {
+		var _this = this;
+
+		_this.$win.on('scroll', function () {
+			_this.calPosition();
+		}).on('resize', function () {
+			_this.layoutUpdate();
+			_this.getData();
+			_this.calPosition();
+		// 16-10-28 추가
+		}).on('anchorPosition', function (e, target) {
+			_this.anchorPosition($(target));
+		});
+
+		_this.$doc.on('click', '.ui_info_button', function (e) {
+			e.preventDefault();
+			$(this).next().toggle();
+		}).on('click', '.ui_close', function () {
+			$(this).closest('.ui_info_content').hide().prev().focus();
+		}).on('click mouseleave focusin focusout', '.ui_tooltip', function (e) {
+			e.preventDefault();
+
+			switch (e.type) {
+				case 'click' :
+					$(this).next().toggle();
+					break;
+				case 'focusin' :
+					$(this).next().show();
+					break;
+				case 'mouseleave' :
+					$(this).next().hide();
+					break;
+				case 'focusout' :
+					$(this).next().hide();
+					break;
+			}
+		});
+
+		_this.$anchor.on('click', 'a', function (e) {
+			e.preventDefault();
+			var $target = $($(this).attr('href'));
+			_this.isScroll = false;
+			//_this.$win.scrollTop($target.offset().top - _this.anchorHeight);
+			$('html, body').stop().animate({
+				'scrollTop': $target.offset().top - _this.anchorHeight
+			}, 200, function () {
+				_this.isScroll = true;
+			});
+			$(this).parent()
+				.addClass('selected')
+				.siblings()
+				.removeClass('selected');
+		});
+
+		_this.$optionClose.on('click', function (e) {
+			e.preventDefault();
+			_this.$win.trigger('bottomOptionToggle', false);
+			_this.$win.trigger('callGaEvent','0;10;');
+		});
+
+		_this.$win.on('bottomOptionToggle', function (e, isForceOpen) {
+			e.preventDefault();
+
+			if(isForceOpen){
+				if(!_this.$product.hasClass('close')){
+					return;
+				}
+			}
+			_this.$product.toggleClass('close');
+			if (_this.$product.hasClass('close')) {
+				$(this).find('span.hide').html('옵션열기');
+			} else {
+				$(this).find('span.hide').html('옵션닫기');
+			}
+		});
+
+		_this.$win.on('layoutUpdate', function () {
+			_this.layoutUpdate();
+			_this.getData();
+			_this.calPosition();
+		});
+	};
+
+	ProductLayout.prototype.calPosition = function () {
+		var _this = this,
+			scrollTop = _this.$win.scrollTop();
+
+		if (_this.anchorPositonTop > scrollTop) {
+			_this.mainReset(scrollTop);
+			_this.anchorReset();
+		} else if (_this.leftContentTop < scrollTop) {
+			_this.mainFixed(_this.leftContentTop - scrollTop);
+		} else {
+			_this.mainFixed(0);
+			_this.anchorFixed(scrollTop);
+		}
+	};
+
+	ProductLayout.prototype.bookMark = function () {
+		var _this = this, offsetTop = 0;
+
+		// 눈도장 추가 버튼
+		_this.$bookMarkPlus.on('click', function () {
+			var top = $('.prdc_ezop_btn').offset().top - _this.anchorPositonTop - _this.anchorHeight,
+				bookMarkData = {},
+				$bookMark = _this.$bookMark.filter(':hidden:first');
+
+			if ($bookMark.length) {
+				// 스크롤하지 않고 계속 눈도장 추가시 일정 높이를 띄워 준다.
+				offsetTop = offsetTop + 25;
+
+				// 눈도장 버튼 보이기
+				$bookMark.show();
+				bookMarkData.bookMark = $.extend({}, {"top": top + offsetTop}, $bookMark.data());
+				_this.$bookMarkContent.append(_this.handlebars(bookMarkData));
+				_this.$win.trigger('callGaEvent','0;19;');
+			} else {
+				alert('눈도장은 최대 8개까지만 붙일 수 있습니다.');
+			}
+		});
+
+		// 눈도장 점프 버튼
+		_this.$bookMark.on('click', function () {
+			var index = $(this).data('index'),
+				top = $('#bookMark' + index).offset().top - 80;
+
+			//_this.$win.scrollTop(top);
+			$('html, body').animate({
+				'scrollTop': top
+			},200);
+		});
+
+		// 눈도장의 삭제 및 텍스트 변경시 이벤트
+		_this.$bookMarkContent.on('click', 'button.close', function () {
+			var index = $(this).data('index') - 1;
+
+			$(this).parent().remove();
+			_this.$bookMark.eq(index).hide();
+		}).on('focusout', 'input', function () {
+			var value = $(this).data('value');
+
+			if($(this).val() === ''){
+				$(this).val(value);
+			}
+		});
+
+		_this.$win.on('scroll', function () {
+			offsetTop = 0;
+		});
+	};
+
+	return ProductLayout;
+})); 

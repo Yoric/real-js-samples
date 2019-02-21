@@ -1,0 +1,149 @@
+;(function (root, factory) {
+	'use strict';
+	if (typeof define === 'function' && define.amd) {   // jshint ignore:line
+		// AMD
+		define([                                            // jshint ignore:line
+			'jquery'
+			// ,'optVar'
+		], factory);
+	} else {
+		// Browser globals
+		root.skp11 = root.skp11 || {};
+		root.skp11.product = root.skp11.product || {};
+		root.skp11.product.CustomMdRecmPrd = factory(
+			root.jQuery
+			// ,root.optVar
+		);
+	}
+}(this, function ($) {
+	'use strict';
+
+	var CustomMdRecmPrd;
+
+	var optVar = productOptInfo;
+
+	var RecmPrdRecord = function(data) {
+		this.prdNo = data.prdNo;
+		this.prdNm = data.prdNm;
+		this.selPrc = data.selPrc;
+		this.finalDscPrc = data.finalDscPrc;
+		this.addPrc = data.finalDscPrc;
+		this.imgUrl = data.imgUrl;
+		this.prdStckNo = data.prdStckNo;
+		this.amount = data.amount;
+	};
+
+	CustomMdRecmPrd = function (optionId, position) {
+		// 사용되는 객체
+		this.$content = $(optionId);
+		this.position = position;
+		this.$win = $(window);
+	};
+
+	CustomMdRecmPrd.prototype.init = function () {
+		var _this = this;
+		_this.bind();
+	};
+
+	CustomMdRecmPrd.prototype.bind = function () {
+		var _this = this;
+		_this.$content.on('change', 'input[type="checkbox"]', function () {
+			var $this = $(this);
+
+			if(_this.chkDuplicateSelRecmPrd($this)) {
+				return false;
+			}
+
+			var $target = $this.closest('li');
+
+			if($this.is(':checked')){
+				var recmPrdRecord = _this.getTransSetItemData(_this.setRecmRecord($target));
+				optVar.orderRecmPrdArr.push(recmPrdRecord);
+				recmPrdRecord = $.extend({}, {"target": "ui_mdPickSelWrapper"}, recmPrdRecord);
+				_this.$win.trigger('setItem', recmPrdRecord);
+				$(".gift_to").hide();
+				$(".syup_pay").hide();
+				$(".pay11_wrap").hide();
+				$(".btn_11pay").hide();	//bottom
+				if($('#botDoubleBtnArea > button').length > 1) { // 하단 버튼 두개일 경우 위치 조정
+                	$('#botDoubleBtnArea').addClass('btn_full').removeClass('btn_dubble');
+                }
+			}else{
+				_this.$win.trigger('delItem', {"clsf" : "recmPrd", "prdStckNo" : $target.data("prdstckno")});
+			}
+			_this.$win.trigger("callGaEvent","0;"+ (_this.position == "top" ? "12" : "20") +";MD추천상품");
+		});
+
+		_this.$content.on('click', 'label', function () {
+			location.href = "/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo="+$(this).data("prdno");
+		});
+	};
+
+	CustomMdRecmPrd.prototype.chkDuplicateSelRecmPrd = function($obj){
+		for(var i=0,size=optVar.orderRecmPrdArr.length;i<size;i++){
+			if(optVar.orderRecmPrdArr[i].prdStckNo == $obj.data("prdstckno")){
+				alert("이미 선택되어 있는 추천상품입니다.");
+				return true;
+			}
+		}
+		return false;
+	};
+
+	CustomMdRecmPrd.prototype.setRecmRecord = function($obj){
+		var recmPrdData = this.extractData($obj);
+
+		var recmPrdRecord = new RecmPrdRecord({
+			"prdNo" : recmPrdData.prdno
+			,"prdNm" : recmPrdData.prdnm
+			,"selPrc" : recmPrdData.selprc
+			,"finalDscPrc" : recmPrdData.finaldscprc
+			,"imgUrl" : recmPrdData.imgurl
+			,"prdStckNo" : recmPrdData.prdstckno
+			,"amount" : 1
+		});
+
+		return recmPrdRecord;
+	};
+
+
+
+	CustomMdRecmPrd.prototype.extractData = function ($obj) {
+		var dataList = [];
+
+		$.each( $obj, function( key, value ) {
+			dataList.push( $(value).data() );
+		});
+
+		if(dataList.length == 1) {
+			return dataList[0];
+		}else{
+			return dataList;
+		}
+	};
+
+	CustomMdRecmPrd.prototype.getTransSetItemData = function (data) {
+
+		data.idxMixNo = data.prdStckNo;
+		data.prdStckNo = data.prdStckNo;
+		data.stckQty = 9999999;
+		data.price = data.finalDscPrc;
+		data.dispNm = data.prdNm;
+		data.priceTxt = this.commaFormat(data.finalDscPrc);
+		return data;
+	};
+
+	CustomMdRecmPrd.prototype.commaFormat = function (num) {
+		if (num === 0) {
+			return 0;
+		}
+		var reg = /(^[+-]?\d+)(\d{3})/,
+			n = (num + '');
+
+		while (reg.test(n)) {
+			n = n.replace(reg, '$1' + ',' + '$2');
+		}
+		return n;
+	};
+
+	return CustomMdRecmPrd;
+}));

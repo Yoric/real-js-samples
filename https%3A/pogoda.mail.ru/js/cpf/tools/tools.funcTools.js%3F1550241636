@@ -1,0 +1,163 @@
+(function (window, cpf) {
+	'use strict';
+
+	var extend = cpf.Basic.Extend;
+	/**
+	 * создаёт мультиметод
+	 *
+	 * @example
+	 * // -----------------------------------------------------------------------
+	 * 	var calc = multi(function (operator, x, y) {
+	 * 		switch (operator) {
+	 * 			case '+':
+	 * 				return 'add';
+	 * 			case '-':
+	 * 				return 'sub';
+	 * 			case '*':
+	 * 				return 'mul';
+	 * 			case '/':
+	 * 				return 'div';
+	 * 			default:
+	 * 				throw new TypeError('unknown operator');
+	 * 		}
+	 * 	}).method('add', function (_, x, y) {
+	 * 		return x + y;
+	 * 	}).method('sub', function (_, x, y) {
+	 * 		return x - y;
+	 * 	}).method('mul', function (_, x, y) {
+	 * 		return x * y;
+	 * 	}).method('div', function (_, x, y) {
+	 * 		return x / y;
+	 * 	});
+	 *
+	 * 	calc('+', 1, 2); // -> 3
+	 * 	calc('-', 3, 4); // -> -1
+	 * 	calc('*', 3, 4); // -> 7
+	 * // -----------------------------------------------------------------------
+	 * @param  {Function} pred 	– возвращает имя предиката
+	 * @return {Function} 			– окончательная функция
+	 */
+	function multi (pred) {
+		var methods = {};
+
+		var fn = function fn () {
+			var args = Array.prototype.slice.call(arguments, 0),
+					methodFn = methods[pred.apply(this, args)];
+			return methodFn ? methodFn.apply(this, args) : null;
+		};
+
+		fn.method = function (predKey, methodFn) {
+			methods[predKey] = methodFn;
+			return this;
+		};
+		return fn;
+	}
+
+	/**
+	 * Создаёт каррированную функцию из исходной
+	 *
+	 * @example
+	 * // -----------------------------------------------------------------------
+	 * function func (x, y, z) {
+	 * 	return (x + y) * z;
+	 * }
+	 * func(1, 2, 3); // -> 9
+	 *
+	 * var fc = curry(func);
+	 *
+	 * fc(1)        // -> [Function]
+	 * fc(1)(2)     // -> [Function]
+	 * fc(1)(2)(3)  // -> 9
+	 *
+	 * fc(1)    // -> [Function]
+	 * fc(2, 3) // -> 9
+	 *
+	 * fc(1, 2)     // -> [Function]
+	 * fc(3)        // -> 9
+	 *
+	 * fc(1, 2, 3)  // -> 9
+	 * // -----------------------------------------------------------------------
+	 * @param  {Function} f исходная функция
+	 * @return {Function}   каррированная функция
+	 *
+	 */
+	function curry (f) {
+		var argsLength = f.length;
+
+		var partial = function (args, fn) {
+			return function () {
+				return fn.apply(undefined, args.concat(Array.prototype.slice.call(arguments, 0)));
+			};
+		};
+
+		var fn = function () {
+			var args = Array.prototype.slice.call(arguments, 0);
+			return (args.length < argsLength) ?
+				partial(args, fn) :
+				f.apply(undefined, Array.prototype.slice.apply(arguments, [0, argsLength]));
+		};
+
+		return fn;
+	}
+
+	/**
+	 * Инвоук – он и в Африке инвоук
+	 *
+	 * @example
+	 * // -----------------------------------------------------------------------
+	 * function A (x) {
+	 * 	this.x = x;
+	 * }
+	 * A.prototype.doSomething = function (a, b) {
+	 *   return this.x * (a + b)
+	 * }
+	 *
+	 * var items = [new A(1), new A(2), new A(3), new A(4)];
+	 *
+	 * invoke(items, 'doSomething', 2, 3); // -> [5, 10, 15, 20];
+	 * // -----------------------------------------------------------------------
+	 * @param  {Array} collection массив объектов
+	 * @param  {String} method имя метода
+	 * @return {Array}
+	 */
+	function invoke (collection, method) {
+		var args = Array.prototype.slice.call(arguments, 2);
+		return collection.map(function (item) {
+			if (typeof item === 'undefined' || item === null) {
+				return null;
+			}
+			return (typeof item[method] === 'function') ? item[method].apply(item, args) : null;
+		});
+	}
+
+	/**
+	 * Собирает список из заданных атрибутов
+	 *
+	 * @example
+	 * // -----------------------------------------------------------------------
+	 *
+	 * var items = [{a: 1}, {a: 2}, {b: 3}, "", {a: 3}];
+	 *
+	 * pluck(items, 'a'); // -> [1, 2, undefined, undefined, 3];
+	 * // -----------------------------------------------------------------------
+	 * @param  {Array} collection массив объектов
+	 * @param  {String} propName имя поля
+	 * @return {Array}
+	 */
+	function pluck (collection, propName) {
+		return collection.map(function (item) {
+			return (typeof item !== 'undefined' && item !== null) ? item[propName] : void 0;
+		});
+	}
+
+	extend(true, cpf, {
+		Tools: {
+			FuncTools: {
+				multi: multi,
+				curry: curry,
+				invoke: invoke,
+				pluck: pluck
+			}
+		}
+	});
+}(this, this.ru.mail.cpf));

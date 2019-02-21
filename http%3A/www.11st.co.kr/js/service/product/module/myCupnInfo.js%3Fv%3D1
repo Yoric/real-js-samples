@@ -1,0 +1,393 @@
+/**
+ * @method: myCupnInfo
+ * @dependency: requireJS, jQuery
+ */
+(function(root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define([
+            'jquery'
+			// ,'prdVar'
+        ], factory);
+    } else {
+        root.myCupnInfo = factory(
+            root.jQuery
+			// ,root.prdVar
+        );
+    }
+}(window || this, function($) {
+
+
+	var prdVar = productPrdInfo;
+	var prcVar = productPrcInfo;
+	var optVar = productOptInfo;
+
+	var myCupnInfo = {
+
+		directYn : "N",
+		xsiteCd : "",
+		coBsnsCd : "",
+
+        // 템플릿 적용 컨텐츠 : 상단과 하단 두군데에 있다.
+        $templateContent : $('.option_mini'),
+		// isSetDpCupnCalcPrc : false,
+	
+		init : function(){
+
+			this.directYn = (getBookMarkYn() ? "Y" : "N");
+			this.xsiteCd = this.getGookieInfo4Prd("XSITE=");
+			this.coBsnsCd = this.getGookieInfo4Prd("PARTNER_CD=");
+
+//			if( prdDtlHtmlGenInfo.isHTMLPage ) {
+//				this.directYn = getBookMarkYn();
+//			}else{
+//				this.directYn = $("#isDirectVisit").val();
+//			}
+		},
+	
+		isPrdFnMyCupn : function(){
+			return (("Y" == prdVar.isPrdFnMyCupnYn ? true : false) && "true" == prdVar.isDpCalc);
+		},
+		
+
+		getMyCupnInfo : function(isCallPriceArea){
+
+			var _this = this;
+			// this.isSetDpCupnCalcPrc = true;
+			// if(this.isPrdFnMyCupn() && funcCheckIsLogin()){
+			if(this.isPrdFnMyCupn()){
+				var url = "/product/SellerProductDetailAjax.tmall";
+				var addInfoStr	= "";
+				if(prdVar.issueCupnExptCd != "" && prdVar.issueCupnExptCd != undefined) {
+					addInfoStr	= "P01:"+prdVar.issueCupnExptCd;
+				}
+
+				var tmpParamArr = [];
+
+				tmpParamArr.push("method=getPrdDetailMyCouponPrc");
+				tmpParamArr.push("&prdNo="+prdVar.prdNo);
+				tmpParamArr.push("&connctTyp=01");
+				tmpParamArr.push("&directYn="+this.directYn);
+				tmpParamArr.push("&selMnbdNo="+prdVar.selMnbdNo);
+				tmpParamArr.push("&selMthdCd="+prdVar.selMthdCd);
+				tmpParamArr.push("&dispCtgr1No="+prdVar.dispCtgr1No);
+				tmpParamArr.push("&dispCtgr2No="+prdVar.dispCtgr2No);
+				tmpParamArr.push("&dispCtgr3No="+prdVar.dispCtgr3No);
+				tmpParamArr.push("&dispCtgrNo="+prdVar.dispCtgrNo);
+				tmpParamArr.push("&brandCd="+prdVar.brandCd);
+				tmpParamArr.push("&soCupnAmt="+prdVar.soCupnAmt);
+				tmpParamArr.push("&moCupnAmt="+prdVar.moCupnAmt);
+				tmpParamArr.push("&partnerCd="+this.xsiteCd);
+				tmpParamArr.push("&coBsnsCd="+this.coBsnsCd);
+				tmpParamArr.push("&selPrc="+prdVar.selPrc);
+
+				tmpParamArr.push("&addInfoStr="+addInfoStr);
+
+				var totalStockQty = 0;
+				var totalStockAmt = 0;
+				var stockNos = "";
+				var stockAmts = "";
+				var stockQtys = "";
+				var addCompPrc = 0;
+
+				var selOptionSize = optVar.orderOptArr.length;
+				var selAddPrdSize = optVar.orderAddPrdArr.length;
+
+				var tmpStockQty = 0;
+				var tmpStockAmt = 0;
+
+				if(selOptionSize > 0){
+
+					for(var i = 0; i < selOptionSize; i++) {
+						tmpStockQty = Number(optVar.orderOptArr[i].amount);
+						totalStockQty = totalStockQty + tmpStockQty;
+
+						tmpStockAmt = Number(optVar.orderOptArr[i].addPrc) + Number(prdVar.selPrc);
+						totalStockAmt = (tmpStockQty * tmpStockAmt) + totalStockAmt;
+						stockNos = stockNos + ","+ optVar.orderOptArr[i].prdStckNo;
+						stockAmts = stockAmts + ","+ tmpStockAmt;
+						stockQtys = stockQtys + ","+ tmpStockQty;
+					}
+				}else{
+					totalStockQty = 1;
+					totalStockAmt = prdVar.selPrc;
+					stockNos = ","+optVar.totPrdStckNo;
+					stockAmts = ","+prdVar.selPrc;
+					stockQtys = ",1";
+				}
+
+				for(var i = 0; i < selAddPrdSize; i++) {
+					addCompPrc += Number(optVar.orderAddPrdArr[i].addPrc);
+				}
+
+				tmpParamArr.push("&totalStockQty="+totalStockQty);
+				tmpParamArr.push("&totalStockAmt="+totalStockAmt);
+				tmpParamArr.push("&stockNos="+stockNos.substring(1));
+				tmpParamArr.push("&stockAmts="+stockAmts.substring(1));
+				tmpParamArr.push("&stockQtys="+stockQtys.substring(1));
+				tmpParamArr.push("&addCompPrc="+addCompPrc);
+
+				var isDirectVisit = false;
+                if( getBookMarkYn() ) {
+					isDirectVisit = true;
+                    tmpParamArr.push("&isDirectVisit=true");
+                } else {
+                    tmpParamArr.push("&isDirectVisit=false");
+                }
+
+
+				tmpParamArr.push("&skMemberDscRt="+prcVar.skMemberDscRt);
+				tmpParamArr.push("&tMembershipLimitAmt="+prcVar.tMembershipLimitAmt);
+				tmpParamArr.push("&mileageLimitAmt="+prcVar.mileageLimitAmt);
+				tmpParamArr.push("&cardLimitAmt="+prcVar.cardLimitAmt);
+
+                if( prdVar.isHtmlGen && isDirectVisit ) {
+                    tmpParamArr.push("&sktPointDscRt="+prcVar.sktPointDscRtByHTMLGen);
+                    tmpParamArr.push("&mileageDscRt="+prcVar.mileageDscRtByHTMLGen);
+                    tmpParamArr.push("&cardDscRt="+prcVar.cardDscRtByHTMLGen);
+                } else {
+                    tmpParamArr.push("&sktPointDscRt="+prcVar.sktPointDscRt);
+                    tmpParamArr.push("&mileageDscRt="+prcVar.mileageDscRt);
+                    tmpParamArr.push("&cardDscRt="+prcVar.cardDscRt);
+                }
+
+				tmpParamArr.push("&isCallPriceArea="+isCallPriceArea);
+				tmpParamArr.push("&isHtmlGen="+prdVar.isHtmlGen);
+
+
+				var param = tmpParamArr.join('');
+
+				var callBack = function(retVal){
+					var result = eval(retVal);
+
+					if(Number(result.myCupnDscPrc) > 0){
+                        optVar.lastPrc = Number(prdVar.selPrc) - Number(result.myCupnDscPrc);
+					}
+
+					if(isCallPriceArea){
+						$(window).trigger('callbackMyCupn', result);
+					}
+
+					if("" == result){
+						return;
+					}
+					
+					if(selOptionSize == result.myCupnPrcArr.length){
+						for(var i=0;i<selOptionSize;i++){
+							optVar.orderOptArr[i].sumDscPrc = result.myCupnPrcArr[i].SUM_DSC_PRC;
+							optVar.orderOptArr[i].choiceCupnIssNo = result.myCupnPrcArr[i].ADD_ISS_CUPN_NO;
+							optVar.orderOptArr[i].bonusCupnIssNo = result.myCupnPrcArr[i].BONUS_ISS_CUPN_NO;
+							optVar.orderOptArr[i].plusDscAmt = result.myCupnPrcArr[i].PLUS_DSC_AMT;
+						}
+					}
+
+					_this.setDpCupnCalcPrc();
+				}
+				
+				$.ajax({
+			        url : url,
+					data : param,
+			        success : callBack
+			    });
+
+			}else if (prdVar.isStandardPrd && funcCheckIsLogin()){
+				_this.setDpCupnCalcPrc();
+				// console.log("실패");
+			}
+		},
+
+		// 쿠키값 조회
+		getGookieInfo4Prd : function(arg) {
+			try {
+				var alen = arg.length;
+				var clen = document.cookie.length;
+				var i = 0;
+
+				while (i < clen) {
+					var j = i + alen;
+					if (document.cookie.substring(i, j) == arg)
+						return this.getCookieValue4Prd(j);
+					i = document.cookie.indexOf(" ", i) + 1;
+					if (i == 0)
+						break;
+				}
+				return null;
+			} catch (e) {
+				alert(e.message);
+				return null;
+			}
+		},
+
+		isHasSizeOption : function(obj){
+			if(typeof obj != "object") return false;
+			var optionSize = (obj).optionSize;
+            if(typeof optionSize != "object") return false;
+            // if(!Array.isArray(optionSize)) return false;
+			if(optionSize.length != 2) return false;
+			if(typeof optionSize[0] == "number" && optionSize[0] > 0
+				&& typeof optionSize[1] == "number" && optionSize[1] > 0) return true;
+			return false;
+		},
+
+		setDpCupnCalcPrc : function(){
+			var _this = this;
+			try{
+				var tmpOptPrc = 0;
+				var addCompPrc = 0;
+				var totalOptPrc = 0;
+				var totalDscPrc = 0;
+				var totalPlusDscPrc = 0;
+				var totalCupnCnt	= 0;	// 적용된 쿠폰 갯수
+				var showCupnText	= "쿠폰 적용을 해주세요";
+				for(var i=0,size=optVar.orderOptArr.length;i<size;i++){
+					if(prdVar.isStandardPrd) {
+						tmpOptPrc = 0;
+						tmpOptPrc = Number(optVar.orderOptArr[i].addPrc) + Number(optVar.orderOptArr[i].selPrc);
+						if(Number(optVar.orderOptArr[i].choiceCupnIssNo) > 0 || Number(optVar.orderOptArr[i].bonusCupnIssNo) > 0) {
+							totalCupnCnt ++;
+						}
+					} else {
+						tmpOptPrc = 0;
+						tmpOptPrc = Number(optVar.orderOptArr[i].addPrc) + Number(prdVar.selPrc);
+
+						// 계산형 옵션명, 옴션가 추가
+						var prdCalcOptPrc = 0;
+						if( _this.isHasSizeOption(optVar.orderOptArr[i].calcOptObj) ){
+							prdCalcOptPrc = optVar.orderOptArr[i].calcOptObj.addPrc;
+							tmpOptPrc += Number(prdCalcOptPrc);
+						}
+					}
+
+					tmpOptPrc = Number(Number(optVar.orderOptArr[i].amount) * tmpOptPrc) - Number(optVar.orderOptArr[i].sumDscPrc);
+					totalOptPrc = Number(totalOptPrc) + Number(tmpOptPrc);
+					totalDscPrc = totalDscPrc + Number(optVar.orderOptArr[i].sumDscPrc);
+					totalPlusDscPrc += Number(optVar.orderOptArr[i].plusDscAmt);
+
+                    _this.$templateContent.find('[data-prdstckno=' + optVar.orderOptArr[i].prdStckNo + ']').find('strong').each(function() {
+						$(this).html(_this.commaFormat(tmpOptPrc));
+					});
+                    // 하단 옵션적용
+                    $('.option_bottom').find('[data-prdstckno=' + optVar.orderOptArr[i].prdStckNo + ']').find('strong').each(function() {
+						$(this).html(_this.commaFormat(tmpOptPrc));
+					});
+
+				}
+
+				jQuery("[name=emCupnMultiTxt]").each(function() {
+					if(totalPlusDscPrc > 0){
+						$(this).html(_this.commaFormat(totalPlusDscPrc)+"원 복수구매 할인");
+						$(this).show();
+						if(totalDscPrc > 0){
+							$(".bar_11_da").show();
+						}
+					}else{
+						$(this).html("");
+						$(this).hide();
+						$(".bar_11_da").hide();
+					}
+				});
+				jQuery("[name=emCupnDscTxt]").each(function() {
+					if(prdVar.isStandardPrd) {
+						if(totalCupnCnt == 0) {
+							$(this).html('');
+						} else {
+							$(this).html(_this.commaFormat(totalDscPrc)+"원 할인");
+						}
+						$(this).show();
+					} else {
+						if(totalDscPrc > 0){
+							$(this).html(_this.commaFormat(totalDscPrc)+"원 쿠폰자동적용");
+							$(this).show();
+						}else{
+							$(this).html("");
+							$(this).hide();
+						}
+					}
+				});
+				
+				// 하단 쿠폰 노출 영역 추가
+				var _targetBot	= $('#benefit_cpn_area');
+				if(_targetBot) {
+					var botBenefitTxt	= '';
+					
+					if(prdVar.isStandardPrd) {
+						if(totalCupnCnt == 0) {
+							botBenefitTxt = '';
+						} else {
+							botBenefitTxt = '<strong class="num">'+_this.commaFormat(totalDscPrc)+'</strong>원 할인';
+						}
+					} else {
+						if(totalDscPrc > 0) {
+							botBenefitTxt = '<strong class="num">'+_this.commaFormat(totalDscPrc)+'</strong>원 자동적용';
+						}
+					}
+					if(totalPlusDscPrc > 0) {
+						if(botBenefitTxt == '') botBenefitTxt += ' / ';
+						botBenefitTxt += '<strong class="num">'+_this.commaFormat(totalDscPrc)+'</strong>원 추가';
+					}
+					
+					if(botBenefitTxt != '') {
+						_targetBot.html(botBenefitTxt);
+						_targetBot.removeClass('benefit_default');
+						_targetBot.addClass('benefit_price');
+						if(prdVar.isStandardPrd) _targetBot.show();
+						$('.coupon_apply > .btn_txt_type').show();	// 버튼 노출 여부
+					} else {
+						_targetBot.html('적용 가능한 쿠폰 없음');
+						_targetBot.removeClass('benefit_price');
+						_targetBot.addClass('benefit_default');
+						if(prdVar.isStandardPrd){
+							_targetBot.hide();
+							$('.coupon_apply > .btn_txt_type').show();	// 버튼 노출 여부
+						} else {
+							$('.coupon_apply > .btn_txt_type').hide();	// 버튼 노출 여부
+						}
+					}
+				}
+				// 하단 쿠폰 노출 영역 추가 끝
+				
+				// 추가상품
+				for(var i=0,size=optVar.orderAddPrdArr.length;i<size;i++){
+					addCompPrc += Number(optVar.orderAddPrdArr[i].addPrc);
+				}
+
+				// 추천상품
+				for(var i=0,size=optVar.orderRecmPrdArr.length;i<size;i++){
+					addCompPrc += Number(optVar.orderRecmPrdArr[i].addPrc);
+				}
+
+				jQuery("[name=totalPriceArea]").each(function() {
+					jQuery(this).html(_this.commaFormat(Number(totalOptPrc) + Number(addCompPrc) - Number(totalPlusDscPrc)));
+				});
+			}catch(e){
+			}
+		},
+
+		// 쿠키 value 값 리턴
+		getCookieValue4Prd : function(offset) {
+			var endstr = document.cookie.indexOf(";", offset);
+			if (endstr == -1)
+				endstr = document.cookie.length;
+			return unescape(document.cookie.substring(offset, endstr));
+		},
+
+		commaFormat : function (num) {
+			if (num === 0) {
+				return 0;
+			}
+
+			var reg = /(^[+-]?\d+)(\d{3})/,
+				n = (num + '');
+
+			while (reg.test(n)) {
+				n = n.replace(reg, '$1' + ',' + '$2');
+			}
+
+			return n;
+		}
+		
+	};
+	
+	
+	
+	return myCupnInfo;
+}));

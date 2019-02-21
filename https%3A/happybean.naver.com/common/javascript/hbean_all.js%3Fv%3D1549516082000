@@ -1,0 +1,3290 @@
+//  - File Name   : hbean_all.js
+//  - Copyright   : Copyright NHN Corp. Copyright The Beautiful Foundation. All Rights Reserved.
+document.domain="naver.com";
+
+//  - File Name   : hbean_common.js
+//  - Copyright   : Copyright NHN Corp. Copyright The Beautiful Foundation. All Rights Reserved.
+//  - Description : declare hbean global object
+//                  -----------------------------------------------------------------------
+//                  If you want to use the onload-call-queue, append the follow statements.
+//                    window.onload = hbean.callLoadListener;
+//                    hbean.observer.add("script-statements");
+//                  -----------------------------------------------------------------------
+//                  If you want to use the default input text message, refer a follow example.
+//                    <input type="text" onfocus="hbean.onfocus(this)" onblur="hbean.onblur(this)"
+//                           abbr="input a your message" value="input a your message" />
+//                  -----------------------------------------------------------------------
+//                  If you want to activate embeded objects when load a page,
+//                  call the hbean.refreshObject function. Let's see a follow example.
+//                    <div id='myobject'><object xxxx></object></div>
+//                    <script type="text/javascript">hbean.refreshObject('myobject');</script>
+//                  -----------------------------------------------------------------------
+var envArray = ["local.", "dev.", "qa.", "pub.", "nokdu.", "gangnang.", "wandoo."
+    , "dev-fund.", "dev-billing.", "dev-api.", "dev-biz.", "dev-campaign.",
+    , "qa-fund.", "qa-billing.", "qa-api.", "qa-biz.", "qa-campaign.",
+    , "pub-fund.", "pub-billing.", "pub-api.", "pub-biz.", "pub-campaign.",
+    , "local-fund.", "local-billing.", "local-api.", "local-biz.", "local-campaign."];
+var mobileEnvArray = ["dev-m.", "dev-m-fund.", "dev-m-event.", "dev-m-campaign."
+	, "qa-m.", "qa-m-fund.", "qa-m-event.", "qa-m-campaign."
+	, "pub-m.", "pub-m-fund", "pub-m-event.", "pub-m-campaign."];
+
+var hbean = {
+	isWin : (navigator.appVersion.indexOf("Win") != -1)
+	,
+	IE4 : false
+	,
+	NS4 : false
+	,
+	// instantly support to load object tag
+	refreshObject : function(id)
+	{
+		var d = document.getElementById(id);
+		if(d != undefined)
+		{
+			var p = d.parentNode;
+			var w = document.createElement(d.tagName);
+			w.innerHTML = d.innerHTML;
+			p.insertBefore(w, d);
+			p.removeChild(d);
+		}
+	}
+	,
+	// support onload queue calling
+	observer : null
+	,
+	callLoadListener : function()
+	{
+		if(hbean.observer==null) return;
+		hbean.observer.call();
+	}
+	,
+	// default input message
+	onfocus : function(e)
+	{
+		try{
+			var oValue = e.value.replace(/\r/g, '');
+			var oAbbr = e.getAttribute("abbr").replace(/\r/g, '');
+			if (oValue == oAbbr) {
+				e.value = "";
+			}
+		}catch(e){}
+	}
+	,
+	onblur : function(e)
+	{
+		try{
+			if (e.value == "") {
+				e.value = e.getAttribute("abbr");
+			}
+		}catch(e){}
+	}
+	,
+	getCookie : function(c)
+	{
+		var found = false;
+		var start, end;
+		var i = 0;
+
+		while (i <= document.cookie.length) {
+			start = i;
+			end   = start + c.length;
+			if (document.cookie.substring(start, end) == c) {
+				found = true;
+				break;
+			}
+			i++;
+		}
+		if (found == true)
+		{
+			start = end+1;
+			end   = document.cookie.indexOf(";", start);
+			if (end < start) {
+				end = document.cookie.length;
+			}
+			return document.cookie.substring(start, end);
+		}
+		else
+		{
+			return "";
+		}
+	}
+};
+
+if(document.all)
+{
+	hbean.IE4 = true;
+	hbean.NS4 = false;
+}
+else
+{
+	hbean.IE4 = false;
+	hbean.NS4 = true;
+}
+
+function LoadEventListener()
+{
+	if(hbean.observer!=null)
+	{
+		return hbean._loadlistener;
+	}
+
+	this.listener = new Array();
+	this.add = function(expression)
+	{
+		this.listener[this.listener.length] = expression;
+	}
+	this.call = function()
+	{
+		var length = this.listener.length;
+		for(var i=0;i<length;i++)
+		{
+			eval(this.listener[i]);
+		}
+	}
+	hbean.observer = this;
+}
+
+new LoadEventListener();
+
+//- File Name   : hbean_ajax.js
+//- Description : It support to call to XML-HTTP-Request.
+//              MUST import hbean_common.js file before this file.
+//              MUST import hbean_array.js file before this file.
+//              default syncmode is synchronization(syncmode is 1).
+function AjaxSender(syncmode)
+{
+//
+// private member variables
+//
+this.syncmode = 1;
+this.xmlhttp = null;
+this.headers = new Array();
+
+this.getX = function()
+{
+	if(this.xmlhttp!=null) return this.xmlhttp;
+
+	var x=null;
+
+	if(window.ActiveXObject){
+		x = new ActiveXObject("Msxml2.XMLHTTP");
+		if(!x){
+			x = new ActiveXObject("Microsoft.XMLHTTP");
+		}
+	}else if(window.XMLHttpRequest){
+		x = new XMLHttpRequest();
+	}
+	return this.xmlhttp = x;
+};
+
+this.encode = function(s)
+{
+	return window.encodeURIComponent?encodeURIComponent(s):escape(s);
+};
+
+this.send = function(url, data, callback, context)
+{
+	var x = this.getX();
+	if(!x || url && !callback)
+	{
+		(new Image()).src = url;
+		this.headers = new Array();
+		return;
+	}
+
+	var method = (data)?"POST":"GET";
+	this.headers.add({head:"ajax", value:"true"});
+	if(method=="POST")
+	{
+		this.headers.add({head:"Content-Type", value:"application/x-www-form-urlencoded;charset=utf-8"});
+	}
+
+	x.open(method, url, (this.syncmode==1)?false:true);
+	if(this.headers.length>0)
+	{
+		// append additional header
+		for(iheader=0;iheader<this.headers.length;iheader++)
+		{
+			var header = this.headers[iheader];
+			x.setRequestHeader(header.head, header.value);
+		}
+	}
+	this.headers = new Array();
+
+	var bsetevent = false;
+	if(hbean.IE4)
+	{
+		if(callback) bsetevent = true;
+	}
+	else
+	{
+		bsetevent = (this.syncmode==0 && typeof(callback)=="function" );
+	}
+
+	if(bsetevent)
+	{
+		var xsender = this;
+		x.onreadystatechange = function(){
+			if(x.readyState==4) callback(xsender, context);
+		};
+	}
+
+	if(method=="POST")
+	{
+		x.send(data);
+	}
+	else
+	{
+		x.send('');
+	}
+
+	if(!bsetevent && typeof(callback)=="function")
+	{
+		callback(this, context);
+	}
+};
+
+if(typeof(syncmode)!="undefined") this.syncmode = syncmode;
+}
+
+/*
+ * Deprecated ajax
+ * Andorid 4.3 + 갤럭시 S3 에 ajax로 선언된 내용이 있음.
+ * 사용할 때 생성해서 쓰거나 다른 변수로 할당해서 사용할 것
+ * ajax 대신에 ajaxSender 사용
+ */
+var ajax = new AjaxSender(0);
+
+var ajaxSender = new AjaxSender(0);
+
+//- File Name   : hbean_array.js
+//- Description :
+Array.prototype.add = function(element)
+{
+len = this.length;
+this[len] = element;
+}
+
+Array.prototype.remove = function(idx)
+{
+if(typeof(idx) != "number")
+{
+	for(i=0; i<this.length; i++)
+	{
+		if(this[i]==idx)
+		{
+			idx = i;
+			break;
+		}
+	}
+}
+
+var temp = new Array();
+var j=0;
+
+for(i=0; i<idx; i++) {
+	temp[j++] = this[i];
+}
+
+for(i=idx+1; i<this.length; i++) {
+	temp[j++] = this[i];
+}
+this.length=0;
+for(i=0; i<temp.length; i++) {
+	this[i] = temp[i];
+}
+}
+
+
+//- File Name   : hbean_base64.js
+//- Description :
+var base64 =
+{
+_setorginal : "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+,
+_sethttp : "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+,
+_encode: function(bytes, set)
+{
+	if(! bytes instanceof Array) return "";
+
+	var idx = 0;
+	var len = bytes.length;
+	var b = new Array(0,0,0,0);
+	var returnStr = "";
+	var rstr;
+	for(;idx<len;idx+=3)
+	{
+		b[3]=b[2]=0x40;
+		b[0] = (bytes[idx] >> 2);
+		b[1] = (bytes[idx] & 0x03) << 4;
+		if(idx+1<len)
+		{
+			b[1] |= (bytes[idx+1] >> 4);
+			b[2] = (bytes[idx+1] & 0x0f) << 2;
+			if(idx+2<len)
+			{
+				b[2] |= (bytes[idx+2] >> 6);
+				b[3] = (bytes[idx+2] & 0x3f);
+			}
+		}
+		rstr="";
+		for(i=0;i<b.length;i++)
+		{
+			if(b[i]>0x3f) rstr+="=";
+			else rstr+=set.charAt(b[i]);
+		}
+		returnStr+=rstr;
+	}
+	return returnStr;
+}
+,
+_decode: function(s, set)
+{
+	var _decode = function(param)
+	{
+		var bytes = new Array();
+		var ch = new Array();
+		var idx = 0;
+		for(i=0;i<param.length;i+=4)
+		{
+			bytes[idx] = (param[i] << 2) & 0x00ff;
+			if(i+1 >= param.length) break;
+			bytes[idx++] |= (param[i+1] >> 4);
+
+			bytes[idx] = (param[i+1] << 4) & 0x00ff;
+			if(i+2 >= param.length) break;
+			bytes[idx++] |= (param[i+2] >> 2);
+
+			bytes[idx] = (param[i+2] << 6) & 0x00ff;
+			if(i+3 >= param.length) break;
+			bytes[idx++] |= param[i+3];
+		}
+		return bytes;
+	}
+
+	var str = String(s);
+	var len = str.length;
+	var b;
+	var bytes = new Array();
+	var idx = 0;
+	for(i=0;i<str.length;i++)
+	{
+		b = set.indexOf(str.substr(i,1));
+		if(b >= 0)
+		{
+			bytes[idx++] = b;
+		}
+	}
+	return _decode(bytes);
+}
+,
+encode: function(bytes)
+{
+	return base64._encode(bytes, base64._setorginal);
+}
+,
+decode: function(bytes)
+{
+	return base64._decode(bytes, base64._setorginal);
+}
+,
+encode4http: function(bytes)
+{
+	return base64._encode(bytes, base64._sethttp);
+}
+,
+decode4http: function(bytes)
+{
+	return base64._decode(bytes, base64._sethttp);
+}
+}
+
+// - File Name   : hbean_calendar_core.js
+// - Description :
+function calendar_core(){
+
+
+	//USE_ABLE
+
+	this.calculationPeriod = function(fromday, today)
+	{
+		return Math.floor(today.valueOf()/(24*60*60*1000)- fromday.valueOf()/(24*60*60*1000))
+	}
+
+	this.makezero = function(data)
+	{
+		if(Number(data) < 10)
+		{
+			return "0" + data;
+		}
+		else
+		{
+			return data;
+		}
+	}
+	//USE_ABLE
+
+	this.caldata = function(div,method,year,month,day) {
+		this.year_script = "";
+		this.month_script = "";
+		this.date_script = "";
+		this.year_view = true;
+		this.month_view = true;
+		this.date_view = true;
+
+		this.monid;
+		this.dayid;
+		this.div = div;
+
+		this.year = year;
+		this.month = month;
+		this.day = day;
+
+		this.startposition;
+		this.endday;
+		this.method = method;
+
+		this.prevmonth;
+		this.prevyear;
+
+		this.nextmonth;
+		this.nextyear;
+
+		this.startselday = 0;
+		this.endselday = 0;
+		this.totcol = 0;
+
+		this.bgcolor = "#FFFFFF";
+		this.selcolor = "#a0ca50";
+		this.selfontcolor = "#FFFFFF";
+		this.focuscloor = "#E3E4E5";
+
+		this.fromdate =  "";
+		this.todate =  "";
+	};
+	this.calendardata = [];
+
+
+
+	this.cal_tot = 0;
+	this.selcolor = "#FFEF64";
+
+	this.addcaldata = function(div,method,year,month,day){
+		this.calendardata[this.calendardata.length] = new this.caldata(div,method,year,month,day);
+		return this.calendardata.length -1;
+
+	}
+
+	this.cleanColor = function(num, id)
+	{
+		for(i=1;i<=this.calendardata[num].totcol;i++){
+			document.getElementById(id + i).style.backgroundColor = this.calendardata[num].bgcolor;
+
+		}
+	}
+	this.cleanMonthColor = function(num, id)
+	{
+
+		for(i=1;i<=12;i++){
+			if( i == this.calendardata[num].month) document.getElementById(id + i).style.backgroundColor = this.calendardata[num].selcolor;
+			else document.getElementById(id + i).style.backgroundColor = this.calendardata[num].bgcolor;
+		}
+	}
+
+
+	this.setWeek = function(num,id)
+	{
+		keyid = id.substr(0,7);
+		this.cleanColor(num,keyid);
+
+		if((id.substr(7, id.length) % 8) == 1){
+			start = Number(id.substr(7, id.length));
+
+			this.calendardata[num].startselday = start + 1;
+			this.calendardata[num].endselday = start + 7;
+
+
+			for(i=1;i<8;i++){
+				document.getElementById(keyid + (1*start + i) ).style.backgroundColor = this.calendardata[num].selcolor;
+			}
+		}
+		this.getDay(num);
+	}
+
+
+
+	this.getDay = function(num){
+
+		obj = this.calendardata[num];
+
+		obj.fromdate = this.calday(num, obj.startselday);
+		obj.todate = this.calday(num, obj.endselday);
+	}
+	this.calday = function(num,position){
+
+		if( position <= obj.startposition ){
+			return obj.prevyear+"."+this.makezero(obj.prevmonth)+"."+this.makezero(document.getElementById(obj.dayid +position).outerText);
+		}else if( position > obj.endday + obj.startposition + obj.totcol / 8-1){
+			return obj.nextyear +"."+this.makezero(obj.nextmonth)+"."+this.makezero(document.getElementById(obj.dayid +position).outerText);
+		}else{
+			return obj.year+"."+this.makezero(obj.month)+"."+this.makezero(document.getElementById(obj.dayid +position).outerText);
+		}
+
+	}
+
+
+
+	this.setday = function(num,year,month,id){
+		keyid = id.substr(0,7);
+		this.cleanColor(num,keyid);
+		document.getElementById(id).style.backgroundColor = this.calendardata[num].selcolor;
+		this.calendardata[num].startselday = Number(id.substr(7, id.length));
+		this.calendardata[num].endselday = Number(id.substr(7, id.length));
+		this.getDay(num);
+	}
+
+	this.focusbgcolor = function(num,obj){
+		obj.style.backgroundColor = this.calendardata[num].focuscloor;
+
+	}
+	this.focusoutbgcolor = function(num,obj,index){
+
+		if(index >= this.calendardata[num].startselday && index <=this.calendardata[num].endselday){
+			obj.style.backgroundColor = this.calendardata[num].selcolor;
+		}else{
+			obj.style.backgroundColor = this.calendardata[num].bgcolor;
+		}
+	}
+
+	this.focusoutMonthbgcolor = function(num,obj){
+		id = obj.id;
+		index = id.substr(5, id.length);
+		if(index == this.calendardata[num].month) obj.style.backgroundColor = this.calendardata[num].selcolor;
+		else obj.style.backgroundColor = this.calendardata[num].bgcolor;
+
+
+	}
+
+	this.changeyear = function(num,year){
+		this.calendardata[num].year = year;
+		this.calendardata[num].year_script = this.makeyear(num);
+		this.calendardata[num].month_script = this.makemonth(num);
+		this.calendardata[num].day = 0;
+		this.calendardata[num].date_script = this.makeday(num);
+		this.setcalendar(num);
+
+	}
+
+	this.changemonth = function(num,month){
+
+		this.calendardata[num].month = month;
+		this.calendardata[num].day = 0;
+		this.calendardata[num].month_script = this.makemonth(num);
+		this.calendardata[num].date_script = this.makeday(num);
+		this.setcalendar(num);
+
+	}
+
+	this.makeyear = function(num){
+		if(this.calendardata[num].year_view)
+		{
+
+			html = "<tr><td width=100%>";
+			html = html + "<table width=100% height=30 border=0 cellspacing=0 cellpadding=0><tr>";
+			html = html + "<td width=10%  style=\"cursor:hand;\" onClick=\"cal_core.changeyear("+num+","+(this.calendardata[num].year-1)+");\" ><img src=\"https://ssl.pstatic.net/happyimg2/img2/project_page/2008/crm/prew.gif\" alt=\"이전년도\"></td>";
+			html = html + "<td align=\"center\" ><span class=\"cata_year_num\">"+this.calendardata[num].year+"</span></td>";
+			html = html + "<td width=10%  style=\"cursor:hand;\" onClick=\"cal_core.changeyear("+num+","+(this.calendardata[num].year+1)+");\" ><img src=\"https://ssl.pstatic.net/happyimg2/img2/project_page/2008/crm/next.gif\" alt=\"다음년도\"></td></tr></table>";
+			html = html + "</td></tr>";
+			return html;
+		}
+		else
+		{
+			return "";
+		}
+	}
+
+
+	this.makemonth = function(num){
+		if(this.calendardata[num].month_view){
+			caldata = this.calendardata[num];
+			if(num.length = 1){
+				caldata.monid = "M_0"+num+"_";
+			}else{
+				caldata.monid = "M_"+num+"_";
+			}
+			style = " style=\"cursor:hand;\" onmouseover=\"cal_core.focusbgcolor("+num+",this)\" onmouseout=\"cal_core.focusoutMonthbgcolor("+num+",this)\"  ";
+			script = "" +
+					"<tr>" +
+					"	<td width=100%>" +
+					"		<table border=0 cellpadding=3 cellspacing=0 align=center>" +
+					"			<colgroup>"+
+					"				<col width=\"10px\" align=right><col width=\"10px\" align=right><col width=\"10px\" align=right><col width=\"10px\" align=right>"+
+					"				<col width=\"10px\" align=right><col width=\"10px\" align=right><col width=\"10px\" align=right><col width=\"10px\" align=right>"+
+					"				<col width=\"10px\" align=right><col width=\"10px\" align=right><col width=\"10px\" align=right><col width=\"0px\" align=right>"+
+					"			</colgroup>" +
+					"			<tr>";
+			for (i=1;i<=12;i++){
+
+				if(!this.calendardata[num].date_view)
+				{
+					method = "cal_core.changemonth("+num+","+i+");" + caldata.method+"('"+caldata.year+"."+i+"' ); ";
+				}else{
+					method = "cal_core.changemonth("+num+","+i+");";
+				}
+				if(i == caldata.month) 	script = script+ "<td class=\"cata_mon_off\" id=\""+caldata.monid+i+"\" "+style+" bgcolor='" + caldata.selcolor + "'  onClick=\""+method+ "\" >" +i +"</td> <td></td>";
+				else script = script+ "<td class=\"cata_mon_off\" id=\""+caldata.monid+i+"\" "+style+" onClick=\""+method+ "\" >" +i +"</td> <td></td>";
+				if (i == 6) script = script + "</tr><tr>";
+			}
+			script = script + "</tr></table></td></tr>";
+			return script;
+		}
+		else
+		{
+			return "";
+		}
+	}
+
+
+	 this.makeday = function(num){
+	 	if(this.calendardata[num].date_view){
+			caldata.startselday = 0;
+			caldata.endselday = 0;
+			 if(num.length = 1){
+				this.calendardata[num].dayid = "day_0"+num+"_";
+			}else{
+				this.calendardata[num].dayid = "day_"+num+"_";
+			}
+
+		 	caldata = this.calendardata[num];
+		 	caldata.startposition =new Date(caldata.year, caldata.month-1, 1).getDay()+1;
+			caldata.endday =new Date(caldata.year, caldata.month, 0).getDate();
+			var date = new Date(caldata.year, caldata.month-1, 0);
+			var prevendday =date.getDate();
+			caldata.prevmonth = date.getMonth()+ 1;
+			caldata.prevyear = date.getYear();
+
+
+			date = new Date(caldata.year, caldata.month, 1);
+			caldata.nextmonth = date.getMonth()+ 1;
+			caldata.nextyear = date.getYear();
+
+			j=0;
+			tmpday=0;
+
+			var Dow_FONT = "font-family : tahoma; font-color : #666666; font-weight:bold; font-size : 9px;";
+
+			weekday="<tr align=right>";
+			weekday=weekday + "<td><table border=0 cellpadding=3 cellspacing=0><tr><td width=13></td>";
+			weekday=weekday + "<td><font color=#555555 style=\""+Dow_FONT+"\">&nbsp;&nbsp;</font></td>"; // week
+			weekday=weekday + "<td><font color=#DE3E13 style=\""+Dow_FONT+"\">SU&nbsp;&nbsp;</font></td><td><font color=#666666 style=\""+Dow_FONT+"\">MO&nbsp;&nbsp;</font></td><td><font color=#666666 style=\""+Dow_FONT+"\">TU&nbsp;&nbsp;</font></td><td><font color=#666666 style=\""+Dow_FONT+"\">WE&nbsp;&nbsp;</font></td><td><font color=#666666 style=\""+Dow_FONT+"\">TH&nbsp;&nbsp;</font></td><td><font color=#666666 style=\""+Dow_FONT+"\">FR&nbsp;&nbsp;</font></td>";
+			weekday=weekday + "<td><font color=#0A4FA3 style=\""+Dow_FONT+"\">SA</font></td><td width=13></td></tr></table>";
+
+			weekday=weekday + "</td></tr><tr><td align=center><table border=0 cellspacing=0 cellpadding=0>";
+			weekday=weekday + "<tr><td width=100%><table height=30 border=0 bordercolor=yellow cellspacing=0 cellpadding=0><tr>";
+
+			if(caldata.method == null)
+			{
+				method = "'";
+			}
+			else
+			{
+				method = caldata.method+"(cal_core.calendardata["+num+"].fromdate, cal_core.calendardata["+num+"].todate);' ";
+			}
+			for (k=0;j<caldata.endday+caldata.startposition-1;){
+				//?? ? ??
+				weekday=weekday + "<tr align=center>";
+				for (i=0 ; i<8 ; i++){
+					k++;
+					if( i == 0){
+						weekday=weekday + "<td id=\""+caldata.dayid+k+"\" width=21 height=15 align=center style=\"cursor:hand;font-family:tahoma;font-size:9px;color:222222\" onClick='cal_core.setWeek("+num+", \""+caldata.dayid+k+"\");"+ method+" >-></td>";
+					}else{
+						j++;
+						bgcolor="";
+						fontcolor="";
+
+						if(i==1){
+							fontcolor="style=\"font-family:tahoma;color:#DE3E13;";
+						} else if(i==7) {
+							fontcolor="style=\"font-family:tahoma;color:#0A4FA3;";
+						} else if(i==2 || i==3 || i==4 || i==5 || i==6){
+							fontcolor="style=\"font-family:tahoma;color:333333;";
+						}
+
+						d_onclick="style=\"cursor:hand;\" onmouseover=\"cal_core.focusbgcolor("+num+",this)\" onmouseout=\"cal_core.focusoutbgcolor("+num+",this,"+k+")\"";
+						if( j>= caldata.startposition && tmpday < caldata.endday) {
+							fontcolor = fontcolor + "font-size:9px\"";
+							tmpday++;
+							if(tmpday == parseInt(caldata.day) ){
+								bgcolor="bgcolor='"+caldata.selcolor+"'";
+								caldata.startselday = k;
+								caldata.endselday = k;
+							}
+							d_onclick = d_onclick+"onclick='cal_core.setday("+num+",cal_core.calendardata["+num+"].year,cal_core.calendardata["+num+"].month,\""+caldata.dayid+k+"\");"+ method;
+							htmlcode="" + tmpday;
+							weekday=weekday + "<td id=\""+caldata.dayid+k+"\" width=21 height=15 align=center " + fontcolor + bgcolor + d_onclick + " >";
+							weekday=weekday + htmlcode + "</td>";
+
+						}else if(j<caldata.startposition){
+							fontcolor = fontcolor + "font-size:7px\"";
+
+							htmlcode = prevendday - caldata.startposition + j+1;
+
+
+							d_onclick = d_onclick+"  onClick='cal_core.setday("+num+",cal_core.calendardata["+num+"].prevyear, cal_core.calendardata["+num+"].prevmonth,\""+caldata.dayid+k+"\");"+method;
+
+							weekday=weekday + "<td id=\""+caldata.dayid+k+"\" width=21 height=15 align=center " + fontcolor + d_onclick + " >";
+							weekday=weekday + htmlcode + "</td>";
+
+
+
+						} else {
+							tmpday++;
+							fontcolor = fontcolor + "font-size:7px\"";
+							htmlcode = tmpday - caldata.endday;
+							d_onclick = d_onclick+" onClick='cal_core.setday("+num+",cal_core.calendardata["+num+"].nextyear, cal_core.calendardata["+num+"].nextmonth,\""+caldata.dayid+k+"\");"+method;
+							weekday=weekday + "<td id=\""+ caldata.dayid + k + "\" width=21 height=15 align=center " + fontcolor + d_onclick + " >";
+							weekday=weekday + htmlcode + "</td>";
+						}
+					}
+				}
+				caldata.totcol = k;
+			}
+			return weekday;
+		}
+		else
+		{
+			return "";
+		}
+	}
+
+
+	this.startmake = function (){
+		return "<table width=100% height=100% style=\"font-size:11;border-collapse:collapse;border:1px solid #D6D6D6\" cellpadding=0 cellspacing=0 rules=none>";
+	}
+	this.endmake = function(){
+		return "</tr> </table>";
+	}
+
+	this.setcalendar = function(num){
+		this.calendardata[num].div.innerHTML = this.startmake()+ this.calendardata[num].year_script + this.calendardata[num].month_script + this.calendardata[num].date_script + this.endmake();
+	}
+
+
+
+}
+var cal_core = new calendar_core();
+
+// - File Name   : hbean_calendar.js
+// - Description : 달력 공통 데이터 관리 객체.
+function calendar(div,method,year,month,day)
+{
+	this.date = new Date();
+	if(year == null) year = this.date.getFullYear();
+	if(month == null) month = this.date.getMonth()+1;
+	if(day == null) day = this.date.getDate();
+	this.num = cal_core.addcaldata(div,method,year,month,day);
+
+	this.showYear = function(flag)
+	{
+		cal_core.calendardata[this.num].year_view =  flag;
+		cal_core.calendardata[this.num].year_script = cal_core.makeyear(this.num);
+		cal_core.setcalendar(this.num);
+	}
+	this.showMonth = function(flag)
+	{
+
+		cal_core.calendardata[this.num].month_view =  flag;
+		cal_core.calendardata[this.num].month_script = cal_core.makemonth(this.num);
+		cal_core.setcalendar(this.num);
+	}
+	this.showDate = function(flag)
+	{
+		cal_core.calendardata[this.num].date_view =  flag;
+		cal_core.calendardata[this.num].month_script =  cal_core.makemonth(this.num);
+		cal_core.calendardata[this.num].date_script =  cal_core.makeday(this.num);
+		cal_core.setcalendar(this.num);
+	}
+	this.getYear = function(){
+		return cal_core.calendardata[this.num].year;
+	}
+	this.getMonth = function(){
+		return cal_core.calendardata[this.num].month;
+	}
+
+	this.getFromDate = function(){
+		return cal_core.calendardata[this.num].fromdate;
+	}
+	this.getToDate = function(){
+		return cal_core.calendardata[this.num].todate;
+	}
+	cal_core.calendardata[this.num].year_script = cal_core.makeyear(this.num);
+	cal_core.calendardata[this.num].month_script = cal_core.makemonth(this.num);
+	cal_core.calendardata[this.num].date_script =  cal_core.makeday(this.num);
+	cal_core.setcalendar(this.num);
+}
+
+//- File Name   : hbean_date.js
+//- Description : Redeclare Date Object
+Date.prototype.isDate = function(y, m, d)
+{
+var Y = eval(y);
+var M = eval(m);
+var D = eval(d);
+
+var last_days = new Array('31','28','31','30','31','30','31','31','30','31','30','31');
+
+if (y.length != 4 ) return false;
+if (Y < 1900 || Y > 2100) return false;
+if (M > 12 || M < 1) return false;
+
+if (M == 2) {
+	if (((Y % 4 == 0) && (Y % 100 != 0)) || (Y % 400 == 0))
+		last_days[M-1] = 29;
+	else
+		last_days[M-1] = 28;
+}
+
+if ((D > last_days[M - 1]) || (D < 1)) {
+	return false;
+}
+
+return true;
+}
+
+
+//- File Name   : hbean_declaration.js
+//- Description :
+function Declaration() {
+
+	this.declaration = function(num, formname, isMobile) {
+		if(formname == null || formname == '') {
+			formname = 'declarationform';
+		}
+
+		var frm = eval("document." + formname)[num];
+
+		if (frm.itemTitle == null) {
+			frm  = eval("document." + formname);
+		}
+
+		if (frm.itemWriterId.value == "h") {
+			alert("해피빈 운영자가 작성한 게시글은 신고할 수 없습니다.");
+			return;
+		}
+
+		if (frm.itemTitle.value == null) {
+			alert("제목이 누락되었습니다. 다시 시도해주세요.");
+			return;
+		}
+
+		if (frm.itemWriterId.value == null ) {
+			alert("작성자가 누락되었습니다. 다시 시도해주세요.");
+			return;
+		}
+
+		document.charset="UTF-8";
+
+		var popUpWidth = "530";
+		var popUpHeight = "600";
+
+		if(frm.itemType.value == 'CMNT') {
+			popUpHeight = "550";
+		}
+
+		this.runenv = document.URL;
+		this.runenv = this.runenv.substring(this.runenv.indexOf("//")+2,this.runenv.indexOf(".")+1);
+
+		var declarationUrl = "";
+
+		if(envArray.indexOf(this.runenv) == -1 & mobileEnvArray.indexOf(this.runenv) == -1) {
+            declarationUrl = "https://srp.naver.com/main.nhn";
+		} else {
+            declarationUrl = "https://dev-srp.naver.com/main.nhn";
+		}
+
+		if(isMobile == undefined || isMobile == false)
+		{
+			window.open("","declarationPop","width=" + popUpWidth + ",height=" + popUpHeight);
+			frm.target = "declarationPop";
+		}
+		frm.action = declarationUrl;
+		frm.submit();
+	};
+
+	this.doLogin = function(isMobile) {
+		if (confirm("로그인이 필요합니다.")) {
+			var targetUrl = top.location.href;
+			var hash = top.location.hash;
+			//이벤트 iframe을 가진페이지에서 인증후 리다이렉션시 iframe쪽 url이 제대로 열리기 위
+			//이벤트 캠페인 번호를 추가해주도록 한다. 이때 hash에 최근 선택한 이벤트 캠페인 번호가 들어있으므로
+			//이값이 존재하는 경우에만 리턴 url에 새로운 캠페인 번호를 추가하도록 한다.
+			if (hash.indexOf("#campaignNo=") >= 0) {
+				targetUrl = targetUrl.replace(/&campaignNo=[0-9]+/g, '');
+				targetUrl = targetUrl.replace("#", "&");
+			}
+			if(isMobile == true) {
+				top.location.href="https://nid.naver.com/nidlogin.login?svctype=262144&url=" +  encodeURIComponent(targetUrl);
+			}
+			else {
+				top.location.href="https://nid.naver.com/nidlogin.login?url=" +  encodeURIComponent(targetUrl);
+			}
+		}
+	};
+
+
+	this.ownerCheckAlert = function() {
+		alert("본인이 작성하신 글에 대해서는 신고가 불가합니다.");
+	}
+
+	this.callDeclaration = function(loginUserId, writerId, formName){
+		if (loginUserId == "") {
+			//비로그인상태
+			this.doLogin();
+		}else if (loginUserId == writerId) {
+			//로그인유저와 작성자가 같음
+			this.ownerCheckAlert();
+		}else{
+			//로그인유저와 작성자가 다름
+			this.declaration(0, formName);
+		}
+
+	}
+}
+
+//- File Name   : hbean_happylink.js
+//- Description : A web editor for the Happybean service.
+function HappyLink(){
+
+	this.runenv = document.URL;
+
+	this.runenv = this.runenv.substring(this.runenv.indexOf("//")+2,this.runenv.indexOf(".")+1);
+
+	if(envArray.indexOf(this.runenv) == -1) {
+		this.runenv = "";
+	}
+
+	this.postScrap  = function(postno,target){
+
+		if(target=="print")
+		{
+			hbeannet.open("https://"+this.runenv+"happybean.naver.com/together/ThemeStoryViewPrint.nhn?hlg_artcl_no="+postno, "_postScrap", 800, 600, "yes");
+		}
+		else
+		{
+			hbeannet.open("https://"+this.runenv+"happybean.naver.com/together/PostScrap.nhn?artclNo="+postno+"&target=" + target, "_postScrap");
+		}
+	}
+	/* 클럽 소식 스크랩 */
+	this.clubTidingsScrap = function (clbTdgNo,target)
+	{
+		if(target=="print")
+		{
+			hbeannet.open("https://"+this.runenv+"happybean.naver.com/membersclub/MembersClubTidingsViewPrint.nhn?clbTdgNo="+clbTdgNo, "_clubTidingsPrint", 830, 700, "yes");
+		}
+		else
+		{
+			hbeannet.open("https://"+this.runenv+"happybean.naver.com/membersclub/MembersClubTidingsScrap.nhn?clbTdgNo="+clbTdgNo+"&target=" + target, "_clubTidingsScrap");
+		}
+	}
+
+	this.fundScrap  = function(fundno,target){
+
+		var openUrl = "/scrap/FundScrap.nhn?fundno=" + fundno;
+		hbeannet.open(openUrl + "&info=" +target, "_fundScrap");
+	}
+
+	this.fundScrap2  = function(fundno,target){
+
+		var openUrl = "/scrap/FundScrap.nhn?fundno=" + fundno;
+		hbeannet.open(openUrl + "&info=" +target + "&type=campaign", "_fundScrap");
+	}
+
+	this.volunteerScrap  = function(vlntrscrapNo,target){
+
+		var openUrl = "https://"+this.runenv+"happybean.naver.com/volunteer/VntScrap.nhn?vntArtclNo=" + vlntrscrapNo;
+		hbeannet.open(openUrl + "&target=" +target, "_volunteerScrap");
+
+	}
+
+
+	this.openPersonalInfo  = function(userId){
+		hbeannet.open("https://"+this.runenv+"happybean.naver.com/my/MyPersonalInfo.nhn?userid="+ userId, "_blank");
+	}
+
+	this.openBlog = function(userId){
+		var idPrefix = userId.substr(0,5);
+
+		if(idPrefix == "hlog_")
+		{
+			this.openBrandlog(userId);
+		}
+		else
+		{
+			hbeannet.open("https://blog.naver.com/"+ userId, "_blank");
+		}
+	}
+
+	this.openNaverNote = function(userId){
+		hbeannet.open("https://"+this.runenv+"happybean.naver.com/my/NaverNoteSelectUser.nhn?userid="+ userId, "popupNaverNote", 400, 450);
+	}
+
+	this.openGiftCong = function(userId){
+		if (userId == null || userId == 'undefind')
+	    {
+	        hbeannet.open("https://"+this.runenv+"happybean.naver.com/my/GiftCongSelectUser.nhn", "popupGiftCong", 400, 450);
+	    } else {
+	        hbeannet.open("https://"+this.runenv+"happybean.naver.com/my/GiftCongSelectUser.nhn?userid="+ userId, "popupGiftCong", 400, 450);
+	    }
+	}
+
+
+
+	//나눔 내역 후기 스크립/프린트
+	this.sharePostscriptScrap  = function(artclNo,target){
+
+		if(target=="print")
+		{
+			hbeannet.open("https://"+this.runenv+"happybean.naver.com/brandlog/SharePostscriptPrint.nhn?hpbnPsArtclNo="+artclNo, "_shareBoxPostscriptPrint",990,800);
+		}
+		else
+		{
+			hbeannet.open("https://"+this.runenv+"happybean.naver.com/brandlog/SharePostscriptScrap.nhn?hpbnPsArtclNo="+artclNo+"&target=" + target, "_shareBoxPostscriptScrap");
+		}
+	}
+
+	/* 이용 제한 레이어 닫기 */
+	this.closeUseLimit = function()
+	{
+		document.getElementById("useLimit_layer").style.display="none";
+	}
+
+
+}
+var happylink = new HappyLink();
+
+//
+//- File Name   : hbean_hook.js
+//- Description : capture a mouse click.
+/**
+* code sample :
+*  after clicking a DIV tag the others would be clicked,
+*  open a alert box which show a DIV innerHTML attribute value.
+*
+* hbeanhook.handlers.add(
+* {
+* 	capture : function (event, target)
+* 	{
+* 	    if(target.nodeName == "DIV")
+* 	    {
+*          //run when a DIV tag is clicked.
+* 	        this.element = target;
+*          alert("hook ok");
+* 	        return true;
+* 	    }
+* 	}
+* 	,
+* 	release : function ()
+* 	{
+* 	    alert(this.element.innerHTML);
+* 	}
+* 	,
+* 	element : null
+* }
+* );
+*/
+
+if(window.onload == null)
+{
+window.onload = hbean.callLoadListener;
+}
+var hbeanhook = {
+handlers : new Array()
+,
+capturedhandler : null
+,
+setup : function()
+{
+	if (document.addEventListener)
+	{
+	    document.addEventListener('click', hbeanhook.onclick, true);
+	}
+	else if(hbean.NS4)
+	{
+		document.captureEvents(Event.CLICK);
+		document.onclick = hbeanhook.onclick;
+	}
+	else if(hbean.IE4)
+	{
+		document.onclick = hbeanhook.onclick;
+	}
+}
+,
+onclick : function(event)
+{
+	if(!event) event = window.event;
+	var click_target = (hbean.NS4) ? event.target : event.srcElement;
+
+	if(hbeanhook.capturedhandler != null)
+	{
+		try
+		{
+			hbeanhook.capturedhandler.release(event);
+		}
+		catch(e){}
+		hbeanhook.capturedhandler = null;
+	}
+
+	var handlers = hbeanhook.handlers;
+	var handler = null;
+	for(var i=handlers.length-1;i>=0;i--)
+	{
+		handler = handlers[i];
+		if(handler.capture != null && typeof(handler.capture) == "function")
+		{
+			try
+			{
+				if(handler.capture(event, click_target))
+				{
+					break;
+				}
+			}
+			catch(e){}
+		}
+		handler = null;
+	}
+
+	if(handler != null)
+	{
+		if(handler.release != null && typeof(handler.release) == "function")
+		{
+			hbeanhook.capturedhandler = handler;
+		}
+	}
+}
+}
+hbean.observer.add("hbeanhook.setup();");
+
+
+//- File Name   : hbean_menu.js
+//- Description : A div popup menu.
+/**
+* code sample :
+*  after clicking a DIV tag the others would be clicked,
+*  open a alert box which show a DIV innerHTML attribute value.
+*
+* <style type="text/css">
+* body, div, td, li {font-size:12px;color:#777777;}
+* body, div, td, li {font-family:Dotum,AppleGothic,sans-serif}
+* </style>
+*
+* <script type="text/javascript">
+* var menuname = "sample_menu_";
+* function setupmenu()
+* {
+* 	var scrap_ui = ""
+* 	+"<table width=\"115\" border=\"0\" cellspacing=\"1\" cellpadding=\"0\" bgcolor=\"#B6B6B6\">"
+* 	+"<tr><td> "
+* 	+"<table width=\"100%\" border=\"0\" cellspacing=\"1\" cellpadding=\"0\" bgcolor=\"#FFFFFF\">"
+* 	+"<tr> "
+* 	+"<td style=\"padding: 3 0 0 10\" height=\"23\" id=\"sample_menu_item1\"><span><font color=#404040>first menu</font></span></td>"
+* 	+"</tr><tr> "
+* 	+"<td style=\"padding: 3 0 0 10\" height=\"23\" id=\"sample_menu_item1\"><span><font color=#404040>second menu</font></span></td>"
+* 	+"</tr><tr> "
+* 	+"<td style=\"padding: 2 0 0 10\" height=\"22\" id=\"sample_menu_itemc\"><span><font color=#404040>third menu</font></span></td>"
+* 	+"</tr>"
+* 	+"</table></td></tr></table>"
+* 	+"";
+* 	hbeanmenu.create(menuname, scrap_ui, function(event, element)
+* 	{
+* 		var id = element.id;
+*      var menuid = id.substring(menuname.length+"item".length);
+*      if(menuid == "1") alert("clicked a first or second menu item.");
+*      if(menuid == "c") alert("clicked a third menu item.");
+* 	}
+* 	);
+* }
+* hbean.observer.add("setupmenu()");
+* </script>
+*/
+if(window.onload == null)
+{
+window.onload = hbean.callLoadListener;
+}
+function __hbeanmenuclass(name, div, menuitems, callbackhandler)
+{
+this.name = name;
+this.div = div;
+this.items = menuitems;
+this.target;
+this.callbackhandler = callbackhandler;
+this.onmouseover = function(event, item)
+{
+	item.style.backgroundColor = hbeanmenu.color.backgroundon;
+};
+this.onmouseout = function(event, item)
+{
+	item.style.backgroundColor = hbeanmenu.color.backgroundoff;
+};
+this.onclick = function(event, item)
+{
+	if(this.callbackhandler)
+	{
+		try
+		{
+			this.callbackhandler(event, item, this.target);
+		}catch(e){}
+	}
+};
+this.onchangevisible = function(visible)
+{
+};
+
+if(menuitems != null && menuitems.length != null)
+{
+	if(hbean.IE4)
+	{
+		for(var i=0;i<menuitems.length;i++)
+		{
+			var setupitem = function(menu, menuitem)
+			{
+				menuitem.style.cursor="pointer";
+				menuitem.attachEvent("onmouseover", function recall_(event){menu.onmouseover(event, menuitem);});
+				menuitem.attachEvent("onmouseout", function recall_(event){menu.onmouseout(event, menuitem);});
+				menuitem.attachEvent("onclick", function recall_(event){menu.onclick(event, menuitem);});
+			}
+			setupitem(this, menuitems[i]);
+		}
+	}
+	else if(hbean.NS4)
+	{
+		for(var i=0;i<menuitems.length;i++)
+		{
+			var setupitem = function(menu, menuitem)
+			{
+				menuitem.style.cursor="pointer";
+				menuitem.addEventListener("mouseover", function(event){menu.onmouseover(event, menuitem);}, true);
+				menuitem.addEventListener("mouseout", function(event){menu.onmouseout(event, menuitem);}, true);
+				menuitem.addEventListener("click", function(event){menu.onclick(event, menuitem);}, true);
+			}
+			setupitem(this, menuitems[i]);
+		}
+	}
+}
+}
+
+var hbeanmenu = {
+color : {backgroundon : "#E4FF75", backgroundoff : "#FFFFFF", foregroundon : "#FFFFFF", foregroundoff : "#000000"}
+,
+menus : new Array()
+,
+setup : function()
+{
+	hbeanhook.handlers.add(
+	{
+		capture : function (event, target)
+		{
+
+			if(target.nodeName == "A" || target.parentNode.parentNode.nodeName == "A" || (target.nodeName == "INPUT" && target.type == "image") || (target.parentNode.nodeName == "A" && target.nodeName == "IMG"))
+			{
+				var __value__ = "";
+
+				if(target.nodeName == "A") {
+					__value__ = target.toString();
+				} else if(target.parentNode.nodeName == "A" && target.nodeName == "IMG") {
+					__value__ = target.parentNode.toString();
+					target = target.parentNode;
+				} else if(target.parentNode.parentNode.nodeName == "A") {
+					__value__ = target.parentNode.parentNode.toString();
+					target = target.parentNode.parentNode;
+				} else {
+					__value__ = target.value.toString();
+				}
+				var __pattern__ = /javascript[:]showmenu\s*\((.*)\)\s*[;]?\s*$/i;
+				var __matchs__ = __value__.match(__pattern__);
+
+				if(__matchs__)
+				{
+					//check parameter
+					__value__ = __matchs__[1];
+
+					__pattern__ = /(?:['][^']*[']|(?:["][^"]*["]|[^,)]+))/;
+					__matchs__ = __value__.match(__pattern__);
+
+				}
+
+				if(__matchs__)
+				{
+					var __menuname__ = '';
+					try
+					{
+						__menuname__ = eval(__matchs__[0]);
+					}
+					catch(e){}
+
+					var menus = hbeanmenu.menus;
+					for(var i=0;i<menus.length;i++)
+					{
+						if(menus[i].name == __menuname__)
+						{
+							try
+							{
+								menus[i].target = target;
+								hbeanmenu.show(event, menus[i]);
+							}catch(e){}
+							return true;
+						}
+					}
+				}
+			}
+		}
+		,
+		release : function (event)
+		{
+			try
+			{
+				hbeanmenu.hide();
+			}catch(e){alert(e);}
+		}
+	});
+}
+,
+create : function(name, htmltext, callbackhandler)
+{
+	if(window.document.body == null)
+	{
+		return null;
+	}
+
+	var menuitems = new Array();
+	var div = document.createElement("DIV");
+	div.style.position="absolute";
+	// 이벤트 레이어 위로 적용되는 경우때문에 z-index속성추가 -by iluulm225
+	div.style.zIndex=1000;
+	// 이벤트 레이어 위로 적용되는 경우때문에 z-index속성추가 -by iluulm225
+	div.style.top=0;
+	div.style.left=0;
+	div.style.display="none";
+	div.innerHTML = htmltext;
+	var searchitems = function(node)
+	{
+		var childs = node.childNodes;
+		for(var i=0;i<childs.length;i++)
+		{
+			if(childs[i].nodeName != "#text")
+			{
+				if(childs[i].id.indexOf(name+"item")==0)
+				{
+					menuitems.add(childs[i]);
+				}
+				searchitems(childs[i]);
+			}
+		}
+	}
+	searchitems(div);
+
+	var menuobject = null;
+	try
+	{
+		hbeanmenu.menus.add(menuobject = new __hbeanmenuclass(name, div, menuitems, callbackhandler));
+		window.document.body.appendChild(div);
+	}catch(e){}
+	return menuobject;
+}
+,
+show : function(event, menu)
+{
+	var div = menu.div;
+	var body = document.body;
+
+	var x = 0;
+	var y = 0;
+
+	var scrollX=0, scrollY=0;
+    if(hbean.NS4)
+    {
+		x = event.pageX + "px";
+		y = event.pageY + "px";
+
+		if (document.location.href != parent.document.location.href) {
+			x = Math.min(event.pageX, document.documentElement.clientWidth-130) + "px";
+			y = event.pageY + "px";
+		}
+
+		scrollX = document.documentElement.scrollLeft;
+		scrollY = document.documentElement.scrollTop;
+	}
+	else if(hbean.IE4)
+	{
+		if( document.body && ( document.body.scrollLeft || document.body.scrollTop ) ) {
+			//DOM compliant
+			scrollX = document.body.scrollLeft;
+			scrollY = document.body.scrollTop;
+		} else if( document.documentElement && ( document.documentElement.scrollLeft || document.documentElement.scrollTop ) ) {
+			//IE6 standards compliant mode
+			scrollX = document.documentElement.scrollLeft;
+			scrollY = document.documentElement.scrollTop;
+		}
+		x = scrollX + event.clientX;
+		y = scrollY + event.clientY;
+
+		x = x +"px";
+		y = y +"px";
+	}
+
+    div.style.left = x;
+	div.style.top = y;
+
+	div.style.display = "";
+	var menuwidth = div.offsetWidth;
+	var menuheight = div.offsetHeight;
+	if(x + menuwidth > scrollX + document.body.clientWidth)
+	{
+		x-=menuwidth;
+	}
+    if(y + menuheight > scrollY + document.body.clientHeight)
+    {
+    	y-=menuheight;
+    }
+
+    div.style.left = x;
+    div.style.top = y;
+
+	menu.onchangevisible(true);
+}
+,
+hide : function()
+{
+	var menus = hbeanmenu.menus;
+	for(var i=0;i<menus.length;i++)
+	{
+		if(menus[i].div.style.display == "")
+		{
+			menus[i].onchangevisible(false);
+			menus[i].div.style.display = "none";
+		}
+	}
+}
+};
+
+hbean.observer.add("hbeanmenu.setup()");
+function showmenu(menuname){} //fired after show menu
+
+
+//- File Name   : hbean_widget.js
+//- Description : 해피빈 위젯.
+function Widget(){
+	this.userPopUpUi = "userPopUp";
+	this.brandPopUpUi = "brandPopUp";
+	this.userFundPopUpUi = "userFundPopUp";	//콩저금통 용
+	this.brandFundPopUpUi = "brandFundPopUp";	//콩저금통 용
+	this.postScrapPopUpUi = "postScrapPopUp";
+	this.clubTidingsScrapPopUpUi = "clubTidingsScrapPopUp";
+	this.fundScrapPopUpUi = "fundScrapPopUp";
+	this.fundScrapPopUpUi2 = "fundScrapPopUp2";
+	this.volunteerScrapPopUpUi = "volunteerScrapPopUp";
+	this.sharePostscriptScrapPopUpUi = "sharePostscriptScrapPopUp"; //나눔 내역 후기 스크랩
+	this.useLimitPopUpUi ="useLimitPopUp"
+	this.itemKey = "itemKey";
+	this.setUp = function(){
+		this.setUpUserPopUpUi(); // 유저팝업
+		this.setUpBrandPopUpUi(); // 브랜드로그팝업
+		this.setUpUserFundPopUpUi(); // 콩저금통유저팝업
+		this.setUpBrandFundPopUpUi(); // 콩저금통브랜드로그팝업
+		this.setUpPostScrapPopUpUi(); // 포스트스크랩
+		this.setUpClubTidingsScrapPopUpUi();
+		this.setUpFundScrapPopUpUi(); // 콩저금통 스크랩
+		this.setUpFundScrapPopUpUi2(); // 콩저금통 스크랩2
+		this.setUpVolunteerScrapPopUpUi(); // 자원봉사 스크랩
+		this.setUpSharePostscriptScrapPopUpUi();//나눔 내역 후기 스크랩
+		this.setUpUseLimitPopUpUi();//이용제한 레이어
+	}
+
+	this.userCallBack = function(event, element, target)
+	{
+	    var id = element.id;
+	    var menuid = id.substring(id.indexOf("item"));
+
+        var userId = target.getAttribute(widget.itemKey);
+        if(menuid == "itembrand")
+	    {
+	    	happylink.openBrandlog(userId);
+	    }
+	    if(menuid == "iteminfo")
+	    {
+	    	happylink.openPersonalInfo(userId);
+	    }
+	    else if(menuid == "itemblog")
+	    {
+	    	happylink.openBlog(userId);
+
+	    }
+	    else if(menuid == "itemgift")
+	    {
+	    	happylink.openGiftCong(userId);
+	    }
+	    else if(menuid == "itemrdona")
+	    {
+	    	happylink.openNaverNote(userId);
+	    }
+	}
+
+	this.setUpUserPopUpUi = function()
+	{
+	    var ui_html = ""
+			+"<div class=\"user_menu\"><div id=\"temp_layer\" class=\"cmt_lyr\">"
+	        +"<ul>"
+	        +"<li id=\""+this.userPopUpUi+"iteminfo\"><a style=\"text-decoration:none;\" onclick=\"return false;\">해피빈 정보 보기</a></li>"
+	        +"<li id=\""+this.userPopUpUi+"itemblog\"><a style=\"text-decoration:none;\" onclick=\"return false;\">블로그 보기</a></li>"
+	        +"<li id=\""+this.userPopUpUi+"itemrdona\"><a style=\"text-decoration:none;\" onclick=\"return false;\">쪽지 보내기</a></li>"
+	        +"</ul>"
+	        +"</div></div>";
+	    hbeanmenu.create(this.userPopUpUi, ui_html, this.userCallBack );
+	}
+
+
+	this.setUpBrandPopUpUi = function()
+	{
+		var ui_html = ""
+	    	+"<div class=\"user_menu\"><div id=\"temp_layer\" class=\"cmt_lyr\">"
+	        +"<ul>"
+	        +"<li id=\""+this.brandPopUpUi+"iteminfo\"><a style=\"text-decoration:none;\" onclick=\"return false;\">해피빈 정보 보기</a></li>"
+	        +"<li id=\""+this.brandPopUpUi+"itemblog\"><a style=\"text-decoration:none;\" onclick=\"return false;\">블로그 보기</a></li>"
+	        +"<li id=\""+this.brandPopUpUi+"itemrdona\"><a style=\"text-decoration:none;\" onclick=\"return false;\">쪽지 보내기</a></li>"
+	        +"</ul>"
+	        +"</div></div>";
+	    hbeanmenu.create(this.brandPopUpUi, ui_html, this.userCallBack );
+	}
+
+	this.setUpUserFundPopUpUi = function()
+	{
+	    var ui_html = ""
+	    	+"<div class=\"user_menu\"><div id=\"temp_layer\" class=\"cmt_lyr\">"
+	        +"<ul>"
+	        +"<li id=\""+this.userFundPopUpUi+"iteminfo\"><a style=\"text-decoration:none;\" onclick=\"return false;\">해피빈 정보 보기</a></li>"
+	        +"<li id=\""+this.userFundPopUpUi+"itemblog\"><a style=\"text-decoration:none;\" onclick=\"return false;\">블로그 보기</a></li>"
+	        +"<li id=\""+this.userFundPopUpUi+"itemrdona\"><a style=\"text-decoration:none;\" onclick=\"return false;\">모금함 추천하기</a></li>"
+	        +"</ul>"
+	        +"</div></div>";
+	    hbeanmenu.create(this.userFundPopUpUi, ui_html, this.userCallBack );
+	}
+
+	this.setUpBrandFundPopUpUi = function()
+	{
+	    var ui_html = ""
+	        +"<div class=\"user_menu\"><div id=\"temp_layer\" class=\"cmt_lyr\">"
+	        +"<ul>"
+	        /*+"<li style=\"margin:1px 0; padding:2px 0 3px 10px;line-height:16px;\" id=\""+this.brandFundPopUpUi+"itembrand\" onmouseover=\"this.style.background='#E4FF75'\" onmouseout=\"this.style.background=''\"><a style=\"color:#666; font-size:12px; text-decoration:none;\" onclick=\"return false;\">해피브랜드 보기</a></li>"*/
+	        +"<li id=\""+this.brandFundPopUpUi+"iteminfo\"><a style=\"text-decoration:none;\" onclick=\"return false;\">해피빈 정보 보기</a></li>"
+	        +"<li id=\""+this.brandFundPopUpUi+"itemblog\"><a style=\"text-decoration:none;\" onclick=\"return false;\">블로그 보기</a></li>"
+	        +"<li id=\""+this.brandFundPopUpUi+"itemrdona\"><a style=\"text-decoration:none;\" onclick=\"return false;\">모금함 추천하기</a></li>"
+	        +"</ul>"
+	        +"</div>";
+	    hbeanmenu.create(this.brandFundPopUpUi, ui_html, this.userCallBack );
+	}
+
+	this.postScrapCallBack = function(event, element, target)
+	{
+	    var id = element.id;
+	    var menuid = id.substring(widget.postScrapPopUpUi.length + "item".length);
+
+        var postNo = target.getAttribute(widget.itemKey);
+		happylink.postScrap(postNo,menuid);
+
+	}
+
+	this.setUpPostScrapPopUpUi = function()
+	{
+		var ui_html = ""
+			+"<div id=\"temp_layer\" style=\"width:120px; border:1px solid #B6B6B6; padding:1px; background:#ffffff;\">"
+			+"<ul>"
+			+"<li style=\"margin:1px 0; padding:2px 0 3px 10px\" id=\""+this.postScrapPopUpUi+"itemblog\" onmouseover=\"this.style.background='#E4FF75'\" onmouseout=\"this.style.background=''\"><a style=\"color:#666; font-size:12px; text-decoration:none;\" onclick=\"return false;\">블로그로 담기</a></li>"
+			+"<li style=\"margin:1px 0; padding:2px 0 3px 10px\" id=\""+this.postScrapPopUpUi+"itemcafe\" onmouseover=\"this.style.background='#E4FF75'\" onmouseout=\"this.style.background=''\"><a style=\"color:#666; font-size:12px; text-decoration:none;\" onclick=\"return false;\">카페로 담기</a></li>"
+			+"<li style=\"margin:1px 0; padding:2px 0 3px 10px\" id=\""+this.postScrapPopUpUi+"itemprint\" onmouseover=\"this.style.background='#E4FF75'\" onmouseout=\"this.style.background=''\"><a style=\"color:#666; font-size:12px; text-decoration:none;\" onclick=\"return false;\">프린트 하기</a></li>"
+			+"</ul>"
+			+"</div>";
+
+		hbeanmenu.create(this.postScrapPopUpUi, ui_html, this.postScrapCallBack);
+	}
+
+	/* 클럽 소식 스크랩 콜백 함수 */
+	this.clubTidingsScrapCallBack = function(event, element, target)
+	{
+	    var id = element.id;
+	    var menuid = id.substring(widget.clubTidingsScrapPopUpUi.length + "item".length);
+
+        var clbTdgNo = target.getAttribute(widget.itemKey);
+		happylink.clubTidingsScrap(clbTdgNo,menuid);
+
+	}
+	/* 클럽 소식 스크랩 레이어  */
+	this.setUpClubTidingsScrapPopUpUi = function()
+	{
+		var ui_html = ""
+			+"<div id=\"temp_layer\" style=\"width:120px; border:1px solid #B6B6B6; padding:1px; background:#ffffff;\">"
+			+"<ul>"
+			+"<li style=\"margin:1px 0; padding:2px 0 3px 10px\" id=\""+this.clubTidingsScrapPopUpUi+"itemblog\" onmouseover=\"this.style.background='#E4FF75'\" onmouseout=\"this.style.background=''\"><a style=\"color:#666; font-size:12px; text-decoration:none;\" onclick=\"return false;\">블로그로 담기</a></li>"
+			+"<li style=\"margin:1px 0; padding:2px 0 3px 10px\" id=\""+this.clubTidingsScrapPopUpUi+"itemcafe\" onmouseover=\"this.style.background='#E4FF75'\" onmouseout=\"this.style.background=''\"><a style=\"color:#666; font-size:12px; text-decoration:none;\" onclick=\"return false;\">카페로 담기</a></li>"
+			+"<li style=\"margin:1px 0; padding:2px 0 3px 10px\" id=\""+this.clubTidingsScrapPopUpUi+"itemprint\" onmouseover=\"this.style.background='#E4FF75'\" onmouseout=\"this.style.background=''\"><a style=\"color:#666; font-size:12px; text-decoration:none;\" onclick=\"return false;\">프린트 하기</a></li>"
+			+"</ul>"
+			+"</div>";
+
+		hbeanmenu.create(this.clubTidingsScrapPopUpUi, ui_html, this.clubTidingsScrapCallBack);
+	}
+
+
+	this.fundScrapCallBack = function(event, element, target)
+	{
+	    var id = element.id;
+	    var menuid = id.substring(widget.fundScrapPopUpUi.length + "item".length);
+
+        var userId = target.getAttribute(widget.itemKey);
+
+		happylink.fundScrap(userId,menuid);
+	}
+
+	this.setUpFundScrapPopUpUi = function()
+	{
+		var ui_html = ""
+			+"<div id=\"temp_layer\" style=\"position:absolute;z-index:1000;width:80px;padding:9px 14px;border:1px solid #737373;background:#fff;font-family:'나눔고딕',NanumGothic;letter-spacing:-1px;line-height:16px\">"
+			+"<ul style=\"margin:0;padding:0;list-style:none;font-size:12px;\">"
+			+"<li id=\""+this.fundScrapPopUpUi+"itemblog\"><a style=\"color:#666;\" onclick=\"return false;\">내 블로그에 담기</a></li>"
+			+"<li id=\""+this.fundScrapPopUpUi+"itemcafe\"><a style=\"color:#666;\" onclick=\"return false;\">내 카페에 담기</a></li>"
+			+"</ul>"
+			+"</div>";
+		hbeanmenu.create(this.fundScrapPopUpUi, ui_html, this.fundScrapCallBack);
+	}
+
+	this.fundScrapCallBack2 = function(event, element, target)
+	{
+	    var id = element.id;
+	    var menuid = id.substring(widget.fundScrapPopUpUi2.length + "item".length);
+
+        var userId = target.getAttribute(widget.itemKey);
+
+		happylink.fundScrap2(userId,menuid);
+	}
+
+	this.setUpFundScrapPopUpUi2 = function()
+	{
+		var ui_html = ""
+			+"<div id=\"temp_layer\" style=\"width:120px; border:1px solid #B6B6B6; padding:1px; background:#ffffff;\">"
+			+"<ul>"
+			+"<li style=\"margin:1px 0; padding:2px 0 3px 10px\" id=\""+this.fundScrapPopUpUi2+"itemblog\" onmouseover=\"this.style.background='#E4FF75'\" onmouseout=\"this.style.background=''\"><a style=\"color:#666; font-size:12px; text-decoration:none;\" onclick=\"return false;\">내 블로그에 담기</a></li>"
+			+"<li style=\"margin:1px 0; padding:2px 0 3px 10px\" id=\""+this.fundScrapPopUpUi2+"itemcafe\" onmouseover=\"this.style.background='#E4FF75'\" onmouseout=\"this.style.background=''\"><a style=\"color:#666; font-size:12px; text-decoration:none;\" onclick=\"return false;\">내 카페에 담기</a></li>"
+			+"</ul>"
+			+"</div>";
+		hbeanmenu.create(this.fundScrapPopUpUi2, ui_html, this.fundScrapCallBack2);
+	}
+
+
+	this.volunteerScrapCallBack = function(event, element, target)
+	{
+	    var id = element.id;
+	    var menuid = id.substring(widget.volunteerScrapPopUpUi.length + "item".length);
+
+        var vlntrscrapNo = target.getAttribute(widget.itemKey);
+		happylink.volunteerScrap(vlntrscrapNo,menuid);
+	}
+
+	this.setUpVolunteerScrapPopUpUi = function()
+	{
+
+		var ui_html = ""
+			+"<div id=\"temp_layer\" style=\"width:120px; border:1px solid #B6B6B6; padding:1px; background:#ffffff;\">"
+			+"<ul>"
+			+"<li style=\"margin:1px 0; padding:2px 0 3px 10px\" id=\""+this.volunteerScrapPopUpUi+"itemblog\" onmouseover=\"this.style.background='#E4FF75'\" onmouseout=\"this.style.background=''\"><a style=\"color:#666; font-size:12px; text-decoration:none;\" onclick=\"return false;\">블로그로 담기</a></li>"
+			+"<li style=\"margin:1px 0; padding:2px 0 3px 10px\" id=\""+this.volunteerScrapPopUpUi+"itemcafe\" onmouseover=\"this.style.background='#E4FF75'\" onmouseout=\"this.style.background=''\"><a style=\"color:#666; font-size:12px; text-decoration:none;\" onclick=\"return false;\">카페로 담기</a></li>"
+			+"</ul>"
+			+"</div>";
+
+		hbeanmenu.create(this.volunteerScrapPopUpUi, ui_html, this.volunteerScrapCallBack);
+	}
+
+
+
+
+	//나눔 내역 후기 게시물 스크랩+ 프린트
+	this.sharePostscriptScrapCallBack = function(event, element, target)
+	{
+	    var id = element.id;
+	    var menuid = id.substring(widget.sharePostscriptScrapPopUpUi.length + "item".length);
+
+        var artclNo = target.getAttribute(widget.itemKey);
+		happylink.sharePostscriptScrap(artclNo,menuid);
+
+	}
+
+	this.setUpSharePostscriptScrapPopUpUi = function()
+	{
+		var ui_html = ""
+			+"<div id=\"temp_layer\" style=\"width:120px; border:1px solid #B6B6B6; padding:1px; background:#ffffff;\">"
+			+"<ul>"
+			+"<li style=\"margin:1px 0; padding:2px 0 3px 10px\" id=\""+this.sharePostscriptScrapPopUpUi+"itemblog\" onmouseover=\"this.style.background='#E4FF75'\" onmouseout=\"this.style.background=''\"><a style=\"color:#666; font-size:12px; text-decoration:none;\" onclick=\"return false;\">블로그로 담기</a></li>"
+			+"<li style=\"margin:1px 0; padding:2px 0 3px 10px\" id=\""+this.sharePostscriptScrapPopUpUi+"itemcafe\" onmouseover=\"this.style.background='#E4FF75'\" onmouseout=\"this.style.background=''\"><a style=\"color:#666; font-size:12px; text-decoration:none;\" onclick=\"return false;\">카페로 담기</a></li>"
+			+"<li style=\"margin:1px 0; padding:2px 0 3px 10px\" id=\""+this.sharePostscriptScrapPopUpUi+"itemprint\" onmouseover=\"this.style.background='#E4FF75'\" onmouseout=\"this.style.background=''\"><a style=\"color:#666; font-size:12px; text-decoration:none;\" onclick=\"return false;\">프린트 하기</a></li>"
+			+"</ul>"
+			+"</div>";
+
+		hbeanmenu.create(this.sharePostscriptScrapPopUpUi, ui_html, this.sharePostscriptScrapCallBack);
+	}
+
+	//이용 제한
+	this.useLimitCallBack = function(event, element, target)
+	{
+		happylink.closeUseLimit(artclNo,menuid);
+	}
+
+	this.setUpUseLimitPopUpUi = function()
+	{
+		var ui_html = ""
+			+"<div id=\"useLimit_layer\" style=\"position:absolute;left:-248px;z-index:1000;width:248px;font-family:'돋움',dotum;border:2px solid #888;color:#666;line-height:18px;background:#ffffff\">"
+			+"<strong style=\"display:block;height:17px;padding:3px 0 5px 9px;background-color:#f0f0f0;color:#749D38;font-size:11px\">이용제한 관련 안내</strong>"
+			+"<div style=\"margin:0 10px;padding:6px 0;font-size:11px;line-height:18px;letter-spacing:-1px\">"
+			+"	해당 게시물은 해피빈 운영 원칙에 따라 <br>"
+			+"	<span style=\"color:#749D38;\">욕설/홍보/음란성</span> 등 노출 제한하고 있는 내용을<br>"
+			+"	 포함하고 있어 다른 이용자들이 볼 수 없도록 <br>"
+		    +" 노출 제외 처리되었습니다"
+			+"</div>"
+			+"<a href=\"#\" style=\"position:absolute;top:5px;right:6px;width:15px;height:15px;padding:0;\"><img src=\"https://ssl.pstatic.net/happyimg2/img3/happybean/img/btn_clse.gif\" width=\"17\" height=\"17\" alt=\"닫기\" border=\"0\"></a>"
+			+"</div>";
+
+		hbeanmenu.create(this.useLimitPopUpUi, ui_html, this.useLimitCallBack);
+	}
+
+}
+var widget = new Widget();
+hbean.observer.add("widget.setUp();");
+
+//- File Name   : hbean_net.js
+//- Description :
+var hbeannet =
+{
+open : function(urlparam, target, width, height, scrollbars)
+{
+	var loc = new url(urlparam);
+	var path = loc.path;
+	if(path=="")
+	{
+		return;
+	}
+	if(loc.host!=document.domain)
+	{
+		path = loc.scheme + "://" + loc.host + path;
+	}
+
+	var frm = document.createElement("FORM");
+	frm.action = path;
+	frm.method = "GET";
+
+	if(typeof(target) != "undefined")
+	{
+		if(target != "_blank")
+		{
+			var features = "menubar=no,toolbar=no";
+
+			var winW = 300;
+			var winH = 500;
+
+			if(typeof(width) != "undefined") {
+				winW = width;
+			}
+			if(typeof(height) != "undefined") {
+				winH = height;
+			}
+
+			features += ",width=" + winW;
+			features += ",height=" + winH;
+
+			var windowX = Math.ceil( (window.screen.width  - winW) / 2 );
+			var windowY = Math.ceil( (window.screen.height - winH) / 2 );
+
+			features += ",left=" + windowX;
+			features += ",top=" + windowY;
+
+			if(typeof(scrollbars) != "undefined")
+				features += ",scrollbars=" + scrollbars;
+			else
+				features += ",scrollbars=no";
+
+			window.open("about:blank", target, features);
+		}
+		frm.target = target;
+	}
+
+	document.body.appendChild(frm);
+	if(loc.query!="")
+	{
+		var params = new Array();
+		var query = loc.query.split("&");
+		for(i=0; i < query.length; i++)
+		{
+			var poz = query[i].indexOf("=");
+			if(poz == -1) continue;
+			var s = query[i].substr(0, poz);
+			var v = query[i].substr(poz+1, query[i].length);
+			if(s == "") continue;
+			params.add({name:s,value:v});
+		}
+		for(i=0; i < params.length; i++)
+		{
+			var input = document.createElement("INPUT");
+			input.type = "hidden";
+			input.name = params[i].name;
+			input.value = params[i].value;
+			frm.appendChild(input);
+		}
+	}
+	frm.submit();
+},
+
+getFormAttribute : function(id)
+{
+	var inputParam = "";
+	var selectParam = "";
+	var textAreaParam = "";
+
+	var inputFrm		=	document.getElementById(id);
+	var inputNodes		=	inputFrm.getElementsByTagName("input");
+	var selectNodes		=	inputFrm.getElementsByTagName("select");
+	var textareaNods	=	inputFrm.getElementsByTagName("textarea");
+
+	if(inputNodes != null && inputNodes.length != 0)
+	{
+		inputParam = this.createParamforInput(inputNodes);
+	}
+	if(selectNodes != null && selectNodes.length != 0)
+	{
+		selectParam = this.createParam(selectNodes);
+	}
+	if(textareaNods != null && textareaNods.length != 0)
+	{
+		textAreaParam = this.createParam(textareaNods);
+	}
+
+	var resultParam = inputParam + selectParam + textAreaParam;
+
+	return resultParam;
+},
+
+createParam : function(obj)
+{
+	var param = "";
+	var size = obj.length;
+	for(var i = 0; i < size; i++)
+	{
+		param = param + "&" + obj[i].name + "=" + encodeURIComponent(obj[i].value);
+	}
+	return param;
+},
+
+createParamforInput : function(obj)
+{
+	var param = "";
+	var size = obj.length;
+	for(var i = 0; i < size; i++)
+	{
+		if(obj[i].type == "checkbox" || obj[i].type == "radio")
+		{
+			if(obj[i].checked)
+			{
+				param = param + "&" + obj[i].name + "=" + encodeURIComponent(obj[i].value);
+			}
+		}
+		else if(obj[i].type == "hidden" || obj[i].type == "text" || obj[i].type == "password")
+		{
+			param = param + "&" + obj[i].name + "=" + encodeURIComponent(obj[i].value);
+		}
+	}
+	return param;
+}
+};
+
+//- File Name   : hbean_prohibitword.js
+//- Description :
+function ProhibitWord() {
+	this.banword_wrap = null;
+	this.callBack = null;
+	this.callBackObject = null;
+	this.callBackParams = null;
+	this.position = null;
+	this.type = null;
+	this.x = 150;
+	this.y = 0;
+
+	this.html = "<div id=\"bw_header\">" +
+			"<h1>금칙어가 포함되어 있습니다</h1>" +
+			"</div>" +
+			"<div id=\"bw_content\">" +
+			"<p class=\"bw_desc5\">작성하신 <strong id=\"ugcType\"></strong>되어 있습니다.</p>" +
+			"<div class=\"bw_bx1\">" +
+			"<div class=\"bw_bx1_shadow\">" +
+			"<strong>해당되는 금칙어</strong>" +
+			"<a href=\"도움\" onclick=\"return prohibitWord.helpProhibit();\"><img src=\"https://ssl.pstatic.net/static/common/popup/ico_help.gif\" alt=\"도움말\" width=\"14\" height=\"14\"></a>" +
+			"<div id=\"words\" class=\"bw_bx1_shadow_in\"></div>" +
+			"<div id=\"helpProhibit\" class=\"layer_bubble\" style=\"top:32px; left:83px; display:none;\">" +
+			"<div class=\"layer_content\">" +
+			"<div style=\"padding:10px 0 5px 4px; *padding:9px 0 6px 4px;\">" +
+			"<p>네이버에서는 서비스 이용자 보호를 위해 금칙어 제도를<br>" +
+			"운영하고 있습니다.<br></p>" +
+			"<p class=\"bw_orange\">금칙어란 불법성, 음란성, 욕설로 의심되어<br>" +
+			"자동으로 등록이 제한된 특정 단어나 URL을 의미합니다.</p>" +
+			"</div>" +
+			"<span class=\"rt_iefix\"></span>" +
+			"</div>" +
+			"<span class=\"rt\">" +
+			"</span>" +
+			"<span class=\"lb\"></span><span class=\"rb\"></span><span class=\"arrow top\"></span>" +
+			"</div>" +
+			"</div>" +
+			"</div>" +
+			"<div class=\"bw_bx2\">" +
+			"<p class=\"bw_desc3\">금칙어를 삭제하신 후 다시 글을 등록하시기 바랍니다.<br>" +
+			"건전한 인터넷 문화 조성을 위해 회원님의 적극적인 협조를 부탁드립니다.</p>" +
+			"</div>" +
+			"<p class=\"bw_desc4\">더 궁금하신 사항은 <a href=\"https://help.naver.com/ops/step2/faq.nhn?fcatid=12443\" target=\"helpCenter\">고객센터</a>로 문의하시면 자세히 알려드리겠습니다.</p>" +
+			"</div>" +
+			"<div id=\"bw_btn_footer\">" +
+			"<a href=\"javascript:prohibitWord.closeProhibitAlert();\"><img src=\"https://ssl.pstatic.net/happyimg2/img3/happybean/img/btn_confirm4.gif\" width=\"48\" height=\"23\" alt=\"확인\"></a>" +
+			"<a href=\"javascript:prohibitWord.closeProhibitAlert();\" class=\"btn_close\"><img src=\"https://ssl.pstatic.net/happyimg2/img3/happybean/img/btn_close2.gif\" width=\"15\" height=\"14\" alt=\"닫기\"></a>" +
+			"</div>";
+
+	this.alterProhibitWord = function(json) {
+		this.banword_wrap = document.getElementById("banword_wrap");
+		if (this.banword_wrap == null) {
+			this.banword_wrap = document.createElement("div");
+			this.banword_wrap.id = "banword_wrap";
+			this.banword_wrap.style.position = "absolute";
+			this.banword_wrap.style.zIndex = "1000";
+			this.banword_wrap.innerHTML = this.html;
+
+			var next = null;
+			var viewPoint = null;
+
+			if (this.position == null) {
+				viewPoint = document.getElementById("content_w");
+			} else {
+				viewPoint = document.getElementById(this.position);
+			}
+
+			var obj = viewPoint;
+			var curleft = 0;
+			if (obj.offsetParent) {
+				while (obj.offsetParent) {
+					curleft += obj.offsetLeft;
+					obj = obj.offsetParent;
+				}
+			} else if (obj.x) {
+				curleft += obj.x;
+			}
+
+			obj = viewPoint;
+			var curtop = 0;
+			if (obj.offsetParent) {
+				while (obj.offsetParent) {
+					curtop += obj.offsetTop;
+					obj = obj.offsetParent;
+				}
+			} else if (obj.y) {
+				curtop += obj.y;
+			}
+
+			this.banword_wrap.style.left = curleft + this.x + "px";
+			this.banword_wrap.style.top = curtop + this.y + "px";
+			var topDiv = document.getElementById("wrap");
+
+			// IFRAME 안에 있는 경우 topDiv를 찾을 수 없다.
+			if(topDiv == null) {
+				alert("입력하신 내용에 사용이 제한된 단어가 포함되어 있습니다.");
+				return false;
+			}
+			topDiv.parentNode.insertBefore(this.banword_wrap, topDiv);
+		}
+
+		var ugcType = document.getElementById("ugcType");
+		var words = document.getElementById("words");
+		var type = "";
+		var ugcTypes = json.ugcType;
+
+		for ( var i = 0; ugcTypes.length > i; i++) {
+			if (i > 0) {
+				type = type + ", ";
+			}
+
+			type = type + ugcTypes[i].ugcTypeId;
+		}
+
+		ugcType.innerHTML = type + "에 금칙어가 포함";
+		words.innerHTML = type + "에 금칙어가 포함";
+		words.innerHTML = json.prohibitWords;
+		this.banword_wrap.style.display = "";
+		return false;
+	};
+
+	this.closeProhibitAlert = function() {
+		window.location.reload();
+	};
+
+	this.helpProhibit = function() {
+		try {
+			var helpProhibit = document.getElementById("helpProhibit");
+			if (helpProhibit.style.display != "none") {
+				helpProhibit.style.display = "none";
+			} else {
+				helpProhibit.style.display = "";
+			}
+		} catch (e) {
+		} finally {
+			return false;
+		}
+	};
+
+	this.checkProhibit = function(xsender, context) {
+		try {
+			var x = xsender.getX();
+
+			if (x.status == 200) {
+				var str = x.responseText;
+
+				if (str) {
+					str = str.trim();
+					str = str.replace(/\0/g,'');
+				}
+				var json = JSON.parse(str);
+				if (json.prohibitWord != true) {
+					switch (context.type) {
+					case 1: // 1은 검색시
+						alert("검색하신 키워드에 사용이 제한된 단어가 포함되어 있습니다.");
+						break;
+					case 2: // 2은 특정 상황 - 팝업
+						alert("입력하신 내용에 사용이 제한된 단어가 포함되어 있습니다.");
+						break;
+					default:
+						context.alterProhibitWord(json);
+						break;
+					}
+
+					return;
+				}
+
+				context.invoke();
+			}
+		} catch (e) {
+			alert(e.message);
+		}
+	};
+
+	this.invoke = function() {
+		if (this.callBackObject != undefined) {
+			this.callBackObject.invoke(this.callBackParams);
+		} else if (context.callBack != null) {
+			if (this.callBackObject.callBack.tagName == "FORM") {
+				this.callBackObject.callBack.submit();
+			} else {
+				this.callBackObject.callBack(context.callBackParams);
+			}
+		}
+	};
+
+	this.prohibitWordFilter = function(params, callBack, callBackParams) {
+		try {
+			var filterUrl = "/wcomp/ProhibitWordFilter.json";
+			this.callBack = callBack;
+			this.callBackParams = callBackParams;
+			ajaxSender.send(filterUrl, params, this.checkProhibit, this);
+		} catch (e) {
+			alert(e.message);
+		} finally {
+			return false;
+		}
+	};
+
+	this.prohibitWordFilter4Object = function(params, callBackObject, position) {
+		try {
+			var filterUrl = "/wcomp/ProhibitWordFilter.json";
+			this.callBackObject = callBackObject;
+			this.position = position;
+			ajaxSender.send(filterUrl, params, this.checkProhibit, this);
+		} catch (e) {
+			alert(e.message);
+		} finally {
+			return false;
+		}
+	};
+	
+//	this.mvcProhibitWordFilter4Object = function(params, callBackObject, position) {
+//		try {
+//			$J.ajax({
+//				url:"/wcomp/ProhibitWordFilter.jsonp",
+//				type:"POST",
+//					contentType:"application/json",
+//				dataType:"jsonp",
+//				crossDomain:true,
+//				async:false,
+//				success:function(data) {
+//					alert(data);
+//				},error:function(e){
+//					alert(e.messages);
+//				},
+//				jsonp:'jsonp'
+//			});
+//		} catch (e) {
+//			alert(e.message);
+//		} finally {
+//			return false;
+//		}
+//	};
+
+}
+
+var prohibitWord = new ProhibitWord();
+
+
+//- File Name   : hbean_resizeframe.js
+//- Description :
+function resizeframe(obj_id, minHeight)
+{
+var obj = document.getElementById(obj_id);
+
+try
+{
+	var getHeightByElement = function(body)
+	{
+		var last = body.lastChild;
+		try
+		{
+			while (last && last.nodeType != 1 || !last.offsetTop) last = last.previousSibling;
+			return last.offsetTop+last.offsetHeight;
+		}
+		catch(e)
+		{
+			return 0;
+		}
+	}
+
+	var doc = obj.contentDocument || obj.contentWindow.document;
+	if (doc.location.href == 'about:blank')
+	{
+		obj.style.height = minHeight+'px';
+		return;
+	}
+
+	if (/MSIE/.test(navigator.userAgent))
+	{
+		var h = doc.body.scrollHeight;
+	}
+	else
+	{
+		var s = doc.body.appendChild(document.createElement('DIV'))
+		s.style.clear = 'both';
+
+		var h = s.offsetTop;
+		s.parentNode.removeChild(s);
+	}
+
+	if (h < minHeight) h = minHeight;
+
+	obj.style.height = h + 'px';
+}
+catch (e)
+{
+}
+}
+
+//- File Name   : hbean_resizepopup.js
+//- Description :
+function resizepopup(wid,minH) {
+	var IE = false;
+	if (/MSIE/.test(navigator.userAgent)) {
+		IE = true;
+	}
+
+	if (IE) {
+		var winW = wid, winH = 200;
+		winW = wid;
+		winH = document.body.scrollHeight;
+
+		if (winH > 750) {
+			winH = 750;
+		}
+		if (winH < minH) {
+			winH = minH
+		}
+
+		var deltaW = 0;
+		var deltaH = 0;
+		if (document.body.clientHeight) {
+			deltaW = winW - document.body.clientWidth;
+			deltaH = winH - document.body.clientHeight;
+		} else {
+			deltaW = winW - window.innerWidth;
+			deltaH = winH - window.innerHeight;
+		}
+		if (deltaH >= 4) deltaH = deltaH - 4;
+
+		var windowX = Math.ceil( (window.screen.width  - winW) / 2 );
+		var windowY = Math.ceil( (window.screen.height - winH) / 2 );
+
+		window.moveTo(windowX, windowY);
+		//window.resizeBy(deltaW, deltaH);
+		window.resizeTo( winW, winH );
+	}
+	else
+	{
+		var width_adjustment = 6;
+		var height_adjustment = 32;
+
+		var oW = window.document.body;
+		var oW = oW.clip ? oW.clip.width : oW.offsetWidth;
+
+		var oH = window.document.body;
+		var oH = oH.clip ? oH.clip.height : oH.offsetHeight;
+
+		var myW = 0, myH = 0, d = window.document.documentElement, b = window.document.body;
+
+		if (window.innerWidth) {
+			myW = window.innerWidth; myH = window.innerHeight;
+		}
+		else if (b && b.clientWidth) {
+			myW = b.clientWidth; myH = b.clientHeight;
+		}
+		else if (d && d.clientWidth) {
+			myW = d.clientWidth; myH = d.clientHeight;
+		}
+
+		if (window.opera && !document.childNodes) {
+			myW += 16;
+		}
+		var winW = parseInt(wid) + width_adjustment;
+		var winH = oH+50 ;//+ ( (oH + 200 ) - myH ) + height_adjustment;
+
+		if (winH > 750) {
+			winH = 750;
+		}
+		if (winH < minH) winH = minH
+
+		var windowX = Math.ceil( (window.screen.width  - wid) / 2 );
+		var windowY = Math.ceil( (window.screen.height - winH) / 2 );
+
+		window.moveTo(windowX, windowY);
+		window.resizeTo( winW, winH );
+	}
+}
+
+function fitPopup()
+{
+//default revision
+fitPopup2(0);
+}
+
+
+function fitPopup2(revision)
+{
+window.resizeTo(0,0);
+
+var iscrollWidth = document.body.scrollWidth;
+var iscrollHeight = document.body.scrollHeight;
+window.resizeTo(iscrollWidth, iscrollHeight);
+
+var isclientWidth = document.body.clientWidth;
+var isclientHeight = document.body.clientHeight;
+
+
+//var IE = false;
+// if (/MSIE/.test(navigator.userAgent))
+// {
+        // IE = true;
+// }else if(navigator.userAgent.indexOf("Chrome") > 0){
+	// isclientWidth += 93;
+	// isclientHeight += 0;
+// }
+//
+if(/MSIE/.test(navigator.userAgent)){
+	 revision += 10;
+	 iscrollHeight +=50;
+}
+window.resizeBy(iscrollWidth - isclientWidth + revision , iscrollHeight - isclientHeight + revision);
+
+}
+
+function popupResize(){
+
+var divEl = document.createElement("div");   //document안의 "div"의 객체,변수,메소드를
+divEl.style.position = "absolute";                  // divEI에게 넘겨준다. 여기서 "div"는 popup창 body전체
+divEl.style.left = "0px";
+divEl.style.top = "0px";
+divEl.style.width = "100%";
+divEl.style.height = "100%";
+document.body.appendChild(divEl);          //appendChild : body에다가 divEI를 적용시키겠다
+
+var Dwidth = parseInt(document.body.scrollWidth);
+var Dheight = parseInt(document.body.scrollHeight);
+
+window.resizeBy(Dwidth-divEl.offsetWidth, Dheight-divEl.offsetHeight);
+document.body.removeChild(divEl);
+}
+
+//
+//- File Name   : hbean_scrap.js
+//- Description : A div popup menu.
+//
+hbean.scrap_blog = function (num)
+{
+var frm = document.scrapform[num];
+
+if (frm.source_title == null) {
+	frm = document.scrapform;
+}
+
+if (frm.source_title.value.split(" ").join("")=="") {
+	alert("출처가 누락되었습니다. 다시 시도해주세요.");
+	return false;
+}
+
+if (frm.title.value.split(" ").join("")=="") {
+	alert("제목이 누락되었습니다. 다시 시도해주세요.");
+	return false;
+}
+
+frm.source_contents.value = frm.source_contents.value + frm.source_footer.value;
+
+window.open("","scrapPop","width=205,height=208");
+frm.action = "https://blog.naver.com/post/scrap/scrapPop.jsp";
+frm.target = "scrapPop";
+frm.submit();
+}
+
+hbean.scrap_cafe = function (num)
+{
+var frm = document.scrapform[num];
+
+if (frm.source_title == null) {
+	frm = document.scrapform;
+}
+
+if (frm.source_title.value.split(" ").join("")=="") {
+	alert("출처가 누락되었습니다. 다시 시도해주세요.");
+	return false;
+}
+
+if (frm.title.value.split(" ").join("")=="") {
+	alert("제목이 누락되었습니다. 다시 시도해주세요.");
+	return false;
+}
+
+window.open("","scrapPop","width=510,height=410");
+frm.action = "http://cafe.naver.com/CafeScrapView.nhn";
+frm.target = "scrapPop";
+frm.submit();
+}
+
+
+//
+//- File Name   : hbean_string.js
+//- Description : Redeclare String Object
+//
+
+function bytes2string(bytes)
+{
+if(! bytes instanceof Array) return "";
+var s = "";
+for(i=0;i<bytes.length-1;i+=2)
+{
+	s += String.fromCharCode(bytes[i+1] << 8 | bytes[i]);
+}
+return s;
+}
+
+String.prototype.converToBytes = function()
+{
+var str = this;
+var bytes = new Array();
+var ch;
+//byte 단위로 casting해서 encoding한다.
+for(i=0;i<str.length;i++)
+{
+	ch = str.substr(i,1).charCodeAt(0);
+	bytes[i*2] = ch % 256;
+	bytes[i*2+1] = ch >> 8;
+}
+return bytes;
+}
+
+String.prototype.lenb = function()
+{
+var str = this;
+var l = 0;
+for (var i=0; i<str.length; i++)
+    l += (str.charCodeAt(i) > 128) ? 2 : 1;
+
+return l;
+}
+
+String.prototype.tail = function(len, tail)
+{
+var str = this;
+var l = 0;
+for (var i=0; i<str.length; i++)
+{
+    l += (str.charCodeAt(i) > 128) ? 2 : 1;
+    if (l > len) return str.substring(0,i) + tail;
+}
+return str;
+}
+
+String.prototype.taildot = function(len)
+{
+return this.tail(len, "..");
+}
+
+// if String.trim is not supported natively, for example IE8 or earlier
+if(typeof String.prototype.trim !== 'function') {
+	String.prototype.trim = function()	{
+		return this.replace(/^\s+|\s+$/g, '');
+	}
+}
+
+String.prototype.isNumber = function()
+{
+return (this.match(/^[0-9]*$/g)?true:false);
+}
+
+String.prototype.isAlpha = function()
+{
+return (this.match(/^[a-zA-Z]*$/g)?true:false);
+}
+
+String.prototype.isAlphaNum = function()
+{
+return (this.match(/^[a-zA-Z0-9]*$/g)?true:false);
+}
+
+String.prototype.isTelNo = function()
+{
+return (this.match(/^[a-zA-Z0-9-]*$/g)?true:false);
+}
+
+String.prototype.isBizNumber = function()
+{
+var biznum = this+"";
+biznum = biznum.trim();
+if(biznum.length!=10) return false;
+if(!biznum.isNumber()) return false;
+
+var w1;
+var w2;
+var w3;
+var wt;
+w1 = biznum.charAt(8) * 5;
+w2 = parseInt( ( w1 / 10) , 10);
+w3 = w1 % 10;
+
+wt = biznum.charAt(0) * 1 + biznum.charAt(1) * 3 + biznum.charAt(2) * 7;
+wt += biznum.charAt(3) * 1 + biznum.charAt(4) * 3 + biznum.charAt(5) * 7;
+wt += biznum.charAt(6) * 1 + biznum.charAt(7) * 3 + biznum.charAt(9) * 1;
+wt += (w2 + w3);
+
+// 0은 false, 이외 숫자는 true입니다. !는 not을 의미합니다.
+return !(wt % 10) == 0 ? false : true;
+}
+
+String.prototype.isJumin = function()
+{
+var jumin = this+"";
+
+if(jumin.length!=13) return false;
+
+var birthYear = "";
+if((jumin.charAt(6) == "1") || (jumin.charAt(6) == "2") || (jumin.charAt(6) == "5") || (jumin.charAt(6) == "6")) {
+	birthYear = "19";
+} else if((jumin.charAt(6) == "3") || (jumin.charAt(6) == "4") || (jumin.charAt(6) == "7") || (jumin.charAt(6) == "8")) {
+	birthYear = "20";
+} else if((jumin.charAt(6) == "9") || (jumin.charAt(6) == "0")) {
+	birthYear = "18";
+} else {
+	return false;
+}
+
+birthYear += jumin.substr(0, 2);
+birthMonth = jumin.substr(2, 2) - 1;
+birthDate  = jumin.substr(4, 2);
+birth = new Date(birthYear, birthMonth, birthDate);
+
+if (birth.getYear() % 100 != jumin.substr(0, 2) || birth.getMonth() != birthMonth || birth.getDate() != birthDate) {
+	return false;
+}
+
+var buf = new Array(13);
+if (jumin.charAt(6) >= "1" && jumin.charAt(6) <= "4") {
+	for (i = 0; i <  6; i++) buf[i] = parseInt(jumin.charAt(i));
+	for (i = 6; i < 13; i++) buf[i] = parseInt(jumin.charAt(i));
+
+	multipliers = [2,3,4,5,6,7,8,9,2,3,4,5];
+	for (i = 0, sum = 0; i < 12; i++) sum += (buf[i] *= multipliers[i]);
+
+	if ((11 - (sum % 11)) % 10 != buf[12]) {
+		return false;
+	} else {
+		return true;
+	}
+} else if (jumin.charAt(6) >= "5" && jumin.charAt(6) <= "8") {
+	for (i = 0; i < 13; i++) buf[i] = parseInt(jumin.charAt(i));
+
+	odd = buf[7]*10 + buf[8];
+
+	if (odd % 2 != 0) return false;
+
+	if ((buf[11] != 6) && (buf[11] != 7) && (buf[11] != 8) && (buf[11] != 9))
+	{
+		return false;
+	}
+
+	multipliers = [2,3,4,5,6,7,8,9,2,3,4,5];
+	for (i = 0, sum = 0; i < 12; i++) sum += (buf[i] *= multipliers[i]);
+
+	sum=11-(sum%11);
+
+	if (sum>=10) sum-=10;
+
+	sum += 2;
+
+	if (sum>=10) sum-=10;
+
+	if (sum != buf[12]) {
+		return false;
+	} else {
+		return true;
+	}
+}
+return false;
+}
+
+String.prototype.isEmail = function()
+{
+if(!this.match(/^[a-zA-Z0-9-_@.]*$/g)) return false;
+if(this.match(/^[^@]+@([^@.]+\.)+[^@.]+$/g)) return true;
+return false;
+}
+
+String.prototype.isDateFormat = function()
+{
+var v = this+"";
+
+var Y;
+var M;
+var D;
+
+switch (v.length) {
+	case 8 :
+		if (v.indexOf("-") != -1) {
+			return false;
+		}
+		Y = v.substring(0,4);
+		M = v.substring(4,6);
+		D = v.substring(6,8);
+		break;
+	case 10 :
+		if (v.substring(4,5) != "-" || v.substring(7,8) != "-") {
+			return false;
+		}
+		Y = v.substring(0,4);
+		M = v.substring(5,7);
+		D = v.substring(8,10);
+		break;
+	default :
+		return false;
+}
+return (new Date()).isDate(Y, M, D);
+}
+
+String.prototype.isIDFormat = function()
+{
+return (this.match(/^[a-z0-9][a-z0-9_]*$/g)?true:false);
+}
+
+//
+//if a string value have all Korean characters then return true.
+//
+String.prototype.isOnlyKorean = function()
+{
+var id_text = this+"";
+for ( var i=0; i < id_text.length; i++ )
+{
+	if ( id_text.charCodeAt(i) < 0xAC00 || id_text.charCodeAt(i) > 0xD7A3)
+	{
+		if (( id_text.charCodeAt(i) < 12593 || id_text.charCodeAt(i) > 12643 ) && ( id_text.charCodeAt(i) != 32))
+		{
+			return false;
+		}
+	}
+}
+
+return true;
+}
+
+/* 문자열에서 숫자만 남기고 모두 제거 - by madhwang*/
+String.prototype.getOnlyDigit = function()
+{
+return this.replace (/[^\d]/g,"");
+}
+
+/* 문자열에서 숫자,영문만 남기고 모두 제거 */
+String.prototype.getDigitAndEng = function()
+{
+return this.replace (/[^a-zA-Z0-9]/g,"");
+}
+
+/* 문자열에서 숫자 제거 - by madhwang*/
+String.prototype.removeDigit = function()
+{
+return this.replace (/[\d]/g,"");
+}
+
+String.prototype.getNumber = function()
+{
+var v = this;
+var t = "";
+var n = "0123456789";
+
+for (var i = 0; i < v.length; i++) {
+	var c = v.charAt(i);
+	if ((t == '' && c == '-') || (n.indexOf(c) >= 0)) {
+		t = t + c;
+	}
+}
+
+if (t == "") {
+	t = "0";
+} else {
+	t = eval(t) * 1;
+}
+
+return t+"";
+}
+
+String.prototype.getDecimal = function (n)
+{
+var v = this+"";
+var pos = v.indexOf(".");
+if (pos < 0) {
+	return v.getNumber();
+}
+
+var integer = v.substring(0, pos).getNumber();
+var dec = v.substring(pos);
+if(dec == ".") return integer;
+dec = eval(dec)+"";
+if(dec == "0") return integer;
+return integer + dec.substr(dec.indexOf("."),n+1);
+}
+
+//대상 값의 타입이 String 형 일때
+String.prototype.getComma = function getComma()
+{
+	 var reg = /(^[+-]?\d+)(\d{3})/;   // 정규식
+	 var num = this;
+
+	 while (reg.test(num)) {
+	 	num = num.replace(reg, '$1' + ',' + '$2');
+	 }
+	return num;
+}
+
+//대상 값의 타입이 Number 형 일때
+Number.prototype.getComma = function getComma()
+{
+	 var reg = /(^[+-]?\d+)(\d{3})/;   // 정규식
+	 var num = this + '';                                // 숫자를 문자열로 변환
+
+	 while (reg.test(num)) {
+	 	num = num.replace(reg, '$1' + ',' + '$2');
+	 }
+	return num;
+}
+
+
+
+String.prototype.getMoney = function()
+{
+var v = this+"";
+var x = v.getNumber();
+var s = x.getComma(3);
+return s;
+}
+
+String.prototype.lpad = function(n, ch)
+{
+var v = this+"";
+while(v.length < n) v = ch +""+ v;
+return v;
+}
+
+String.prototype.rpad = function(n, ch)
+{
+var v = this+"";
+while(v.length < n) v = v+""+ch;
+return v;
+}
+
+
+/* 문자열에서 콤마를 제거한다. 숫자값등에서 사용 */
+String.prototype.removeComma = function removeComma()
+{
+return this.replace (/,/g,"");
+}
+
+
+//
+//- File Name   : hbean_uccimage.js
+//- Description : 하위버전 호환을 위해
+//
+var resize_width = 530;
+
+function resizeImage(imgnum) {
+if (imgnum == null || imgnum == "") return;
+var e = document.getElementById("userImg"+ imgnum)
+if (e.width > resize_width) {
+	e.width = resize_width;
+	setTimeout(function(){resizeImage(imgnum);}, 1000);
+}
+}
+function popImage(imgnum) {
+if (imgnum == null || imgnum == "") return;
+var imgurl = document.getElementById("userImg"+ imgnum).src;
+popview(imgurl);
+}
+function popview(imgurl) {
+if (imgurl == null || imgurl == "") return;
+var o = "https://ssl.pstatic.net/happyimg2/image/editor/image_view.html?imgurl="+ imgurl;
+var x = "width=210, height=200, ";
+var t = "menubar=no, toolbar=no, location=no, status=no, scrollbars=yes, resizable=yes";
+var r = window.open( o, "image_view", x+t );
+}
+
+
+//
+//- File Name   : hbean_url.js
+//- Description : parse url string
+//
+function url(s)
+{
+//private member
+this.scheme = "";
+this.host = "";
+this.port = "";
+this.path = "";
+this.query = "";
+this.ref = "";
+
+this.parse = function(urlparam){
+	var pos = urlparam.indexOf("://");
+	var scheme = "";
+	if(pos<0)
+	{
+		thisdoc = new url(document.URL);
+		scheme = thisdoc.scheme;
+		if(urlparam.charAt(0)=="/")
+		{
+			urlparam = thisdoc.host + urlparam;
+		}
+		else
+		{
+			var path = thisdoc.path;
+			urlparam = thisdoc.host
+					+ path.substring(0,path.lastIndexOf("/")+1)
+					+ urlparam;
+		}
+	}
+	else
+	{
+		scheme = urlparam.substr(0,pos);
+		urlparam = urlparam.substring(pos+3);
+	}
+
+	var pos = urlparam.indexOf("/");
+	if(pos<0) return;
+
+	var host = urlparam.substr(0,pos);
+	var port = "";
+	urlparam = urlparam.substring(pos);
+
+	pos = host.indexOf(":");
+	if(pos==0) return;
+	else if(pos > 0)
+	{
+		port = host.substring(pos+1);
+		host = host.substr(0,pos);
+	}
+
+	this.scheme = scheme;
+	this.host = host;
+	this.port = port;
+
+	var pos = urlparam.indexOf("#");
+	if(pos > 0)
+	{
+		this.ref = urlparam.substring(pos+1);
+		urlparam = urlparam.substr(0,pos);
+	}
+
+	var pos = urlparam.indexOf("?");
+	if(pos > 0)
+	{
+		this.query = urlparam.substring(pos+1);
+		urlparam = urlparam.substr(0,pos);
+	}
+
+	this.path = urlparam;
+}
+
+if((""+s).length>0)	this.parse(s);
+}
+
+
+//
+//- File Name   : hbean_validate.js
+//- Description : delcare the following hbean member functions
+//
+//              * hbean.checkNull(oField, strMsg, blnFocus)
+//              * hbean.checkLength(oField, min, max, strMsg, blnFocus)
+//              * hbean.checkLengthKor(oField, min, max, strMsg, blnFocus)
+//              * hbean.checkWrongWord(oField, wrongStr, strMsg)
+//              * hbean.checkAlphaNum(oField, strMsg, blnFocus)
+//              * hbean.checkNotSpecialChar(oField, strMsg, blnFocus)
+//
+//              * hbean.checkValidImageFile(filename)
+//              * hbean.checkValidFilename(filename)
+//
+//              * hbean.getCheckedValue(radioElement)
+//              * hbean.setCheckedIf(radioElement, paramValue)
+//
+//              * hbean.getSelectedValue(selectElement)
+//              * hbean.setSelectionIf(selectElement, paramValue)
+//
+//              * hbean.restrictToEngNum(inputElement)
+//              * hbean.restrictToNum(inputElement)
+//              * hbean.restrictToDigit(inputElement)
+//              * hbean.restrictToTelNo(inputElement)
+//
+var hbean_validate = {
+alertMessage : function(s)
+{
+	if (typeof(s) != 'undefined' && s != "") alert(s);
+}
+,
+getField : function(oField)
+{
+	if (typeof(oField.type) == 'undefined' && typeof(oField.length) != 'undefined')
+	{
+		return oField[0];
+	}
+	else
+	{
+		return oField;
+	}
+}
+,
+getFieldType : function(oField)
+{
+	return hbean_validate.getField(oField).type;
+}
+,
+focusField : function (oField, blnFocus)
+{
+	if (typeof(blnFocus) != 'undefined' && blnFocus != null && blnFocus == true)
+	{
+		hbean_validate.getField(oField).focus();
+	}
+}
+,
+// FORM FIELD CHECK 1. NULL CHECK
+hasValue : function (oField)
+{
+	if (oField.value.replace(/(^\s*)|(\s*$)/g, "") == "")
+		return false;
+	else
+		return true;
+}
+,
+hasEditerValue : function (oField)
+{
+	if (oField.value.replace(/&nbsp;/g, " ").replace(/(^\s*)|(\s*$)/g, "") == "")
+		return false;
+	else
+		return true;
+}
+,
+isChecked : function (oField)
+{
+	if (typeof(oField.length) != 'undefined')
+	{
+		for (var i=0; i<oField.length; i++)
+		{
+			if (oField[i].checked)
+				return true;
+		}
+	}
+	else
+	{
+		return oField.checked;
+	}
+
+	return false;
+}
+,
+isNotSelected : function (oField)
+{
+	if (oField.selectedIndex == -1)
+	{
+		return false;
+	}
+	else
+	{
+		if (oField.value == -1)
+			return false;
+		else
+			return true;
+	}
+}
+,
+// FORM FIELD CHECK 4. WRONG CHAR CHECK
+hasWrongWord : function (str, wrongStr)
+{
+	if(str.indexOf(wrongStr) >= 0) return true;
+	else return false;
+}
+,
+// FORM FIELD CHECK 6. SPECIAL CHARACTER CHECK
+hasNotSpecialChar : function (id_text)
+{
+	if (!id_text.match(/[`@#$%&\\|<>;\"]/g))
+		return true;
+	else
+		return false;
+}
+};
+
+//public functions
+hbean.checkNull = function(oField, strMsg, blnFocus)
+{
+var isNotNull = false;
+
+switch (hbean_validate.getField(oField).type)
+{
+	case "text" :
+	case "password" :
+	case "file" :
+            case "hidden" :
+		isNotNull = hbean_validate.hasValue(oField);
+		break;
+	case "textarea" :
+		isNotNull = hbean_validate.hasEditerValue(oField);
+		break;
+	case "checkbox" :
+	case "radio" :
+		isNotNull = hbean_validate.isChecked(oField);
+		break;
+	case "select-one" :
+	case "select-multiple" :
+		isNotNull = hbean_validate.isNotSelected(oField);
+		break;
+}
+
+if (!isNotNull)
+{
+	hbean_validate.alertMessage(strMsg);
+	hbean_validate.focusField(oField, blnFocus);
+}
+
+return isNotNull;
+}
+
+//FORM FIELD CHECK 2. LENGTH CHECK
+hbean.checkLength = function (oField, min, max, strMsg, blnFocus)
+{
+var isValid = false;
+var lengthValue = oField.value.length;
+
+if (min < 0)
+{
+	if (lengthValue < max)
+		isValid = true;
+}
+if (max < 0)
+{
+	if (lengthValue > min)
+		isValid = true;
+}
+if (min >= 0 && max >= 0)
+{
+	if (lengthValue >= min && lengthValue <= max)
+		isValid = true;
+}
+
+if (!isValid)
+{
+	hbean_validate.alertMessage(strMsg);
+	hbean_validate.focusField(oField, blnFocus);
+}
+
+return isValid;
+}
+
+//FORM FIELD CHECK 3. LENGTH CHECK (INCLUDE KOREAN)
+hbean.checkLengthKor = function (oField, min, max, strMsg, blnFocus)
+{
+var isValid = false;
+var lengthValue = oField.value.lenb();
+
+if (min < 0)
+{
+	if (lengthValue < max)
+		isValid = true;
+}
+if (max < 0)
+{
+	if (lengthValue > min)
+		isValid = true;
+}
+if (min >= 0 && max >= 0)
+{
+	if (lengthValue >= min && lengthValue <= max)
+		isValid = true;
+}
+
+if (!isValid)
+{
+	hbean_validate.alertMessage(strMsg);
+	hbean_validate.focusField(oField, blnFocus);
+}
+
+return isValid;
+}
+
+hbean.checkWrongWord = function (oField, wrongStr, strMsg, blnFocus) // for text and textbox
+{
+var isWrong = false;
+var fieldType = null;
+
+fieldType = hbean_validate.getFieldType(oField);
+
+switch (fieldType)
+{
+	case "text" :
+	case "textarea" :
+		isWrong = hbean_validate.hasWrongWord(oField.value, wrongStr);
+		break;
+}
+
+if (isWrong)
+{
+	hbean_validate.alertMessage(strMsg);
+
+	array = hbean_validate.getField(oField).value.split(wrongStr);
+	result = '';
+	for (i=0; i<array.length; i++)
+	{
+		result += array[i];
+	}
+	hbean_validate.getField(oField).value = result;
+	hbean_validate.focusField(oField, blnFocus);
+}
+
+return !isWrong;
+}
+
+hbean.checkAlphaNum = function(oField, strMsg, blnFocus) // for text and textbox
+{
+var isAlphaNum = false;
+
+switch (hbean_validate.getField(oField).type)
+{
+	case "text" :
+	case "textarea" :
+		isAlphaNum = oField.value.isLowAlphaNumCheck();
+		break;
+}
+
+if (!isAlphaNum)
+{
+	hbean_validate.alertMessage(strMsg);
+	hbean_validate.focusField(oField, blnFocus);
+}
+
+return isAlphaNum;
+}
+
+hbean.checkNotSpecialChar = function (oField, strMsg, blnFocus) // for text and textbox
+{
+var notSpecialChar = false;
+var fieldType = null;
+var mainField;
+
+fieldType = hbean_validate.getField(oField).type;
+
+switch (fieldType)
+{
+	case "text" :
+	case "textarea" :
+		notSpecialChar = hbean_validate.hasNotSpecialChar(oField.value);
+		break;
+}
+
+if (!notSpecialChar)
+{
+	hbean_validate.alertMessage(strMsg);
+	hbean_validate.focusField(oField, blnFocus);
+}
+
+return notSpecialChar;
+}
+
+hbean.checkValidImageFile = function(filename)
+{
+if (filename.match(/(.jpg|.jpeg|.gif|.png)$/i))
+    return true;
+else
+    return false;
+}
+
+hbean.checkValidFilename = function(filename)
+{
+if (!filename.match(/[\\\:\*\?\|<>]/))
+    return true;
+else
+    return false;
+}
+
+hbean.getCheckedValue = function (oField) // for radio button
+{
+var value = null;
+
+for (i=0; i < oField.length; i++) {
+	if(oField[i].checked) {
+		value = oField[i].value;
+		break;
+	}
+}
+
+return value;
+}
+
+hbean.setCheckedIf = function(oField, paramValue) // for radio button
+{
+for (var i=0; i<oField.length; i++) {
+	if (oField[i].value == paramValue) {
+		oField[i].checked = true;
+		break;
+	}
+}
+}
+
+hbean.getSelectedValue = function(oField) // for select button
+{
+var value = null;
+
+selectedIndex = oField.selectedIndex;
+
+value = oField[selectedIndex].value;
+
+return value;
+}
+
+hbean.setSelectionIf = function (oField, paramValue) // for select button
+{
+for (var i=0; i<oField.length; i++) {
+	if (oField[i].value == paramValue) {
+		oField[i].selected = true;
+		break;
+	}
+}
+}
+
+hbean.restrictToEngNum = function(oField)
+{
+oField.onkeydown = function(event)
+{
+	if(typeof(event)=="undefined") event = window.event;
+
+	if (!(event.keyCode>=48&&event.keyCode<=57)
+		&&!(event.keyCode>=96&&event.keyCode<=105)
+		&&!(event.keyCode>=65&&event.keyCode<=90)
+		&&event.keyCode!=9
+		&&event.keyCode!=8
+		&&event.keyCode!=46
+		&&event.keyCode!=37
+		&&event.keyCode!=39
+		&&event.keyCode!=45)
+	{
+		event.cancelBubble = true;
+		event.returnValue = false;
+		return false;
+	}
+}
+}
+
+hbean.restrictToNum = function(oField)
+{
+oField.onkeydown = function(event)
+{
+	if(typeof(event)=="undefined") event = window.event;
+
+	// keyCode >= '0' && keyCode <= '9', '-', '%', '.', '\''
+	if (!(event.keyCode>=48&&event.keyCode<=57)
+		&&!(event.keyCode>=96&&event.keyCode<=105)
+		&&event.keyCode!=9
+		&&event.keyCode!=8
+		&&event.keyCode!=46
+		&&event.keyCode!=37
+		&&event.keyCode!=39
+		&&event.keyCode!=45
+		&&event.keyCode!=109
+		&&event.keyCode!=110
+		)
+	{
+		event.cancelBubble = true;
+		event.returnValue = false;
+		return false;
+	}
+}
+}
+
+hbean.restrictToDigit = function(oField)
+{
+oField.onkeydown = function(event)
+{
+	if(typeof(event)=="undefined") event = window.event;
+
+	// keyCode >= '0' && keyCode <= '9'
+	if (!(event.keyCode>=48&&event.keyCode<=57)
+		&&!(event.keyCode>=96&&event.keyCode<=105)
+		&&event.keyCode!=9&&event.keyCode!=8)
+	{
+		event.cancelBubble = true;
+		event.returnValue = false;
+		return false;
+	}
+	return true;
+}
+}
+
+hbean.restrictToTelNo = function(oField)
+{
+oField.onkeydown = function(event)
+{
+	if(typeof(event)=="undefined") event = window.event;
+
+	// (keyCode >= '0' && keyCode <= '9') || keyCode == '-'
+	if (!(event.keyCode>=48&&event.keyCode<=57)
+		&&!(event.keyCode>=96&&event.keyCode<=105)
+		&&event.keyCode!=9
+		&&event.keyCode!=8
+		&&event.keyCode!=45
+		&&event.keyCode!=109)
+	{
+		event.cancelBubble = true;
+		event.returnValue = false;
+		return false;
+	}
+}
+}

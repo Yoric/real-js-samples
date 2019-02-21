@@ -1,0 +1,44 @@
+adv.AdBase.extend('Ad17173WishListRecom', {
+  init: function (options) {
+    this.base(options);
+    this.emit(adv.ENUM.EVENTS.inited);
+  },
+  setup: function (data) {
+    this.data = data;
+    this.emit(adv.ENUM.EVENTS.setuped);
+  },
+  tmpl: function () {/*@preserve
+    <div class="c1" style="margin-top:6px;"><img src="@markImg" alt="" /></div>
+    <div class="c2">
+      <div class="art-item">
+        <a href="@link" target="_blank">@gameName</a>
+      </div>
+    </div>
+    <div class="c3">
+      <a href="@link" target="_blank"><img src="@img" alt="" width="225" height="109" /></a>
+    </div>
+    <div class="c5" style="right:3px;width:auto;"><a href="@link" target="_blank" style="color:#094;">@title</a></div>
+  */},
+  play: function () {
+    var advEl = $('#' + this.options.advid + ' ul.list-rank-total')
+    var adLi = advEl.find('li:last')
+    var me = this
+    this.data.markImg = this.data.markImg || '//ue.17173cdn.com/a/www/index/2016v2/img/tg-3.png'
+    adLi.html(adv.razor(this.tmpl, this.data))
+    advEl.find('li:eq('+(this.data.index-2)+')').after(adLi)
+    adLi.hover(function () {
+      $(this).css('background', '#fffccc')
+    })
+
+    advEl.find('li').each(function (i, n) {
+      $(n).attr('data-index', 1 + i).removeClass('active')
+    }).hover(function () {
+      if ($(this).attr('data-index')*1 != me.data.index*1) {
+        adLi.css('background', '')
+      }
+    })
+
+    adLi.addClass('active').css('background', '#fffccc');
+    this.emit(adv.ENUM.EVENTS.played);
+  }
+});

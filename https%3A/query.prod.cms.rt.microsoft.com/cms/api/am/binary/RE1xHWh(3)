@@ -1,0 +1,77 @@
+// Function to retrieve Optimizely experiment/variation information and pass it to WEDCS as a custom event
+getOptimizelyExperiments = function(projectName) {
+  if (typeof optimizely != "undefined") {
+
+    // set the cot value
+    var cot = "11";
+
+    // TODO: Do we want to change the check for what we define as Staging versus Active?
+    var opt_sta = "Staging";
+    // check if this is a MSFT user loading the page in QA mode
+    var queryParams = window.location.search;
+    if (!queryParams.match("optimizely_x") && document.cookie.indexOf("optly_microsoft_test") == -1) {
+      opt_sta = "Active";
+    }
+    // set the project name as the projrect ID if none passed in as a param
+    if (typeof projectName == "undefined") {
+      projectName = optimizely.get('data')['projectId'];
+    }
+    var opt_tid = "";
+    var opt_eid = "";
+    // Variables to store test and variation names
+    var opt_tnm = "";
+    var opt_vnm = "";
+
+    // helper function to get campaign name given a specific experiment ID
+   function getCampaignName(experimentID) {
+      // get data for active campaigns
+      var campaigns = optimizely.get("state").getCampaignStates({"isActive": true});
+      
+      // make sure the experimentID is a string
+      if (typeof experimentID !== 'String') {experimentID =experimentID.toString()}
+      
+      // loop over campaigns to find the campaign of the current experiment
+      for (var key in campaigns) {
+        if(campaigns[key]['experiment']['id'] === experimentID) { 
+          // return the campaign name for the current experiment
+          // experiments do not have names in Optimizely, only campaigns do
+          return campaigns[key]['campaignName']
+        }
+      }
+    }
+
+    // pull the active experiment(s) and associate them with the experiment variation(s)
+    // this inlcudes experiment IDs for redirects as well
+    var OptActiveTestArray = optimizely.get("state").getActiveExperimentIds();
+
+    // construct cot event data array and fire
+    for (var key in OptActiveTestArray) {
+      // build out data array with current values
+      var OptDataArray = ["wcs.cot", cot, "ms.opt_sta", opt_sta, "ms.expe", "opt", "ms.opt_pnm", projectName];
+      // check for active experiment IDs and that visitor is not in holdback
+      if (OptActiveTestArray.hasOwnProperty(key) && optimizely.get("state").getExperimentStates()[OptActiveTestArray[key]].isInExperimentHoldback === false) {
+        // set experiment type
+        // TODO: Add p13n and MVT once added to MSFT account
+        var opt_typ = "AB";
+        // Set experiment ID 
+        opt_tid = OptActiveTestArray[key];
+        // Set variation ID
+        opt_eid = optimizely.get("state").getVariationMap()[OptActiveTestArray[key]]['id']
+        // Set experiment Name (Campaign Name in X)
+        opt_tnm = getCampaignName(OptActiveTestArray[key]);
+        // Set variation Name
+        opt_vnm = optimizely.get("state").getVariationMap()[OptActiveTestArray[key]]['name']
+        // push experiment values into array
+        OptDataArray.push("ms.opt_typ", opt_typ, "ms.opt_tid", opt_tid, "ms.opt_eid", opt_eid, "ms.opt_tnm", opt_tnm, "ms.opt_vnm", opt_vnm);
+        console.log(OptDataArray);
+
+        if (typeof MscomCustomEvent === "function") {
+          // send Optimizely data to WEDCS
+          MscomCustomEvent.apply(null, OptDataArray);
+        }
+      }
+    }
+  } else {
+    return;
+  }
+};

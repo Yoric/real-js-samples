@@ -1,0 +1,2 @@
+(function(){var r=function(){var r={},n={exports:r};return n.exports}()})();
+seajs._hash({"ae-detail-ui/alone/main-detail-groups.js":"c17cb012","ae-detail-ui/alone/main-detail-v170105.js":"a9bfd960","ae-detail-ui/alone/ws404.js":"068f7c58","ae-detail-ui/main/taobao/main-detail.js":"f2ad7fbb","ae-detail-ui/snapshot/snapshot.js":"9156367b","ae-detail-ui/spain/plaza/main.js":"8c4201fd","ae-detail-ui/store/main-detail-v170105.js":"998a1155","ae-detail-ui/tenant/rumall/main-detail-ru-mall.js":"8193d9ec"});;

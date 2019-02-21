@@ -1,0 +1,97 @@
+!function(t) {
+    function e(o) {
+        if (i[o]) return i[o].exports;
+        var s = i[o] = {
+            "i": o,
+            "l": !1,
+            "exports": {}
+        };
+        return t[o].call(s.exports, s, s.exports, e), s.l = !0, s.exports;
+    }
+    var i = {};
+    e.m = t, e.c = i, e.d = function(t, i, o) {
+        e.o(t, i) || Object.defineProperty(t, i, {
+            "configurable": !1,
+            "enumerable": !0,
+            "get": o
+        });
+    }, e.n = function(t) {
+        var i = t && t.__esModule ? function() {
+            return t["default"];
+        } : function() {
+            return t;
+        };
+        return e.d(i, "a", i), i;
+    }, e.o = function(t, e) {
+        return Object.prototype.hasOwnProperty.call(t, e);
+    }, e.p = "", e(e.s = 0);
+}([ function(t, e, i) {
+    "use strict";
+    adv.AdBase.extend("Ad17173FocusCover", {
+        "init": function(t) {
+            this.base(t), this.emit(adv.ENUM.EVENTS.inited);
+        },
+        "coverTimer": null,
+        "topTmpl": '<div class="tg-focus-wrap" style="position:absolute;float:left; display:inline;z-index:100;top:0;left:0;width:365px;"><a class="tg-focus-top" href="@link" target="_blank" style=""><img src="@sourceUp" width="@width" height="@sourceUpHeight" alt=""></a></div>',
+        "coverTmpl": '<div class="tg-focus-flashwrap" style="display:none;position: absolute;top:26;left:0;z-index: 100;width:365px;height:475px;"></div>',
+        "closeTmpl": '<div  style="position:absolute;z-index:120;right:0;bottom:0;background:#000;opacity:0;filter:alpha(opacity=0);width:24px;height:24px;cursor:pointer;"></div>',
+        "setup": function(t) {
+            this.data = t, this.emit(adv.ENUM.EVENTS.setuped);
+        },
+        "render": function() {
+            var t = $("." + this.options.advid), e = this.data;
+            t.css("padding-top", "25px").parent(".col1").css("position", "relative"), this.topEl = $(adv.razor(this.topTmpl, e)), 
+            this.closeTmpl = '<div  style="position:absolute;z-index:120;right:2px;bottom:2px;background:#fff;width:20px;height:20px;line-height:20px;font-family: Simsun;font-size: 20px;cursor:pointer;">×</div>', 
+            e.sourceCover = e.sourceCover || e.sourceContent.image, ~e.sourceCover.indexOf("swf") ? this.coverEl = $(this.coverTmpl).append(adv.flash.embed({
+                "source": e.sourceCover,
+                "allowNet": "none",
+                "width": e.width,
+                "height": e.sourceCoverHeight
+            })) : this.coverEl = $(this.coverTmpl).append(adv.razor('<img src="@source" width="@width" height="@sourceUpHeight" alt="">', {
+                "source": e.sourceCover,
+                "width": e.width,
+                "height": e.sourceCoverHeight
+            })), this.coverEl.on("mouseup", function(t) {
+                (0 === t.button || window.STATUS_LTIE8 && 1 === t.button) && window.open(e.link);
+            }), this.closeEl = $(this.closeTmpl), this.coverEl.append(this.closeEl), this.topEl.append(this.coverEl), 
+            t.before(this.topEl), e.sourceContent.image && adv.util.poll(function() {
+                return ue.instances && ue.instances.slideshow;
+            }, function() {
+                ue.instances.slideshow.add({
+                    "thumb": e.sourceContent.thumb,
+                    "image": e.sourceContent.image,
+                    "link": e.link,
+                    "title": "",
+                    "desc": "",
+                    "ipaCode": e.ipaCode
+                });
+            }, null, 8e3, 200), this.data.ipaCode && adv.util.sendIpa(this.topEl[0], this.data.ipaCode, !0), 
+            this.data.ipaCode && adv.util.sendIpa($(".focus-con-item .img-box a"), this.data.ipaCode, !1);
+        },
+        "bindEvent": function() {
+            var t = this;
+            this.closeEl.on("click", function(e) {
+                t.coverEl.hide();
+            }).on("mouseup", function(t) {
+                t.stopPropagation();
+            }), this.topEl.find(".tg-focus-top").on("mouseover", function() {
+                t.show();
+            });
+            var e = $(window), i = function o() {
+                e.scrollTop() > 550 && (t.show(5e3), e.unbind("scroll", o));
+            };
+            $(window).scroll(i), i();
+        },
+        "show": function(t) {
+            var e = this;
+            t = t || 8e3, e.coverEl.show(), clearTimeout(this.coverTimer), this.coverTimer = setTimeout(function() {
+                e.coverEl.hide();
+            }, t);
+        },
+        "play": function() {
+            this.options;
+            this.render(), this.bindEvent(), this.emit(adv.ENUM.EVENTS.played);
+        }
+    });
+} ]);
+//# sourceMappingURL=production.js.map

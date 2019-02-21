@@ -1,0 +1,134 @@
+$(function() {
+	'use strict';
+
+	var $b = $('body'),
+		$w = $(window);
+
+	var PageDescription = {
+		init: function() {
+			this.devices = ['windows', 'macos', 'web', 'android', 'ios'];
+			this.deviceTitleMap = {
+				'windows': 'Агент для Windows',
+				'macos': 'Агент для Mac',
+				'web': 'Веб Агент',
+				'android': 'Агент для Android',
+				'ios': 'Агент для IOS'
+			};
+			History.replaceState({
+				type: 'computer',
+				device: device
+			}, document.title, document.location.href);
+
+			this.$description = $('#computer-description');
+			this.$otherBlock = $('#computer-other-block');
+			this.$variantBlock = $('#computer-variant-block');
+
+			this._cache = {};
+			this._request = null;
+
+			$w.on('popstate', $.proxy(this._onPopState, this));
+		},
+
+		showDescription: function(device, shouldSyncHistory) {
+			var href = document.location.href,
+				url = href.indexOf('my.agent.mail.ru') === -1 ?
+					'//agent.mail.ru/_computer_description_' + device :
+					'//my.agent.mail.ru/cgi-bin/agent/agent2?template=_computer_description_' + device + '.tmpl',
+				start = +new Date(),
+				delta;
+
+			if (shouldSyncHistory) {
+				this._syncHistory(device);
+			}
+			this._syncRelated(device);
+
+			this.$description.stop().animate({
+				opacity: 0.2
+			}, 200);
+
+			if (device in this._cache) {
+				setTimeout($.proxy(function() {
+					this._showDescription(this._cache[device])
+				}, this), 200);
+			} else {
+				$.ajax({
+					url: url,
+
+					success: $.proxy(function(res) {
+						delta = +new Date() - start;
+						this._cache[device] = res;
+						if (delta > 200) {
+							this._showDescription(res);
+						} else {
+							setTimeout($.proxy(function() {
+								this._showDescription(res);
+							}, this), 200 - delta);
+						}
+					}, this)
+				});
+			}
+		},
+
+		_getBannerIdByDevice: function(device) {
+			return $('.js-slide').filter('[data-device="' + device + '"]').index();
+		},
+
+		_showDescription: function(html) {
+			this.$description.stop().html(html).animate({
+				opacity: 1
+			}, 200);
+		},
+
+		_syncRelated: function(device) {
+			$.each(this.devices, $.proxy(function(i, device) {
+				this.$otherBlock.removeClass('bottom-block__other_' + device);
+				this.$variantBlock.removeClass('computer-variant-block_' + device);
+			}, this));
+
+			this.$variantBlock.addClass('computer-variant-block_' + device);
+			this.$otherBlock.addClass('bottom-block__other_' + device);
+		},
+
+		_onPopState: function(e) {
+			e = e.originalEvent;
+			var state = e.state;
+
+			if (state && state.device) {
+				Slider.setBanner(this._getBannerIdByDevice(state.device), true, false);
+			}
+		},
+
+		_syncHistory: function(device) {
+			History.pushState({
+				type: 'computer',
+				device: device
+			}, this.deviceTitleMap[device], '/' + device);
+		}
+	};
+
+	var Page = {
+		init: function() {
+			this.$slider = $('#slider');
+
+			Slider.init(this.$slider, {
+				onShow: $.proxy(this._onBannerShow, this),
+				bannerId: firstBannerId
+			});
+		},
+
+		_onBannerShow: function($banner, isInit, fired) {
+			if (! isInit) {
+				if (this._request) {
+					this._request.abort();
+				}
+
+				var device = $banner.data('device');
+				PageDescription.showDescription(device, ! fired);
+			}
+		}
+	};
+
+	PageDescription.init();
+	Page.init();
+
+});

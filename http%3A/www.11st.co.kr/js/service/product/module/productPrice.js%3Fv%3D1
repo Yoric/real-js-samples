@@ -1,0 +1,683 @@
+/**
+ * @method: productPrice
+ * @dependency: requireJS, jQuery
+ */
+(function(root, factory) {
+	'use strict';
+	if (typeof define === 'function' && define.amd) {
+		define([
+			'jquery',
+			'myPriceInfo',
+			'orderInfo',
+			'addDiscountPrice',
+			'prdDtlHtmlGenInfo',
+			'myCupnInfo',
+			'productCommon'
+		], factory);
+	} else {
+		root.productPrice = factory(
+			root.jQuery,
+			root.myPriceInfo,
+			root.orderInfo,
+			root.addDiscountPrice,
+			root.prdDtlHtmlGenInfo,
+			root.myCupnInfo,
+			root.productCommon
+		);
+	}
+}(window || this, function($, myPriceInfo, orderInfo, addDiscountPrice, prdDtlHtmlGenInfo, myCupnInfo, productCommon) {
+	'use strict';
+	var prdVar = productPrdInfo;
+	var prcVar = productPrcInfo;
+	var ordVar = productOrdInfo;
+	var bnfVar = productBnfInfo;
+
+	var productPrice = {
+		// 상품가격
+		selPrc : 0,
+		// 즉시 할인
+		cuponPrc : 0,
+		// (판매가-즉시할인)
+		dscPrc : 0,
+		// 전체 주문수량
+		ordPrdCnt : 0,
+
+		// 간편옵션에 노출될 정보(실계산과 연관없음)
+		ezSelPrc : 0,
+		ezDscPrc : 0,
+		ezSelPrcTxt : "",
+		ezDscPrcTxt : "",
+		ezDlvInfoTxt : "",
+
+		// 바로가기 혜택에 노출시 필요한 정보
+		pointSave : "",
+		pointSaveByHTMLGen : "",
+		tMembership : "",
+		tMembershipReal : "",
+		tMembershipByHTMLGen : "",
+		tMembershipRealByHTMLGen : "",
+		mileageSale : "",
+		mileageSaleReal : "",
+		mileageSaleByHTMLGen : "",
+		mileageSaleRealByHTMLGen : "",
+		cardFree : "",
+		cardRealDscRt : "",
+		cardRealDscRtByHTMLGen : "",
+		ocbGradedSaveRt : "",
+		ocbGradedSaveRtByHTMLGen : "",
+		isIconDisplay : "",
+		isIconDisplayByHTMLGen : "",
+		isOcbGradedSave : "",
+		isOcbGradedSaveByHTMLGen : "",
+		ohPointSaveRt : "",
+		ohPointSaveRtByHTMLGen : "",
+		cpnDscMax : "",
+		cpnDscMaxMo : "",
+		moCupnCostMainMemCode : "",
+		moMaxCoupnValue : "",
+		tMembershipLimitAmt : "",
+		tMembershipLimitAmtStr : "",
+		mileageLimitAmtStr : "",
+
+		init : function() {
+
+			//쇼킹딜 메인 페이지 OPEN
+			$('#shockDealPop').click(function (e) {
+				window.open('http://deal.11st.co.kr/html/nc/deal/main.html');
+				return false
+			});
+
+			//단골쿠폰 다운
+			$('#patronCpnDown').click(function (e) {
+				var url = "/loyalty/CouponManagement.tmall?method=getPartonCouponList&sellerMemNo="
+					+ prdVar.selMnbdNo + "&dispCtgrNo=" + prdVar.ldispCtgrNo;
+
+				if (funcCheckIsLogin()) {
+					var _win = productCommon.launchCenter(url, "parton_cpn_down", 725, 465, "yes");
+					_win.focus();
+				} else {
+					openLogin(3, "", url, 725, 465, "N", "Y");
+				}
+				return false
+			});
+
+            //단골쿠폰 다운
+            $('#downBizMemCoupon').click(function (e) {
+				var _url		= "/product/SellerProductDetailAjax.tmall?method=downBizMemberCoupon";
+				var bizCupnInfo = $('#downBizMemCoupon').attr('data-val');
+
+                $.ajax({
+                    url : _url ,
+                    type : 'post' ,
+                    data : {
+                        'cupnNoListStr': bizCupnInfo
+                    },
+                    dataType : 'json' ,
+                    error : function(){
+                        alert('서버통신중 에러가 발생되었습니다.');
+                        console.log('서버통신중 에러가 발생되었습니다.');
+                    },
+                    success : function(data){
+                        if(data.resultMsg != undefined  && data.resultMsg != "") {
+                            alert(data.resultMsg);
+                        } else {
+                            alert('쿠폰 발급에 실패하였습니다.');
+                        }
+                    }
+                });
+
+            });
+
+			if(!prcVar.isPreview){
+				this.selPrc   = prcVar.selPrc;
+				this.cuponPrc = prcVar.cuponPrc;
+				this.dscPrc   = prcVar.dscPrc;
+				this.ezSelPrc = prcVar.ezSelPrc;
+				this.ezDscPrc = prcVar.ezDscPrc;
+				this.ezSelPrcTxt = prcVar.ezSelPrcTxt;
+				this.ezDscPrcTxt = prcVar.ezDscPrcTxt;
+				// optAddPrdCommon.setDirectBenefitPrc 가져옴
+				this.tMembership            	= prcVar.tMembership;
+				this.mileageSale            	= prcVar.mileageSale;
+				this.tMembershipByHTMLGen   	= prcVar.tMembershipByHTMLGen;
+				this.mileageSaleByHTMLGen   	= prcVar.mileageSaleByHTMLGen;
+				this.tMembershipLimitAmt    	= prcVar.tMembershipLimitAmt;
+				this.tMembershipLimitAmtStr 	= prcVar.tMembershipLimitAmtStr;
+				this.mileageLimitAmtStr     	= prcVar.mileageLimitAmtStr;
+				this.tMembershipReal 	    	= prcVar.sktPointRealDscRt;
+				this.tMembershipRealByHTMLGen 	= prcVar.sktPointRealDscRtByHTMLGen;
+				this.mileageSaleReal			= prcVar.mileageRealDscRt;
+				this.mileageSaleRealByHTMLGen	= prcVar.mileageRealDscRtByHTMLGen;
+				this.cardRealDscRt				= prcVar.cardRealDscRt;
+				this.cardRealDscRtByHTMLGen		= prcVar.cardRealDscRtByHTMLGen;
+
+				if(prcVar.dealDpYn){
+					if(prcVar.timeDealDpYn){
+						this.timeDeal(prcVar.timeDealProductBeginTime, prcVar.timeDealProductEndTime);
+					}
+					this.shockTime(prcVar.dispEndDy);
+					
+					// 십일절 예약구매
+					if(prcVar.rsvSelDpYn){
+						this.rsvSelTime(prcVar.rsvSelProductBeginTime, prcVar.rsvSelProductEndTime);
+					}
+					
+					// 십일절 상품
+					if(prcVar.prdPrmtDpYn){
+						this.prdPrmtTime(prcVar.dispEndDy);
+					}
+				}
+
+				myPriceInfo.skMemberDscRt = prcVar.skMemberDscRt
+				if(prcVar.myPrice != ""){
+					myPriceInfo.basicInfo = prcVar.myPrice;
+				}
+				//addDiscountPrice.visibleProcess();
+				// 쿠폰적용가
+				$(window).trigger("callMyCupnInfo");
+				$(window).on('callbackMyCupn', function (e, result) {
+					if(Number(result.myCupnDscPrc) > 0){
+						addDiscountPrice.setMywayPrmtArea(result, "Y");
+					} else {
+						addDiscountPrice.setMywayPrmtArea(result, "N");
+					}
+				});
+			}else{
+				$(".defbtn_download").attr("style","display:none");
+			}
+
+
+
+
+			if(prcVar.mobileFeeBOList && prcVar.mobileFeeBOList.length > 0 && prcVar.mobileFeeBOList[0] != null && prcVar.mpContractTypCd && (prcVar.mpContractTypCd == "02") && (prcVar.mobileYn == "Y") && (prcVar.prcDpYn == "Y")){
+				productPrice.setMobileFee(prcVar.mobileFeeBOList);
+			}
+
+			if(!prdVar.isTour){
+				if(!prcVar.isPreview){
+					$("#sel_delivery").change(function(){
+						productPrice.setPrdDlvCstStlTyp(this);
+					});
+				}
+			}
+			//optAddPrdCommon.setDirectBenefitBnf 가져옴
+			this.pointSave                = bnfVar.pointSave;
+			this.pointSaveByHTMLGen       = bnfVar.pointSaveByHTMLGen;
+			this.cardFree                 = bnfVar.cardFree;
+			this.ocbGradedSaveRt          = bnfVar.ocbGradedSaveRt;
+			this.ocbGradedSaveRtByHTMLGen = bnfVar.ocbGradedSaveRtByHTMLGen;
+			this.isIconDisplay            = bnfVar.isIconDisplay;
+			this.isIconDisplayByHTMLGen   = bnfVar.isIconDisplayByHTMLGen;
+			this.isOcbGradedSave          = bnfVar.isOcbGradedSave;
+			this.isOcbGradedSaveByHTMLGen = bnfVar.isOcbGradedSaveByHTMLGen;
+			this.ohPointSaveRt            = bnfVar.ohPointSaveRt;
+			this.ohPointSaveRtByHTMLGen   = bnfVar.ohPointSaveRtByHTMLGen;
+			this.cpnDscMax                = bnfVar.cpnDscMax == null ? "" : bnfVar.cpnDscMax;
+			this.cpnDscMaxMo              = bnfVar.cpnDscMaxMo == null ? "" : bnfVar.cpnDscMaxMo;
+			this.moCupnCostMainMemCode    = bnfVar.moCupnCostMainMemCode == null ? "" : bnfVar.moCupnCostMainMemCode;
+			this.moMaxCoupnValue          = bnfVar.moMaxCoupnValue == null ? "" : bnfVar.moMaxCoupnValue;
+
+			this.setDirectBenefitArea(ordVar.isDirectVisit);
+		},
+
+		shockTime : function(dealDispEndDy) {
+			var now = new Date();
+			var dday = new Date(dealDispEndDy);
+
+			var days = (dday - now) / 1000 / 60 / 60 / 24;
+			var daysRound = Math.floor(days);
+			var hours = (dday - now) / 1000 / 60 / 60 - (24 * daysRound);
+			var hoursRound = Math.floor(hours);
+			var minutes = (dday - now) / 1000 /60 - (24 * 60 * daysRound) - (60 * hoursRound);
+			var minutesRound = Math.floor(minutes);
+			var seconds = (dday - now) / 1000 - (24 * 60 * 60 * daysRound) - (60 * 60 * hoursRound) - (60 * minutesRound);
+			var secondsRound = Math.round(seconds);
+
+			if(daysRound > 0) {
+				daysRound = "<span class='ico'></span><em class='num'>" + daysRound + "</em>일 <em class='num'>" + (hoursRound < 10 ? "0"+hoursRound : hoursRound) + "</em>시간 남음<span class='bar_12_da'></span>";
+				$("#shockTime").html(daysRound);
+				$("#shockTime").addClass('day');
+			} else {
+				if(hoursRound == 0 && minutesRound == 0 && secondsRound == 1) {
+					document.getElementById('shockTime').innerHTML = "쇼킹딜이 종료되었습니다.";
+					jQuery("p[name='shockingDealSelStat']").attr("style","display:none");
+				} else {
+					var shockTxt = "<span class='ico'></span><em class='num'>" + (hoursRound < 10 ? "0"+hoursRound : hoursRound) + ":" + (minutesRound < 10 ? "0"+minutesRound : minutesRound ) + ":" + (secondsRound < 10 ? "0"+secondsRound : secondsRound) + "</em><span class='bar_12_da'></span>";
+					$("#shockTime").html(shockTxt);
+					setTimeout(function(){productPrice.shockTime(dealDispEndDy)},1000);
+				}
+			}
+		},
+
+		timeDeal : function(beginTime, endTime) {
+
+			var toHHMMSS = function(sec) {
+				var sec_num = parseInt(sec, 10); // don't forget the second param
+				var hours   = Math.floor(sec_num / 3600);
+				var minutes = Math.floor((sec_num - (hours * 3600)) / 60);
+				var seconds = sec_num - (hours * 3600) - (minutes * 60);
+
+				if (hours   < 10) {hours   = "0"+hours;}
+				if (minutes < 10) {minutes = "0"+minutes;}
+				if (seconds < 10) {seconds = "0"+seconds;}
+				return hours+':'+minutes+':'+seconds;
+			}
+
+			var timeDealProductEndTime = endTime;
+			var year = timeDealProductEndTime.substring(0,4),
+				month = timeDealProductEndTime.substring(4,6)-1,
+				day = timeDealProductEndTime.substring(6,8),
+				hour = timeDealProductEndTime.substring(8,10),
+				min = timeDealProductEndTime.substring(10,12),
+				sec = timeDealProductEndTime.substring(12);
+
+			var endDateTime = new Date(year, month, day, hour, min, sec);
+			var endTimestamp = endDateTime.getTime();
+			var leftTime = 0;
+
+			if(timeDealProductEndTime){
+				var refreshLeftTime = setInterval(function() {
+					leftTime = (endTimestamp - new Date().getTime()) / 1000;
+
+					if(leftTime < 0){
+						leftTime = 0;
+						clearInterval(refreshLeftTime);
+						alert('타임딜이 종료되었습니다.');
+						location.reload();
+					}
+					$('.deal_timedeal').find('#leftTime').html(toHHMMSS(leftTime));
+				}, 1000);
+			}
+		},
+		
+		prdPrmtTime : function(prdPrmtEndDy) {
+			var now = new Date();
+			var dday = new Date(prdPrmtEndDy);
+
+			var days = (dday - now) / 1000 / 60 / 60 / 24;
+			var daysRound = Math.floor(days);
+			var hours = (dday - now) / 1000 / 60 / 60 - (24 * daysRound);
+			var hoursRound = Math.floor(hours);
+			var minutes = (dday - now) / 1000 /60 - (24 * 60 * daysRound) - (60 * hoursRound);
+			var minutesRound = Math.floor(minutes);
+			var seconds = (dday - now) / 1000 - (24 * 60 * 60 * daysRound) - (60 * 60 * hoursRound) - (60 * minutesRound);
+			var secondsRound = Math.round(seconds);
+
+			if(daysRound > 0) {
+				daysRound = "<span class='ico'></span><em class='num'>" + daysRound + "</em>일 <em class='num'>" + (hoursRound < 10 ? "0"+hoursRound : hoursRound) + "</em>시간 남음<span class='bar_12_da'></span>";
+				$("#prdPrmtTime").html(daysRound);
+				$("#prdPrmtTime").addClass('day');
+			} else {
+				if(hoursRound == 0 && minutesRound == 0 && secondsRound == 1) {
+					document.getElementById('prdPrmtTime').innerHTML = "십일절이 종료되었습니다.";
+					jQuery("p[name='shockingDealSelStat']").attr("style","display:none");
+				} else {
+					var prdPrmtTxt = "<span class='ico'></span><em class='num'>" + (hoursRound < 10 ? "0"+hoursRound : hoursRound) + ":" + (minutesRound < 10 ? "0"+minutesRound : minutesRound ) + ":" + (secondsRound < 10 ? "0"+secondsRound : secondsRound) + "</em><span class='bar_12_da'></span>";
+					$("#prdPrmtTime").html(prdPrmtTxt);
+					setTimeout(function(){productPrice.prdPrmtTime(prdPrmtEndDy)},1000);
+				}
+			}
+		},
+		
+		rsvSelTime : function(beginTime, endTime) {
+			var toHHMMSS = function(sec) {
+				var sec_num = parseInt(sec, 10); // don't forget the second param
+				var day		= Math.floor(sec_num / 86400);
+				var hours   = Math.floor(sec_num / 3600);
+				var minutes = Math.floor((sec_num - (hours * 3600)) / 60);
+				var seconds = sec_num - (hours * 3600) - (minutes * 60);
+				var showTime;
+				var showStr;
+
+				if (hours   < 10) {hours   = "0"+hours;}
+				if (minutes < 10) {minutes = "0"+minutes;}
+				if (seconds < 10) {seconds = "0"+seconds;}
+				
+				if (day < 1) {
+					showStr = hours+':'+minutes+':'+seconds;
+				} else {
+					showTime = hours-day*24;
+					if (showTime < 10) {showTime = "0"+showTime;}
+					showStr = day+'일 '+showTime+':'+minutes+':'+seconds;
+				}
+				
+				return showStr;
+			}
+			
+			var rsvSelProductEndTime = endTime;
+			var year = rsvSelProductEndTime.substring(0,4),
+			month = rsvSelProductEndTime.substring(4,6)-1,
+			day = rsvSelProductEndTime.substring(6,8),
+			hour = rsvSelProductEndTime.substring(8,10),
+			min = rsvSelProductEndTime.substring(10,12),
+			sec = rsvSelProductEndTime.substring(12);
+			
+			var endDateTime = new Date(year, month, day, hour, min, sec);
+			var endTimestamp = endDateTime.getTime();
+			var leftTime = 0;
+			
+			if(rsvSelProductEndTime){
+				var refreshLeftTime = setInterval(function() {
+					leftTime = (endTimestamp - new Date().getTime()) / 1000;
+					
+					if(leftTime < 0){
+						leftTime = 0;
+						clearInterval(refreshLeftTime);
+						alert('예약구매가 종료되었습니다.');
+						location.reload();
+					}
+					$('.deal_day11').find('#leftTime').html(toHHMMSS(leftTime));
+				}, 1000);
+			}
+		},
+
+		// 가격 계산 (즉시할인, 선할인 적용)
+		getFinalPrice : function(optPrc){
+			return ((Number(optPrc) + Number(this.dscPrc)) * 1) + "";
+		},
+
+		setPrdDlvCstStlTyp : function(obj) {
+			if("02" == obj.value){
+				if(jQuery("[name=dlvIssCupnNo]").length > 0){
+					alert("배송지 착불시, 배송비쿠폰은\n사용 불가하므로 자동 해제됩니다.");
+					orderInfo.removeParamInput("dlvIssCupnNo");
+				}
+			}
+			if(jQuery("#chkGblDlvYn").is(":checked") == true){
+				alert("배송비 착불 선택시, 전세계배송으로 주문이 불가합니다.");
+				obj.selectedIndex = 0;
+			}
+			document.frmMain.prdDlvCstStlTyp.value = obj.value;
+		},
+
+		/*		setMyCupnPriceArea : function(){
+					require(['prdDtlHtmlGenInfo','addDiscountPrice'] , function(prdDtlHtmlGenInfo, addDiscountPrice){
+						//myCouponInfo.isSetDpCupnCalcPrc = true;
+						if(myCupnInfo.isPrdFnMyCupn() && funcCheckIsLogin()){
+							var url = "/product/SellerProductDetailAjax.tmall";
+
+							var tmpParamArr = [];
+
+							tmpParamArr.push("method=getPrdDetailMyCouponPrc");
+							tmpParamArr.push("&prdNo="+prdVar.prdNo);
+							tmpParamArr.push("&connctTyp=01");
+							tmpParamArr.push("&directYn="+myCupnInfo.directYn);
+							tmpParamArr.push("&selMnbdNo="+prdVar.selMnbdNo);
+							tmpParamArr.push("&selMthdCd="+prdVar.selMthdCd);
+							tmpParamArr.push("&dispCtgr1No="+prdVar.dispCtgr1No);
+							tmpParamArr.push("&dispCtgr2No="+prdVar.dispCtgr2No);
+							tmpParamArr.push("&dispCtgr3No="+prdVar.dispCtgr3No);
+							tmpParamArr.push("&dispCtgrNo="+prdVar.dispCtgrNo);
+							tmpParamArr.push("&brandCd="+prdVar.brandCd);
+							tmpParamArr.push("&soCupnAmt="+prdVar.soCupnAmt);
+							tmpParamArr.push("&moCupnAmt="+prdVar.moCupnAmt);
+							tmpParamArr.push("&partnerCd="+myCupnInfo.xsiteCd);
+							tmpParamArr.push("&coBsnsCd="+myCupnInfo.coBsnsCd);
+							tmpParamArr.push("&selPrc="+prdVar.selPrc);
+
+							tmpParamArr.push("&setAddInfoStr=");
+
+							tmpParamArr.push("&totalStockQty=1");
+							tmpParamArr.push("&totalStockAmt="+prdVar.selPrc);
+							tmpParamArr.push("&stockNos=0");
+							tmpParamArr.push("&stockAmts="+prdVar.selPrc);
+							tmpParamArr.push("&stockQtys=1");
+							tmpParamArr.push("&addCompPrc=0");
+
+							// 쿠폰적용가 Ajax 호출 시 내 맘대로 관련 할인율을 보내서 할인 계산 처리 하기 위함.
+							tmpParamArr.push("&skMemberDscRt="+prcVar.skMemberDscRt);
+							tmpParamArr.push("&tMembershipLimitAmt="+prcVar.tMembershipLimitAmt);
+							tmpParamArr.push("&mileageLimitAmt="+prcVar.mileageLimitAmt);
+							if( getBookMarkYn() == "Y" || $("#isDirectVisit").val() == "Y" ) {
+								tmpParamArr.push("&isDirectVisit=true");
+							} else {
+								tmpParamArr.push("&isDirectVisit=false");
+							}
+							if( prdDtlHtmlGenInfo.isHTMLPage && prcVar.mywayPrmtYnByHTMLGen == "Y" ) {
+								tmpParamArr.push("&sktPointDscRt="+prcVar.sktPointDscRtByHTMLGen);
+								tmpParamArr.push("&mileageDscRt="+prcVar.mileageDscRtByHTMLGen);
+								tmpParamArr.push("&cardDscRt="+prcVar.cardDscRtByHTMLGen);
+							} else {
+								tmpParamArr.push("&sktPointDscRt="+prcVar.sktPointDscRt);
+								tmpParamArr.push("&mileageDscRt="+prcVar.mileageDscRt);
+								tmpParamArr.push("&cardDscRt="+prcVar.cardDscRt);
+							}
+
+							var param = tmpParamArr.join('');
+
+							var callBack = function(retVal){
+								var result = eval(retVal);
+								if(Number(result.myCupnDscPrc) > 0){
+									addDiscountPrice.setMywayPrmtArea(result, "Y");
+								} else {
+									addDiscountPrice.visibleProcess();
+								}
+							};
+							productPrice.callAjaxAsynch(url, param, callBack);
+						}
+					});
+				},*/
+
+		/*  휴대폰:요금제-약정기간 세팅 */
+		setMobileFee : function(mobileFeeList){
+			var mpFeeNm = document.getElementById("mpFeeNm");
+			var contractTerm = document.getElementById("contractTerm");
+
+			mpFeeNm.onchange = function() {
+				productPrice.changeMpFee(mobileFeeList);
+				productPrice.setMobileFeeMaktPrc();
+			};
+			contractTerm.onchange = function() {
+				productPrice.setMobileFeeMaktPrc();
+			};
+
+			for ( var i = 0; i < mobileFeeList.length; i++) {
+				if (mobileFeeList[i].repFeeYn == "Y") {
+					mpFeeNm.options[0] = new Option(mobileFeeList[i].mpFeeNm,
+						mobileFeeList[i].mpFeeNo);
+					mpFeeNm.options[0].selected = true;
+				}
+			}
+
+			var k = 1;
+			for ( var i = 0; i < mobileFeeList.length; i++) {
+				for ( var j = 0; j < k; j++) {
+					if (mpFeeNm.options[j].value == mobileFeeList[i].mpFeeNo) {
+						var chk_exist = true;
+						break;
+					} else {
+						var chk_exist = false;
+					}
+				}
+
+				if (!chk_exist && (mobileFeeList[i].repFeeYn != "Y")) {
+					mpFeeNm.options[k] = new Option(mobileFeeList[i].mpFeeNm,
+						mobileFeeList[i].mpFeeNo);
+					k = k + 1;
+				}
+			}
+			mpFeeNm.onchange();
+		},
+
+		changeMpFee : function(mobileFeeList){
+			var contractTerm = document.getElementById("contractTerm");
+			var custBurdenMaktPrc = document.getElementById("custBurdenMaktPrc");
+			var mpFeeNm = document.getElementById("mpFeeNm");
+
+			var feeNo;
+			var k = 0;
+
+			contractTerm.innerHTML = "";
+
+			feeNo = mpFeeNm.options[mpFeeNm.selectedIndex].value;
+
+			for ( var i = 0; i < mobileFeeList.length; i++) {
+				if (mobileFeeList[i].mpFeeNo == feeNo) {
+					for ( var j = 0; j < prcVar.mobileFeeContractList.length; j++) {
+						if (mobileFeeList[i].contractTermCd == prcVar.mobileFeeContractList[j].detailCode) {
+							contractTerm.options[k] = new Option(
+								prcVar.mobileFeeContractList[j].detailCodeName,
+								mobileFeeList[i].maktPrc);
+							if (mobileFeeList[i].repFeeYn == "Y")
+								contractTerm.options[k].selected = true;
+							custBurdenMaktPrc.innerHTML = mobileFeeList[i].maktPrc
+								.toString().Digit2Comma();
+							k = k + 1;
+						}
+					}
+				}
+			}
+		},
+
+		setMobileFeeMaktPrc : function(){
+
+			var contractTerm = document.getElementById("contractTerm");
+			var custBurdenMaktPrc = document.getElementById("custBurdenMaktPrc");
+			var mthAvgMaktPrc = document.getElementById("mthAvgMaktPrc");
+			var maktPrc;
+			var term;
+
+			maktPrc = contractTerm.options[contractTerm.selectedIndex].value;
+			term = contractTerm.options[contractTerm.selectedIndex].text.replace(/[^0-9]/g, "");
+
+			//custBurdenMaktPrc.innerHTML = maktPrc.toString().Digit2Comma();
+			$("#custBurdenMaktPrc").html(maktPrc.toString().Digit2Comma());
+			if (term != "")
+				maktPrc = maktPrc / term;
+
+			//mthAvgMaktPrc.innerHTML = Math.ceil(maktPrc).toString().Digit2Comma();
+			$("#mthAvgMaktPrc").html(Math.ceil(maktPrc).toString().Digit2Comma());
+		},
+
+		setDirectBenefitArea : function(isDirectVisit) {
+			require(['myCupnInfo', 'prdDtlHtmlGenInfo', 'addDiscountPrice', 'productCommon'] , function( MyCupnInfo, prdDtlHtmlGenInfo, addDiscountPrice, productCommon){
+				// HTMLGEN 상관 없이 호출 - PC 웹 개편 수정 hankpj
+				//var isHTMLLogin = prdDtlHtmlGenInfo.isHTMLPage && funcCheckIsLogin();
+				var isLogin = funcCheckIsLogin();
+
+				if( prdDtlHtmlGenInfo.isHTMLPage ) {
+					isDirectVisit = getBookMarkYn();
+				}
+
+				if( !isSwitchPrdDtlPrmt ) {
+					//optAddPrdCommon.displayDirectBenefitArea(isDirectVisit);
+					addDiscountPrice.preVisibleProcess();
+					return;
+				}
+
+				//if( isHTMLLogin || !isDirectVisit ) {
+				if(isLogin || !isDirectVisit) { //PC 웹 개편 수정
+					var tUrl = "/product/SellerProductDetailAjax.tmall";
+					var tParam = "method=getDirectBenefitInfo&prdNo=" + prdVar.prdNo;
+
+					tParam += "&cpnDscMaxMo=" + bnfVar.cpnDscMaxMo + "&moCupnCostMainMemCode=" + bnfVar.moCupnCostMainMemCode;
+					tParam += "&moMaxCoupnValue=" + bnfVar.moMaxCoupnValue + "&selPrc=" + productPrice.selPrc;
+					tParam += "&skMemberDscRt=" + myPriceInfo.skMemberDscRt + "&isDirectVisit=" + isDirectVisit;
+					tParam += "&isHTMLPage=" + prdDtlHtmlGenInfo.isHTMLPage + "&tMembershipLimitAmt=" + productPrice.tMembershipLimitAmt;
+					tParam += "&dscPrc=" + productPrice.dscPrc + "&mileageLimitAmt=" + productPrice.mileageLimitAmt + "&cardLimitAmt=" + productPrice.cardLimitAmt;
+
+					if(!MyCupnInfo.isPrdFnMyCupn() || !funcCheckIsLogin()) {
+						tParam += "&isSktPrmtSearch=true";
+					}
+
+					var tCallBack = function(returnVal) {
+						if( returnVal == "FAIL" ) {
+							/*							if( isDirectVisit ) {
+															optAddPrdCommon.displayDirectBenefitArea(isDirectVisit);
+														}*/
+							//if( isHTMLLogin ) {
+							if( isLogin ) {
+								addDiscountPrice.preVisibleProcess();
+							}
+							return;
+						}
+
+						var data = eval(returnVal);
+
+						if( !isDirectVisit ) {
+							productPrice.tMembership = data.tMembership;
+							productPrice.pointSave = data.pointSave;
+							productPrice.ocbGradedSaveRt = data.ocbGradedSaveRt;
+							productPrice.isIconDisplay = data.isIconDisplay;
+							productPrice.isOcbGradedSave = data.isOcbGradedSave;
+							productPrice.ohPointSaveRt = data.ohPointSaveRt;
+							productPrice.mileageSale = data.mileageSale;
+						}
+
+						// HTML Gen페이지이고 로그인이 되어있지만 쿠폰적용가 조회 하지 않을 경우에만 내 맘대로 할인가 노출 여부 처리.
+						if( isLogin && (!MyCupnInfo.isPrdFnMyCupn() || !funcCheckIsLogin()) ) {
+							addDiscountPrice.setMywayPrmtArea(data, "N");
+							//addDiscountPrice.visibleProcess();
+						}
+						//optAddPrdCommon.displayDirectBenefitArea(isDirectVisit);
+					};
+
+					// HTML Gen페이지 이고 로그인되어 있지 않을 경우 내 맘대로 할인가 노출 여부 처리.
+					if(!isLogin) {
+						addDiscountPrice.preVisibleProcess();
+					}
+
+					productCommon.callAjaxAsynch(tUrl, tParam, tCallBack);
+				} else {
+					addDiscountPrice.preVisibleProcess();
+				}
+			});
+		},
+
+		// 비동기식
+		callAjaxAsynch : function(url, params, callBack) {
+			var pageRequest = false; // ajax object를 위한 변수.
+
+			if (!pageRequest && typeof XMLHttpRequest != 'undefined')
+				pageRequest = new XMLHttpRequest();
+
+			if (pageRequest) {
+				// pageRequest가 true인 경우만.
+				try {
+					var isAsynch = true;
+					if (params != '') {
+						pageRequest.open('POST', url, isAsynch);
+						pageRequest.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+						pageRequest.setRequestHeader("Content-length", params.length);
+						pageRequest.setRequestHeader("Connection", "close");
+
+						pageRequest.send(params);
+					} else {
+						pageRequest.open('GET', url, isAsynch);
+						pageRequest.send(null);
+					}
+
+					pageRequest.onreadystatechange = function() {
+						if (pageRequest.readyState == 4) {
+							var returnVal = 'FAIL';
+							if (pageRequest.status == 200) {
+								returnVal = pageRequest.responseText;
+							}
+
+							if (typeof (callBack) == "function") {
+								callBack(returnVal);
+							} else if (typeof (callBack) == "string") {
+								if (callBack != '') {
+									eval(callBack + "('" + returnVal + "')");
+								}
+							}
+						}
+					};
+				} catch (e) {
+					alert(e);
+					var returnVal = 'FAIL';
+
+					if (typeof (callBack) == "function") {
+						callBack(returnVal);
+					} else if (typeof (callBack) == "string") {
+						if (callBack != '') {
+							eval(callBack + "('" + returnVal + "')");
+						}
+					}
+				}
+			}
+		}
+
+	};
+	return productPrice;
+}));

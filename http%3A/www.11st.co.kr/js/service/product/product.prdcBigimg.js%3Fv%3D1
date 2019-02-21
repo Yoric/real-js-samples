@@ -1,0 +1,225 @@
+;(function (root, factory) {
+	'use strict';
+	if (typeof define === 'function' && define.amd) {   // jshint ignore:line
+		// AMD
+		define([                                            // jshint ignore:line
+			'jquery',
+			'template'
+		], factory);
+	} else {
+		// Browser globals
+		root.skp11 = root.skp11 || {};
+		root.skp11.product = root.skp11.product || {};
+		root.skp11.product.PrdcBigimg = factory(
+			root.jQuery,
+			root.skp11.common.Template
+		);
+	}
+}(this, function ($, Template) {
+	'use strict';
+	var PrdcBigimg;
+
+	PrdcBigimg = function () {
+		this.content = $('#prdcBigimg').attr('tabindex', 0);
+		this.tab = $('#prdcSmaillimg');
+		this.contentW = this.content.width();
+	};
+
+	PrdcBigimg.prototype.init = function (n) {
+		//var _this = this, prdcTemplate, prdcThumbTemplate;
+		var _this = this;
+
+	  /*prdcTemplate = new Template('#prdcBigimg');
+		prdcTemplate.init();
+
+		prdcThumbTemplate = new Template('#prdcSmaillimg');
+		prdcThumbTemplate.init();*/
+
+		_this.thumbBox = _this.content.find('.thumbBox');
+		_this.changeBox(n);
+		_this.lensW = this.$lens.width() / 2;
+		//_this.actBox.find('img').load(function () {
+			_this.calcRate();
+			_this.eventBind();
+		//});
+	};
+
+	PrdcBigimg.prototype.calcRate = function () {
+		var _this = this,
+			magniChkImg = new Image();
+
+		magniChkImg.src = _this.$magni.find('img').attr('src');
+		_this.lensR = _this.contentW - _this.$lens.width();
+		_this.magniR = magniChkImg.width - _this.$magni.width();
+		_this.imgRate = $('img', _this.actBox).width() / _this.magniR;
+		_this.margin = _this.getMargin();
+	};
+
+	PrdcBigimg.prototype.changeBox = function (n) {
+		var _this = this;
+
+		_this.thumbBox.hide();
+		_this.actBox = _this.thumbBox.eq(n).show();
+		_this.$lens = _this.actBox.find('.lens');
+		_this.$magni = _this.actBox.find('.largeImg');
+		_this.$magniI = $('img', _this.$magni);
+		_this.calcRate();
+		_this.defKey = [0, 0];
+
+		//_this.isBig = (_this.$magni.find('img').attr('src').length > 0); // 2016-09-20 수정 
+		var chkPath = _this.$magni.find('img').attr('src');
+		_this.isBig = (chkPath.indexOf('.jpg') > 0) || (chkPath.indexOf('.gif') > 0) || (chkPath.indexOf('.png') > 0);
+		_this.isBig && _this.magnifier(0, 0);
+	};
+
+	PrdcBigimg.prototype.getMargin = function () {
+		var _this = this;
+
+		return {
+			'left': _this.content.offset().left,
+			'top': _this.content.offset().top
+		};
+	};
+
+	PrdcBigimg.prototype.magnifier = function (x, y, z) {
+		var _this = this,
+			posX, posY, magniIX, magniIY, left, top;
+
+		if (z) {
+			posX = x - this.margin.left;
+			posY = y - this.margin.top;
+		} else {
+			posX = x;
+			posY = y;
+		}
+		magniIX = (posX / _this.imgRate);
+		magniIY = (posY / _this.imgRate);
+
+		if (posX - _this.lensW < 0) {
+			left = 0;
+		} else if (posX - _this.lensW > _this.lensR) {
+			left = _this.lensR;
+		} else {
+			left = posX - _this.lensW;
+		}
+
+		if (posY - _this.lensW < 0) {
+			top = 0;
+		} else if (posY - _this.lensW > _this.lensR) {
+			top = _this.lensR;
+		} else {
+			top = posY - _this.lensW;
+		}
+
+		_this.$lens.css({
+			'left': left,
+			'top': top
+		});
+
+		if (magniIX > _this.magniR) {
+			left = _this.magniR;
+		} else if (magniIX < 0) {
+			left = 0;
+		} else {
+			left = magniIX;
+		}
+
+		if (magniIY > _this.magniR) {
+			top = _this.magniR;
+		} else if (magniIY < 0) {
+			top = 0;
+		} else {
+			top = magniIY;
+		}
+
+		_this.$magniI.css({
+			'left': -left,
+			'top': -top
+		});
+	};
+
+	PrdcBigimg.prototype.eventBind = function () {
+		var _this = this,
+			resizeChk;
+
+		_this.defKey = [0, 0];
+		$(window).on('resize', function () {
+			clearTimeout(resizeChk);
+			resizeChk = setTimeout(function () {
+				_this.margin = _this.getMargin();
+			}, 100);
+		});
+
+		_this.content.on('mouseenter mouseleave focusin focusout mousemove keydown', function (e) {
+			switch (e.type) {
+				case 'mouseenter' :
+					if (_this.isBig) {
+						_this.$lens.show();
+						_this.$magni.show();
+					}
+					break;
+
+				case 'mouseleave' :
+				case 'focusout' :
+					_this.$lens.hide();
+					_this.$magni.hide();
+					break;
+
+				case 'mousemove' :
+					_this.magnifier(e.pageX, e.pageY, true);
+					break;
+
+				case 'focusin' :
+					if (_this.isBig) {
+						_this.$lens.show();
+						_this.$magni.show();
+					}
+					break;
+
+				case 'preventDefault' :
+					e.preventDefault();
+					_this.keyCodeCheck(e.keyCode);
+					break;
+			}
+		})
+		.on('mouseenter', '.largeImg', function () {
+			_this.$magni.hide();
+		});
+
+		_this.tab.on('click focusin keyup', 'a', function (e) {
+			var $this = $(this).closest('li').addClass('selected');
+
+			if (e.keyCode !== 13 || !_this.isBig) {
+				e.preventDefault();
+			} else {
+				_this.content.focus();
+			}
+			$(window).trigger("callGaEvent","0;3;썸네일 이미지");
+
+			$this.siblings().removeClass('selected');
+			_this.changeBox($this.index());
+		});
+	};
+
+	PrdcBigimg.prototype.keyCodeCheck = function (keyCode) {
+		var _this = this;
+
+		switch (keyCode) {
+			case 37 :
+				_this.defKey[0] = (_this.defKey[0] > 0) ? _this.defKey[0] - 20 : _this.defKey[0];
+				break;
+			case 38 :
+				_this.defKey[1] = (_this.defKey[1] > 0) ? _this.defKey[1] - 20 : _this.defKey[1];
+				break;
+			case 39 :
+				_this.defKey[0] = (_this.defKey[0] < (_this.contentW)) ? _this.defKey[0] + 20 : _this.defKey[0];
+				break;
+			case 40 :
+				_this.defKey[1] = (_this.defKey[1] < (_this.contentW)) ? _this.defKey[1] + 20 : _this.defKey[1];
+				break;
+		}
+		_this.magnifier(_this.defKey[0], _this.defKey[1], false);
+	};
+
+	return PrdcBigimg;
+}));

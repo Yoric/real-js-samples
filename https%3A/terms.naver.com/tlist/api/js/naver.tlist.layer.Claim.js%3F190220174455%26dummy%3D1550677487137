@@ -1,0 +1,208 @@
+/**
+* @(#)naver.tlist.layer.Claim.js 
+*@since 2014. 8. 6.
+*
+* Copyright NAVER Corp. All rights Reserved.
+* NAVER PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
+*/
+
+/**
+* @author tod2
+* @since 2014. 8. 6.
+* @description
+* 
+* 지식리스트 생성 레이어 및 기능
+*/
+
+window.naver.tlist.layer = window.naver.tlist.layer || {};
+
+window.naver.tlist.layer.Claim = tljindo.$Class({
+	init : function(option) {
+		this.option(option);
+		this._initVar(this.option);
+		this._setTemplate();
+		this._setWrapperElement();
+		this._makeLayer();		
+		this._setWrapperLayerElement();
+		this._setAPIUrl();
+		this._attachEvent();
+	},
+	// 인스턴스 변수 초기화
+	_initVar : function(el) {
+		this._htWElement = {};
+		this._htEvent = {};
+		this._htAPIUrl = {};
+		this._oTemplate = {};
+		this._sListId = "";
+	},
+	// 템플릿 매핑
+	_setTemplate : function() {
+		this._oTemplate["claim"] = new tljindo.$Template(naver.tlist.TEMPLATE_CLAIM);	// 신고
+		this._oTemplate["title"] = new tljindo.$Template(window.naver.tlist.TEMPLATE_COMMON_NOLINK_TITLE);	// 리스트 항목
+	},
+	// 기본 객체 매핑
+	_setWrapperElement : function() {
+		this._htWElement["base"] = tljindo.$Element(this.option("layerBaseId"));
+	},
+	// 신고 UI에 사용되는 Layer 생성
+	_makeLayer : function() {
+		this._htWElement["base"].appendHTML(this._oTemplate["claim"].process({layerClaimId : this.option("layerClaimId")}));
+	},
+	// 레이어 관련 객체 매핑
+	_setWrapperLayerElement : function() {
+		this._htWElement["claimLayer"] = tljindo.$Element(this.option("layerClaimId"));	// 신고 레이어
+
+		this._htWElement["claimConfirmBtn"] = this._htWElement["claimLayer"].query(".__BTN_CONFIRM");	// 확인 버튼
+		this._htWElement["claimCancelBtn"] = this._htWElement["claimLayer"].query(".__BTN_CANCEL");	// 취소 버튼
+
+		this._htWElement["claimReason"] = this._htWElement["claimLayer"].query(".__CLAIM_REASON");	// 신고 시 사유 입력 박스
+		this._htWElement["claimReasonArea"] = this._htWElement["claimLayer"].query(".__CLAIM_REASON_AREA"); // 신고 기타 사유 
+		
+		this._htWElement["claimListTitle"] = this._htWElement["claimLayer"].query(".__TITLE");	// 리스트 제목
+		this._htWElement["claimReasonCode"] = this._htWElement["claimLayer"].queryAll(".__CLAIM_REASON_CODE")	// 신고 사유
+	},
+	// API Url 설정
+	_setAPIUrl : function() {
+		this._htAPIUrl["domain"] = this.option("domain");
+		this._htAPIUrl["claim"] = this.option("apiUrl")["claim"];
+	},
+	// 기본 이벤트 binding
+	_attachEvent : function() {
+		if (this._htWElement["claimConfirmBtn"]) {
+			this._htEvent["claimConfirmBtn_click"] = {
+				fn : this._htWElement["claimConfirmBtn"].attach("click", tljindo.$Fn(function(oEvent) {oEvent.stop(tljindo.$Event.CANCEL_DEFAULT);this._claim(oEvent)}, this).bind()), 
+				el : this._htWElement["claimConfirmBtn"].$value()
+			};
+		}
+		
+		if (this._htWElement["claimCancelBtn"]) {
+			this._htEvent["claimCancelBtn_click"] = {
+				fn : this._htWElement["claimCancelBtn"].attach("click", tljindo.$Fn(function(oEvent) {oEvent.stop(tljindo.$Event.CANCEL_DEFAULT);this.fireEvent("cancel", {oEvent : oEvent})}, this).bind()), 
+				el : this._htWElement["claimCancelBtn"].$value()
+			};
+		}
+		
+		if (this._htWElement["claimReasonCode"]) {
+			
+			for (var i = 0, len = this._htWElement["claimReasonCode"].length; i < len; i++){
+				this._htWElement["claimReasonCode"][i].attach("click", tljindo.$Fn(function(oEvent) {this._selectReasonCode(oEvent);}, this).bind());
+			}
+			//this._htEvent["claimCancelBtn_click"] = {
+				//fn : this._htWElement["claimReasonCode"].attach("click", tljindo.$Fn(function(oEvent) {this._selectReasonCode(oEvent);}, this).bind()), 
+				//el : this._htWElement["claimCancelBtn"].$value()
+			//};
+		}
+		
+	},
+	// 기본 이벤트 unbinding
+	_detachEvent : function() {
+		for (p in this._htEvent) {
+			var ht = this._htEvent[p];
+			ht.fn.detach(ht.el, p.substring(p.lastIndexOf("_")));
+		}
+	},
+	// 지식리스트 객체 제거. 중복 init 시 기존의 객체를 제거할 때 등 사용 
+	_destory : function() {
+		if (this._htWElement["claimLayer"]) {
+			this._htWElement["claimLayer"].leave();
+			this._detachEvent();
+			this._htWElement = this._htEvent = this._htAPIUrl = this._oTemplate = null;
+		}
+	},
+	// 확인 완료 후 동작
+	_afterConfirm : function(oEvent) {
+		this.hide(oEvent);
+		this.fireEvent("afterConfirm", {oEvent : oEvent});
+	},
+	// 레이어 노출
+	show : function(oEvent, sListId, sListTitle) {
+		oEvent.stop(tljindo.$Event.CANCEL_DEFAULT);
+		this._sListId = sListId;
+		var sListTitleHtml = this._oTemplate["title"].process({title: sListTitle});
+		
+		this._htWElement["claimListTitle"].html(sListTitleHtml);
+		this._htWElement["claimReason"].text("");
+		this._htWElement["claimLayer"].show();
+	},
+	// 레이어 숨기기
+	hide : function(oEvent) {
+		oEvent.stop(tljindo.$Event.CANCEL_DEFAULT);
+		this._htWElement["claimLayer"].hide();
+	},
+	// 신고 사요 코드 선택 
+	_selectReasonCode :function(oEvent) {
+		oEvent.stop(tljindo.$Event.CANCEL_DEFAULT);
+		this._resetReasonCode();
+		var wElCurrentElement = termsJindo.$Element(oEvent.currentElement);
+		wElCurrentElement.addClass("on")
+		if (wElCurrentElement.hasClass("__ETC")) {
+			this._htWElement["claimReasonArea"].show();
+		} else {
+			this._htWElement["claimReasonArea"].hide();
+		}
+		
+	},
+	// 신고 사유 코드 리셋
+	_resetReasonCode : function() {
+		var items = this._htWElement["claimReasonCode"];
+		
+		for (var i = 0, len = items.length; i < len; i++){
+			items[i].removeClass("on");
+		}
+	},
+	// 신고 사유 코드 획득
+	_getReasonCode : function(oEvent) {
+		var items = this._htWElement["claimReasonCode"];
+		for (var i = 0, len = items.length; i < len; i++){
+			if (items[i].hasClass("on")) {
+				return items[i].query("input").attr("value");
+			}
+		}
+	},
+	// 신고 동작
+	_claim : function(oEvent) {
+		htParam = {};
+		
+		// 선택값 체크
+		// TODO 선택값/입력값 체크
+		var reasonCode = this._getReasonCode();
+		if (naver.tlist.trim(reasonCode) == "") {
+			alert("신고 사유는 필수 입력값입니다.");
+			return false;
+		}
+		
+		if (naver.tlist.trim(reasonCode) == "ETC" && naver.tlist.trim(this._htWElement["claimReason"].text()) == "") {
+			alert("기타 사유일 경우 아래에 상세한 사유를 입력해 주세요.");
+			this._htWElement["claimReason"].$value().focus();
+			return false;
+		}
+		
+		var url = this._htAPIUrl["domain"] + this._htAPIUrl["claim"] + "&listId=" + this._sListId;
+		url += "&claimCode=" + reasonCode;
+		url += "&reason=" + encodeURIComponent(this._htWElement["claimReason"].text());
+		
+		var fnAfterConfirm = tljindo.$Fn(this._afterConfirm, this).bind(oEvent);
+		
+		window.naver.tlist.ajaxRequest(url, {
+			sReqType: "jsonp",
+			method : "get",
+			fnSuccess : function(oRes) {
+				var htData = oRes.json().message.result;
+				
+				var sStatus = htData.status.code;
+				
+				if (window.naver.tlist.isAPIError(sStatus)) {
+					alert("오류가 발생했습니다. 다시 시도해 주세요.");
+					return false;
+				}
+				
+				fnAfterConfirm();
+			},
+			fnError : function(oRes) {
+			},
+			fnTimeout : function(oRes) {
+				alert("Timeout 오류가 발생했습니다. 다시 시도해 주세요");
+			}
+		}, htParam);
+	}
+}).extend(tljindo.UIComponent || tljindo.m.UIComponent);

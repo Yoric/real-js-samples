@@ -1,0 +1,43 @@
+'use strict';
+require.config({
+		baseUrl: '/js',
+		paths: {
+			'jquery': 'lib/jquery/jquery-1.12.4.min',
+			'productQna': 'service/product/module/productQna',  //QNA 
+			'googleAnalytics'  : 'service/product/module/googleAnalytics',	 //googleAnalytics
+			'productCommon': 'service/product/module/productCommon'	 //공통function	
+		}
+	});
+
+require([
+ 	    'jquery',
+		'productCommon'
+ 	], function () {
+ 	    require(['productQna'], function(ProductQna) {
+ 	    	ProductQna.init();
+ 	    });
+		// GA
+		require(['googleAnalytics'], function(googleAnalytics) {
+			googleAnalytics.init();
+		});
+ 	     	    
+ 	});
+
+/*	require.config({
+		paths: {				
+			// module2
+			'productQna': 'service/product/module/productQna',  //QNA 
+			'productCommon': 'service/product/module/productCommon'	 //공통function
+		}
+	});
+
+	require([
+	], function () {
+
+	    require(['productQna'], function(ProductQna) {
+	    	ProductQna.init();
+	    });
+	    
+	});
+
+});*/

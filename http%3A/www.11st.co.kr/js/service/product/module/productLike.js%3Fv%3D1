@@ -1,0 +1,153 @@
+/**
+ * @method: Product Like - productLike
+ * @dependency: requireJS, jQuery, prdVar(sellerProductDetailView)
+ */
+(function(root, factory) {
+	'use strict';
+    if (typeof define === 'function' && define.amd) {
+        define([
+            'jquery',
+            'orderInfo'
+        ], factory);
+    } else {
+        root.productLike = factory(
+            root.jQuery,
+            root.orderInfo
+        );
+    }
+}(window || this, function($, orderInfo) {
+	'use strict';
+	var prdVar = productPrdInfo;
+	
+	var productLike = {
+    	requestLikeProduct : function(){
+            //좋아요 팝업 오픈
+    		//doCommonStat("PDP1010");
+
+    		//DSR-4259 광고 API 공통화 추가
+    		try {
+    			callCommonAd('zzim', 'http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=' + prdNo, JSON.stringify(orderInfo.makeSyrupData()));
+    		} catch(e){}
+    		if( !orderInfo.checkNonMemberBuy() ) {
+    			return;
+    		}
+    		if( $("#likeAdd").hasClass('on') ){
+    			this.removeLikeProduct(prdVar.prdNo,'',prdVar.prdTypCd);
+    		} else {
+    			this.addLikeProduct(prdVar.prdNo);
+    		}
+    	},
+    	
+    	//좋아요 view control
+    	likeChange : function(flag, count){
+    		var chkInterval;
+    		var layhtml = "";
+    		if(flag == 'add'){
+    			$("#shpLikeCnt"+prdVar.prdNo).html(count);
+				$("#likeAdd").addClass('on');
+				$("#layLike").addClass('on');
+				$("#likeall").show();
+				layhtml += "<strong>찜</strong>이 되었습니다.";
+    		} else {
+    			$("#shpLikeCnt"+prdVar.prdNo).html(count);			
+				$("#likeAdd").removeClass('on');
+				$("#layLike").addClass('on');
+				$("#likeall").hide();
+				layhtml += "<strong>찜</strong>이 취소 되었습니다.";
+    		}
+    		$("#liketxt").html(layhtml);
+    	}, 
+    	
+    	likeMouseEvent : function(){
+    		$('.lay_nw_like').bind({
+				mouseleave : function(){
+					setTimeout(function () {$("#layLike").removeClass('on')}, 500);
+				},
+    			focusout : function(){
+					setTimeout(function () {$("#layLike").removeClass('on')}, 500);
+    			}
+			});
+    	},
+    	
+    	//좋아요
+    	addLikeProduct : function(prdNo, likeFrom, prdTypCd) {
+    		if(prdTypCd == "20"){
+    			alert("다운로드 상품은 찜이 적용되지 않습니다.");
+    			return;
+    		}
+    		if(prdNo == '') {
+    			return;
+    		}
+    		var callback = function(data){
+      			if(data.resultCd == "success"){
+      				var likecount;
+        			if(data.likeCnt > 9999){
+        				likecount = "9,999+";
+        			} else {
+        				likecount = data.likeCntString;
+        			}
+    				productLike.likeChange('add', likecount);
+    			}else if(data.resultCd == "failure"){
+    				alert("일시적인 오류가 발생했습니다. 다시 시도해 주십시요.");
+    			}else if(data.resultCd == "already"){
+    				alert("이미 찜 한 상품입니다.");
+    			}else if(data.resultCd == "login"){
+    				openLogin(5, "afterLikeSrchLogin");
+    				return;
+    			}else if(data.resultCd == "isEmailAuth"){
+    				alert("죄송합니다. 이메일 인증회원은 국문사이트 상품의 찜♥이 불가합니다.\n영문 사이트 혹은 로그아웃 후 비회원 구매하기를 통해 주문해 주시기 바랍니다.");
+    			}else if(data.resultCd == "isMinor"){
+    				var conUrl = _GNB_CONTEXT_PATH_ + "/jsp/common/checkAdultContents.jsp?referer=" + document.domain;
+    				window.open(conUrl, "PreView", "width=800, height=320, scrollbars=no, status=no");
+    			}
+    		};
+    		
+    		if(!funcCheckIsLogin()) {
+    			openLogin(5, "afterLikeSrchLogin");
+    			return;
+    		}else {
+    			var url = _ACTION_CONTEXT_URL_ + "/commons/LikeAjaxAction.tmall?method=addLikeProduct&likePrdNo=" + prdNo + "&callBack=?";
+    			$.getJSON(url, callback);
+    		}
+    		
+    	},
+    	
+    	//좋아요 취소
+    	removeLikeProduct : function(prdNo) {
+    		var callback = function(data){
+    			if(data.resultCd == "success"){
+    				productLike.likeChange('remove', data.likeCntString);
+    			}else if(data.resultCd == "failure"){
+    				alert("일시적인 오류가 발생했습니다. 다시 시도해 주십시요.");
+    			}
+    		};
+    		if(!funcCheckIsLogin()) {
+    			openLogin(5, "afterLikeSrchLogin");
+    			return;
+    		}else {
+    			//var delPrdNoList = prdNoList.replace(/,/g, encodeURIComponent("#@#")); //좋아요 여러개 선택시 필요
+    			var url = _ACTION_CONTEXT_URL_ + "/commons/LikeAjaxAction.tmall?method=removeLikeProduct&likePrdNo=" + prdNo + "&callBack=?";
+    			$.getJSON(url, callback);
+    		}
+    	},
+    	
+		init : function() {
+			var _this = this;
+			//좋아요
+			$('#likeAdd').on('click', function(e) {
+	        	_this.requestLikeProduct();
+	        	_this.likeMouseEvent();
+
+				$(window).trigger("callGaEvent","0;5;");
+	        	return false;
+	        });
+			//좋아요 전체보기
+			$('#likeall').on('click', function(e) {
+				document.location.href= _GNB_CONTEXT_PATH_ + "/interest/AuthInterestProductAction.tmall?method=getAllInterestProductInfo";
+				return false;
+			});
+		}
+	};
+
+	return productLike;
+}));

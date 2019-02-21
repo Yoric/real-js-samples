@@ -1,0 +1,1 @@
+define(["module","OK/utils/dom"],function(c,f){var e=c.config().name||"_acceptCP",b=c.config().domain||".ok.ru",a=c.config().expireDate||"";function d(g){var h=f.firstByClass(g,"js-close");if(h){h.addEventListener("click",function(){g.classList.add("__hidden");var i=(a.length?("expires="+a+"; "):"");document.cookie=e+"=1; path=/; "+i+"domain="+b;});}}return{activate:d};});

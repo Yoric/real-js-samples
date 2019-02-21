@@ -1,0 +1,5 @@
+BrightTag.site('mwKy0N5,Gs9woDX',function(s){
+s.domready(function(){
+s.tag('\x3c!-- EBiS tag version4.10 start --\x3e\n\x3cscript type\x3d\x22text/javascript\x22\x3e\n    (function(a,d,e,b,i,s){ window[i]\x3dwindow[i]||[];var f\x3dfunction(a,d,e,b,i,s){\n        var o\x3da.getElementsByTagName(d)[0],h\x3da.createElement(d),t\x3d\x27text/javascript\x27;\n        h.type\x3dt;h.async\x3de;h.onload\x3dfunction(){ window[i].init(\n            { argument:s, auto:true }\n        );};h._p\x3do;return h;},h\x3df(a,d,e,b,i,s),l\x3d\x27//taj\x27,j\x3db+s+\x27/cmt.js\x27;h.src\x3dl+\x271.\x27+j;\n        h._p.parentNode.insertBefore(h,h._p);h.onerror\x3dfunction(k){k\x3df(a,d,e,b,i,s);\n        k.src\x3dl+\x272.\x27+j;k._p.parentNode.insertBefore(k,k._p);};\n    })(document,\x27script\x27,true,\x27ebis.ne.jp/\x27,\x27ebis\x27,\x27ZXskqRw2\x27);\n\x3c/script\x3e\n\x3c!-- EBiS tag end --\x3e',{tagId:6065058});
+});
+});

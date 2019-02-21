@@ -1,0 +1,322 @@
+var SITB_STR_LANG = {
+"go":('進む')
+,
+"LOOK_INSIDE":('中身を見る!')
+,
+"add_to_cart":('カートに追加')
+,
+"preorder_add_to_cart":('予約注文。 カートに追加')
+,
+"look_inside_this_book":('この本の中身を見る')
+,
+"try_a_sample":('サンプルを試す')
+,
+"DISCOVER_MORE_BOOKS":('その他の本を見る')
+,
+"hide_these_books":('これらの本を隠す')
+,
+"loading_prompt":('ロード中...')
+,
+"BOOK_SECTIONS":('見たい項目を選ぶ')
+,
+"SURPRISE_ME":('任意のページ!')
+,
+"BY":('著者: #{AUTHORS}')
+,
+"GO_TO_BOOK_PAGE":('『#{BOOK_TITLE}』の詳細ページに移動')
+,
+"USED_AND_NEW_FROM":('<a href='+String.fromCharCode(0x27)+'/gp/offer-listing/#{ASIN}/ref=rdr_ext_uan'+String.fromCharCode(0x27)+' id='+String.fromCharCode(0x27)+'sitbReaderUsedCount'+String.fromCharCode(0x27)+'> #{COUNT} 点の新品/中古品を見る</a> <span id='+String.fromCharCode(0x27)+'sitbReaderUsedPrice'+String.fromCharCode(0x27)+' class='+String.fromCharCode(0x27)+'sitbReaderPrice'+String.fromCharCode(0x27)+'>#{PRICE}</span> より。')
+,
+"DELIVER_TO":('配信先')
+,
+"SEND_SAMPLE":('この本のサンプルを送信')
+,
+"PAGE_NOT_AVAILABLE":('このページは現在表示できません。')
+,
+"SITB_IMAGE_BASE":('http://g-ecx.images-amazon.com/images/G/09/digital/sitb/reader/v4/201111161604/')
+,
+"SITB_IMAGE_BASE_SECURE":('https://images-na.ssl-images-amazon.com/images/G/09/digital/sitb/reader/v4/201111161604/')
+,
+"DEFAULT_ERROR_MSG_HEADER":('申し訳ありません。')
+,
+"DEFAULT_ERROR_MSG_TEXT":('一時的なエラーが発生しました。後でやり直してください。')
+,
+"DEFAULT_RELATED_EDITION_MSG":('現在、バージョンの異なる本の内容を表示しています。「カートに入れる」ボタンをクリックすると、詳細ページと同じバージョンの本がカートに入ります。')
+,
+"DEFAULT_RELATED_EDITION_XREF_KINDLE_MSG":('これはKindle本のプレビューです。紙の本のプレビューは、現在ご覧いただけません。')
+,
+"DEFAULT_RELATED_EDITION_XREF_PRINT_MSG":('これは紙の本のプレビューです。Kindle本のプレビューは、現在ご覧いただけません。')
+,
+"JUST_SO_YOU_KNOW":('ご注意ください')
+,
+"IN_STANDARDVIEW_TEXT":('拡大ビュー')
+,
+"IN_FULLSCREEN_TEXT":('標準ビュー')
+,
+"TTIP_ZOOM_IN":('ズームイン')
+,
+"TTIP_ZOOM_OUT":('ズームアウト')
+,
+"TTIP_NEXT_PAGE":('次のページ')
+,
+"TTIP_PREV_PAGE":('前のページ')
+,
+"TTIP_READER_CLOSE":('閉じる')
+,
+"TTIP_SEARCH_CLOSE":('閉じる')
+,
+"TTIP_SEARCH_GO":('検索')
+,
+"TTIP_SEARCH_INPUT":('この本の中を検索する')
+,
+"TTIP_MORE_RESULTS":('検索結果をさらに表示する')
+,
+"SB_HIST_LINK":('表示履歴を表示・編集する')
+,
+"SB_OFF_HIST_LINK":('詳細はこちら')
+,
+"SB_NO_HIST_LINK":('詳細はこちら')
+,
+"SB_NO_HIST_TEXT":('表示履歴がありません。')
+,
+"SB_OFF_HIST_TEXT":('表示履歴はオフになっています。')
+,
+"SB_ERR_HIST_TEXT":('表示履歴を取得できませんでした。')
+,
+"SB_NO_SIMS":('データを取得できませんでした。')
+,
+"TTIP_SB_PANE_CLD":('さらに表示する')
+,
+"TTIP_SB_PANE_OPN":('表示しない')
+,
+"TTIP_SB_TITLE":('#{TITLE}の詳細ページへ')
+,
+"TTIP_SB_LITB_BUTTON":('この本の中を見る')
+,
+"TTIP_SB_HIST_LINK":('表示履歴を表示・編集する')
+,
+"TTIP_LP_TAB":('この本の詳細を見る')
+,
+"PLEASE_SELECT":('お選びください')
+,
+"1_VERY_UNLIKELY":('すすめない')
+,
+"2_UNLIKELY":('あまりすすめない')
+,
+"3_NEITHER":('どちらともいえない')
+,
+"4_LIKELY":('すすめたい')
+,
+"5_VERY_LIKELY":('ぜひすすめたい')
+,
+"FEATURE_BROWSING_HISTORY":('機能：「表示履歴」について')
+,
+"SHARING_YOUR_THOUGHT":('「なか見！検索」について、お客様のご意見やご要望をお聞かせください。お寄せいただきました貴重なご意見やご要望に対して直接回答させていただくことはできませんが、今後のサービス向上のために役立ててまいります。')
+,
+"FEEDBACK_TYPE":('右記よりお選びください：')
+,
+"SUGGESTION":('提案')
+,
+"COMMENT_ABOUT":('本についてのコメント')
+,
+"TECHNICAL_PROBLEM":('技術的な問題')
+,
+"PRAISE":('よかったところ')
+,
+"COMPLAINT":('改善すべきところ')
+,
+"OTHER":('その他')
+,
+"YOUR_COMMENTS":('コメント：')
+,
+"1500_MAXIMUM":('最大1500文字')
+,
+"HOW_LIKELY":('「なか見！検索」を友人・知人にすすめたいとお考えですか？')
+,
+"THANK_YOU_FOR_FEEDBACK":('ご意見・ご感想をありがとうございました。')
+,
+"FEEDBACK":('フィードバック')
+,
+"HELP":('ヘルプ')
+,
+"CLOSE":('閉じる')
+,
+"KINDLE_PREVIEW":('Kindle本')
+,
+"PRINT_PREVIEW":('紙の本')
+,
+"INFORMATION_UNAVAILABLE":('「なか見！検索」は現在一時的にご利用いただけません。申し訳ありませんが、後でもう一度お試しください。')
+,
+"SERVER_TIMEOUT":('サーバータイムアウト')
+,
+"PAGE":('#{PAGE} ページ')
+,
+"INSERT":('差し込み')
+,
+"BACK_MATTER":('後付')
+,
+"FRONT_MATTER":('前付')
+,
+"FIRST_PAGES":('最初のページ')
+,
+"THIS_IS_A_PREVIEW":('これはプレビューです。表示されるページ数は限られています。')
+,
+"BROWSING_HISTORY":('表示履歴')
+,
+"CUSTOMER_ALSO_BOUGHT":('この商品を買った人は<br>こんな商品も買っています')
+,
+"PAGE_OF":('#{HTML_END}ページ中 #{HTML_START}ページ目')
+,
+"SEARCH_INSIDE_THIS_BOOK":('この本の中を検索する')
+,
+"SAMPLE_SEARCHES":('この本の検索例:')
+,
+"SIGN_IN_TO_VIEW":('検索結果を見るには<a href='+String.fromCharCode(0x27)+'/gp/search-inside/sign-in?asin=#{ASIN}&query=#{QUERY}&ie=UTF8'+String.fromCharCode(0x27)+'>サインイン</a>してください.')
+,
+"SHOW_MORE_RESULT":('さらに #{RESULT_TO_LOAD} 件の検索結果を見る')
+,
+"SHOW_MORE_RESULTS":('さらに #{RESULTS_TO_LOAD} 件の検索結果を見る')
+,
+"RESULT_FOR":('<b>#{HTML_REPLACE}</b> #{SIGN_IN_MSG} 検索結果 : <b>#{RESULT_NUM}</b>件')
+,
+"RESULTS_FOR":('<b>#{HTML_REPLACE}</b> #{SIGN_IN_MSG} 検索結果 : <b>#{RESULT_NUM}</b>件')
+,
+"SOME_PAGES_OMITTED":('この本には閲覧不可のページがあります。')
+,
+"PLEASE_USE_SURPRISE_OR_SITB":('本の中をさらに見るには、<a class='+String.fromCharCode(0x27)+'sitbReader-bookmark-surprise'+String.fromCharCode(0x27)+' href='+String.fromCharCode(0x27)+'javascript:void(0)'+String.fromCharCode(0x27)+' onclick='+String.fromCharCode(0x27)+'SitbReader.PageSequenceActions.goToRandomPage()'+String.fromCharCode(0x27)+'>「サプライズミー」</a> をクリックするか、「この本の中を検索する」で本の内容を検索してください。')
+,
+"PAGE_NOT_INCLUDED":('#{LABEL_START} ページは、この本のプレビューに含まれていません。')
+,
+"PAGES_NOT_INCLUDED":('#{LABEL_START}～#{LABEL_END} ページは、この書籍のプレビューに含まれていません。')
+,
+"PLEASE_SIGN_IN":('さらに中を見るには、<a href='+String.fromCharCode(0x27)+'/gp/search-inside/sign-in?asin=#{ASIN}&page=#{PAGE}'+String.fromCharCode(0x27)+'>サインイン</a>してください。')
+,
+"THIS_IS_A_RANDOM_PAGE":('この本の中をもっと見るには、 <a href='+String.fromCharCode(0x27)+'/gp/search-inside/sign-in?asin=#{ASIN}&page=random'+String.fromCharCode(0x27)+'>サインイン</a> してください。')
+,
+"EDITION":(' ')
+,
+"EDITION_NAME":('#{NAME}')
+,
+"RELATED_EDITION":('その他のフォーマット')
+,
+"AUTHORITY_EDITION":('正規版')
+,
+"PUB_NAME":(' #{NAME} 製')
+,
+"END_OF_PREVIEW":('')
+,
+"END_OF_PREVIEW_BUY":('プレビューをお楽しみいただけましたか？<br/><a class="sitb-buy-box" href="#{BUY_ACTION}">#{BUY_TYPE}</a> | <a class="sitb-buy-box" href='+String.fromCharCode(0x27)+'/kindle/dp/#{BUYING_ASIN}/ref=#{REFTAG}'+String.fromCharCode(0x27)+'>Kindle ストアでこの本の詳細を見る</a>')
+,
+"NEED_TO_SIGN_IN":('本の中を見るにはサインインする必要がありますか？')
+,
+"MY_PRIOR_PURCHASE":('本を購入したことがなければ、本の中を見ることはできないのでしょうか？')
+,
+"SLIGHTLY_DIFFERENT_CONTENT":('実際の本と「なか見！検索」で見た本の内容が少し違うのはなぜですか？')
+,
+"ADJUST_SIZE_TEXT":('文字のサイズは変更できますか?')
+,
+"SEARCH_MORE_EFFECTIVELY":('より効率的に検索するには、どうすればいいですか？')
+,
+"PROVIDE_FEEDBACK":('「なか見！検索」に関する意見や要望を伝えるにはどうすればいいですか？')
+,
+"WHAT_IS_BROWSING_HISTORY":('「表示履歴」とは何ですか？')
+,
+"NEED_TO_SIGN_IN_ANSWER":('いいえ。サインインしていないお客様や、Amazon で購入履歴のないお客様が閲覧できるページもご用意しています。ただし、購入履歴のあるアカウントにサインインしないと利用できない機能が一部あります。')
+,
+"MY_PRIOR_PURCHASE_ANSWER":('いいえ。Amazon.co.jp で販売されている商品であれば、本でなくてもかまいません。ただし、デジタル商品やAmazon.co.jp 以外の第三者が出品している商品のみ購入している場合は、この追加特典を利用できません。また、購入履歴の中に、発送済み商品が含まれている必要があります。過去に利用していたアカウントのEメールアドレスやパスワードを変更する場合は、カスタマーサービスにお問い合わせください。')
+,
+"SLIGHTLY_DIFFERENT_CONTENT_ANSWER":('「なか見！検索」で確認できる内容は、Amazonがスキャンした本の版によって実物と若干異なる場合があります。（どの版を閲覧中かは画面で確認できます）。また、ハードカバーの「なか見！検索」を、同タイトルのペーパーバックなどに表示する場合もあります。')
+,
+"ADJUST_SIZE_TEXT_ANSWER":('はい。「拡大＋」と「縮小－」ボタンで調節することができます。また、画像をクリックしながら上下に動かすことで、ページをスクロールすることもできます。')
+,
+"SEARCH_MORE_EFFECTIVELY_ANSWER":('キーワードの代わりに特定のフレーズで検索する場合、フレーズの前後に二重引用符を追加してください (例: "左利きの投手")。これによって、二重引用符を追加せずに ２ つの単語を並べて検索するよりも、より的を絞った結果を短時間で表示することができます。')
+,
+"PROVIDE_FEEDBACK_ANSWER":('「なか見！検索」の改善の参考にさせていただきますので、閲覧ページ右上にある「ご意見・ご感想」からお寄せください。')
+,
+"WHAT_IS_BROWSING_HISTORY_ANSWER":('「表示履歴」では、最近閲覧した本の履歴を表示できます。表示される本は随時更新されます。履歴を削除するには、「<a href="/gp/yourstore/pym/">表示履歴を表示・編集する</a>」をクリックします。表示履歴のページで、それぞれの本の「この商品を削除する」をクリックします。すべての履歴を削除するには「すべてを削除」をクリックします。表示履歴の機能を使用しない場合は、<a href="/gp/yourstore/pym/cc/">こちらをクリック</a>してください。')
+,
+"HELP_PAGE":('/gp/help/customer/display.html?nodeId=200502350')
+,
+"FAQ":('よくあるご質問')
+,
+"LEARN_MORE_LITB":('「なか見！検索 」の詳細はこちら')
+,
+"TOC":('目次')
+,
+"FRONT_COVER":('表紙')
+,
+"FRONT_FLAP":('表紙のそで部分')
+,
+"COPYRIGHT":('著作権')
+,
+"INDEX":('索引')
+,
+"BACK_FLAP":('背表紙のそで部分')
+,
+"BACK_COVER":('裏表紙')
+,
+"PIC_SUPP_MSG":('著作権保護のため、この本の画像は一部表示されません。')
+,
+"PARTIAL_CONTENT_MSG":('出版社が選択した一部のサンプルページをご覧いただけます。')
+,
+"KINDLE_COVER":('表紙')
+,
+"KINDLE_START_READING_LOCATION":('最初のページ')
+,
+"SEND_CUSTOMER_REQUEST":('<strong>Kindle化リクエスト</strong><br><a id='+String.fromCharCode(0x27)+'sitbReaderCustomerRequestLink'+String.fromCharCode(0x27)+'>このタイトルのKindle化をご希望の場合、こちらをクリックしてください</a>。<br><br>Kindle をお持ちでない場合、<a href='+String.fromCharCode(0x27)+'/dp/B00LWHUV3Q/ref=rdr_ext_kdl'+String.fromCharCode(0x27)+'>こちらから購入いただけます</a>。Kindle 無料アプリのダウンロードは<b></b><a href='+String.fromCharCode(0x27)+'/gp/kindle/kcp/ref=rdr_ext_kra'+String.fromCharCode(0x27)+'>こちら</a>。<br>')
+,
+"SEND_CUSTOMER_REQUEST_SUCCESS":('<span><strong>ありがとうございます</strong></span><br><br>#{contributorName}(著) 『<a href='+String.fromCharCode(0x27)+'/dp/#{ASIN}/ref=rdr_ext_book'+String.fromCharCode(0x27)+'>#{TITLE}</a>』の Kindle 化をリクエストいただきありがとうございます。Amazonは、Kindle 版であらゆる本を利用可能にすることを目指しています。お客様からのリクエストは、出版社にお伝えします。 ')
+,
+"SEND_CUSTOMER_REQUEST_ERROR":('<span><strong>申し訳ありません。</strong></span><br><br>'+String.fromCharCode(0x0A)+
+	'リクエストの処理中にエラーが発生しました。直ちに問題の解決に取り組みますので、しばらくお待ちください。ご不便をおかけして申し訳ありません。 <br><br>'+String.fromCharCode(0x0A)+
+	'<a href='+String.fromCharCode(0x27)+'http://www.amazon.co.jp'+String.fromCharCode(0x27)+'>Amazon.com ホームページでショッピングを続ける</a> または<a href='+String.fromCharCode(0x27)+'http://www.amazon.co.jp/s?rh=i%3Adigital-text%2Cn%3A2362160051&ie=UTF8'+String.fromCharCode(0x27)+'>Kindleストアでショッピングする</a>')
+,
+"REL_ED_MSG_PRINT":('これは、#{AUTHORITY_PUB_DISP}#{AUTHORITY_YEAR_DISP} から出版された #{AUTHORITY_LINK}のプレビューです。左側のカートに入れる をクリックすると、詳細ページで閲覧していた#{RELATED_PUB_DISP} #{RELATED_YEAR_DISP} から出版された#{RELATED_LINK} がカートに入ります。')
+,
+"REL_ED_MSG_KINDLE":('これは、#{AUTHORITY_PUB_DISP}#{AUTHORITY_YEAR_DISP}コンテンツの #{AUTHORITY_LINK}プレビューです。左側の [1-Click で購入] ボタンをクリックして配信されるのは、最初にご覧になった#{RELATED_PUB_DISP}  #{RELATED_YEAR_DISP}から出版された#{RELATED_LINK}です。')
+,
+"REL_ED_MSG_KINDLE_WITH_BUTTON_TEXT":('これは、#{AUTHORITY_PUB_DISP}#{AUTHORITY_YEAR_DISP} コンテンツの #{AUTHORITY_LINK}プレビューです。左側の [#{BUY_BUTTON_TEXT}] ボタンをクリックして配信されるのは、#{RELATED_PUB_DISP} #{RELATED_YEAR_DISP} から出版された#{RELATED_LINK}です。')
+,
+"REL_ED_MSG_KINDLE_WITHOUT_VALID_OFFER":('この表示は、#{AUTHORITY_LINK}#{AUTHORITY_YEAR_DISP}#{AUTHORITY_PUB_DISP} のものです。お客様がご覧になった #{RELATED_LINK}#{RELATED_YEAR_DISP}#{RELATED_PUB_DISP} は、現在ご購入いただけません。')
+,
+"REL_ED_XREF_MSG_PRINT":('これは、(#{AUTHORITY_LINK_TEXT}) のプレビューです。Kindle 本のプレビューは、現在ご覧いただけません。')
+,
+"REL_ED_XREF_MSG_KINDLE_V2":('これは、#{AUTHORITY_PUB_DISP}#{AUTHORITY_YEAR_DISP} コンテンツの#{AUTHORITY_LINK}プレビューです。紙の本 (#{RELATED_LINK_TEXT}) のプレビューは、現在ご覧いただけません。')
+,
+"PLEASE_SIGN_IN_TITLE":('サインインしてください。')
+,
+"PLEASE_SIGN_IN_TEXT":('このページを見るにはサインインが必要です。')
+,
+"PAGE_NOT_AVAILABLE_TITLE":('このページは閲覧できません。')
+,
+"PAGE_NOT_AVAILABLE_TEXT":('このプレビューには閲覧不可のページがあります。')
+,
+"FEATURE_UNAVAILABLE_TITLE":('「なか見！検索」は現在ご利用いただけません。')
+,
+"FEATURE_UNAVAILABLE_TEXT":('「なか見！検索」の機能は、一時的に停止しています。お手数ですが、しばらく経ってからご利用ください。')
+,
+"kcp_sitb_getfreeapp_ebooks":('')
+,
+"kcp_sitb_getfreeapp_pbooks":('')
+,
+"kcp_get_reading_app_dialog_title":('無料 Kindle 読書アプリを入手')
+,
+"kcp_close":('')
+,
+"kcp_loading_error":('コンテンツの読み込み中にエラーが発生しました。後でもう一度試してください。')
+,
+"kcp_sitb_widget_width":('')
+,
+"BUY_WITH_1_CLICK":(' 1-Clickで今すぐ買う ')
+,
+"PREORDER_WITH_1_CLICK":('1-Clickで予約注文する')
+,
+"ADDITIONAL_BUY_WITH_1_CLICK":(' 1-Clickで今すぐ買う ')
+,
+"END_OF_PREVIEW_BUY_DUAL":('')
+,
+"NEW_FROM":('')
+,
+"SITB_REGION_MAGNIFICATION":('サンプルのパネルまたはテキストをクリックすると拡大表示されます。スクロールホイールまたは矢印キーを使ってページをスクロールできます。もう一度クリックすると元の表示に戻ります。')
+};
+Vellum.lj2(Vellum.js);

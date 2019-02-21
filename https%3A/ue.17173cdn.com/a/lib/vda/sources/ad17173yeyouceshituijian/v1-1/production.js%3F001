@@ -1,0 +1,38 @@
+adv.AdBase.extend('Ad17173YeyouCeShiTuijian', {
+  init: function(options) {
+    this.base(options);
+    this.emit(adv.ENUM.EVENTS.inited);
+  },
+  setup: function(data) {
+    this.data = data;
+    this.emit(adv.ENUM.EVENTS.setuped);
+  },
+  itemTmpl : function(){/*@preserve
+<li class="item  tg-ceshituijian">
+  <div class="c1"><a href="@link" target="_blank" style="display:block; width:32px; height:18px; margin:4px 0 0 1px; line-height:18px; text-align:center; color:#fff; background:#ff5c00;">推荐</a></div>
+  <div class="c2">
+    <div class="art-item">
+      <a href="@link" target="_blank">@name</a>
+    </div>
+  </div>
+  <div class="c3 "><a href="@link" target="_blank" class="c-gray1">@testStatus</a></div>
+  <div class="c5" style="width:7em; text-align:right;"><a href="@link" target="_blank" class="c-red1">免下载直接玩</a></div>
+</li>
+*/},
+  play: function() {
+    var me = this,
+        advEl = $('#' + this.options.advid),
+        adItem = $(adv.razor(me.itemTmpl,me.data)),
+        item,
+        now = new Date(),
+        gameDate = [now.getMonth() + 1,now.getDate()],
+        ul = advEl.find('.list-rank-total');
+    ul.prepend($('.tg-ceshituijian'));
+    item = ul.find('li:eq('+(this.data.index -1)+')');
+    ul.find('li:eq(2)').addClass('item-hide')
+    item.before(adItem);
+    me.data.bold && adItem.find('.art-item a').css('font-weight','bold')
+    advEl.find('li:last').remove();
+    this.emit(adv.ENUM.EVENTS.played);
+  }
+});

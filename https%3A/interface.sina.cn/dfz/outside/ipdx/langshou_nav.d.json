@@ -1,0 +1,5 @@
+document.getElementById('SI_Nav_City').innerHTML = '<a href="http://sh.sina.com.cn/" target="_blank">\u4e0a\u6d77</a>';
+
+
+
+

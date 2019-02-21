@@ -1,0 +1,272 @@
+/**
+ * @method: productInfo
+ * @dependency: requireJS, jQuery
+ */
+(function(root, factory) {
+	'use strict';
+    if (typeof define === 'function' && define.amd) {
+        define([
+            'jquery',
+            'productCommon'
+        ], factory);
+    } else {
+        root.productInfo = factory(
+            root.jQuery,
+            root.productCommon
+        );
+    }
+}(window || this, function($, productCommon) {
+	'use strict';
+	
+	var prdVar = productPrdInfo;
+	
+	var productInfo = {		
+	
+		/*********** 원재료 성분 보기 Start ************/
+		//상품 원재료 배열
+		rmaterialArr : null,
+		template : '',
+			
+		// '원재료성분보기' 버튼 클릭 시.
+		showRmaterialBtnClicked : function() {
+			if (productInfo.template == "") {
+				productInfo.template = $("#ingredContainer").clone();
+				$("#ingredContainer").html("");
+			}
+			var isFirstClick = productInfo.rmaterialArr == null;
+			if (isFirstClick) {
+				productInfo.loadRmaterialInfo(prdVar.prdNo, productInfo.makeRmaterialNmComboHTML);
+			}
+		},
+		
+		// 상품명 콤보 변경 시.
+		rmaterialNmComboChanged : function() {
+			var selectedRmaterialSeqNo = $("#rmaterialNm option:selected").val();
+			productInfo.makeRmaterialIngredRowHTML(selectedRmaterialSeqNo);
+		},
+
+		/** 원재료 정보 레이어의 상품명 콤보 아이템 생성 */
+		makeRmaterialNmComboHTML : function() {
+			var selObj = $ID("rmaterialNm");
+			$.each(productInfo.rmaterialArr, function(idx, rmaterial) {
+				selObj.options[idx + 1] = new Option(rmaterial.rmaterialNm,
+					rmaterial.rmaterialSeqNo);
+			});
+		},
+		
+		/** 원재료 정보 레이어의 원재료 속성 ROW 생성 */
+		makeRmaterialIngredRowHTML : function(rmaterialSeqNo) {
+			$("#ingredContainer").children().remove();
+			if (rmaterialSeqNo == "") return;
+	
+			var rmaterialIdx = parseInt(rmaterialSeqNo) - 1;
+			$.each(productInfo.rmaterialArr[rmaterialIdx].ingreds, function(idx, ingred) {
+				productInfo.template.find("td:eq(0)").text(ingred.ingredNm);
+				productInfo.template.find("td:eq(1)").text(ingred.orgnCountry);
+				productInfo.template.find("td:eq(2)").text(ingred.content);
+	
+				$("#ingredContainer").append(productInfo.template.html());
+			});
+		},
+		/** 상품의 원재료 정보 로드 */
+		loadRmaterialInfo : function(prdNo, afterProcess) {
+			$.post("/product/SellerProductDetailAjax.tmall?method=getProductRmaterialListJSON",{prdNo : prdNo},
+				function(data) {
+					productInfo.rmaterialArr = eval(data);
+					if (afterProcess)
+						afterProcess();
+				}
+			);
+		},
+		/*********** 원재료 성분 보기 End ************/
+		
+		/** 동영상 광고 Start */
+		fnAdMovie : function fnAdMovie(prdNo) {
+			var url = "/product/SellerProductDetailAjax.tmall";
+			var param = "method=getProductAdMovieInfo&prdNo=" + prdNo;
+			var viwerHtmlUrl = "http://" + document.domain + "/html/webCommon/adMovieViewer.html";
+			
+			var callBack = function(returnVal) {
+				var adMovieObj = eval(returnVal);
+				if (adMovieObj == null || typeof adMovieObj == "undefined"
+					|| adMovieObj.info == null || typeof adMovieObj.info == "undefined"
+					|| adMovieObj.info.movieNo == null || typeof adMovieObj.info.movieNo == "undefined" || adMovieObj.info.movieNo == ""){
+					productInfo.showMoviePlay(false);
+					return;
+				}
+
+				var iframe_src = viwerHtmlUrl + "?v=" + adMovieObj.info.movieNo + "&k=v&f=adMovieIframe";
+				$("#adMovieIframe").attr('src', iframe_src);
+				$("#adMovie").attr('style', "display:block");
+				$("#adMovieBox").css("display", "block");
+				$("#adMovieBtn").css("display", "block");
+
+				productInfo.showMoviePlay(true);
+			};
+
+			productCommon.callAjaxAsynch(url, param, callBack);
+		},
+
+		showMoviePlay : function(isExistAdMovie){
+			if(!isExistAdMovie){
+				if($("#adMovie1").attr("id") != undefined) $("#adMovie").attr('style', "display:block");
+			}
+		},
+		/** 동영상 광고 END */
+		
+		simpleCallAjax : function(urlList){
+            for(var jnx=0; jnx < urlList.length; jnx++){
+                $.ajax({
+                    url : urlList[jnx],
+                    dataType : 'jsonp'
+                });
+            }
+        },
+		
+		init : function() {
+			
+			//스마트 옵션 OR 상품 이미지 init
+			if(!prdVar.tourIframeAcssYn || prdVar.tourIframeAcssYn == 'false'){
+				if(jQuery.inArray(prdVar.prdDtlTypCd, ["03", "04", "05", "06", "07", "10", "11", "12"]) > -1) {
+					$("#prdDescIfrm").attr("src","/product/SellerProductDetail.tmall?method=getSellerProductSmartOtionDetailViewDesc&prdNo=" + prdVar.prdNo + 
+					  "&isPreview=" + prdVar.isPreview+"&isIgnoreAuth="+ false +"&isRenewYn=Y" + "&isSmtOptChk=" + prdVar.isSmtOptChk);
+				} else {
+					$("#prdDescIfrm").attr("src","/product/SellerProductDetail.tmall?method=getSellerProductDetailViewDesc&prdNo=" + prdVar.prdNo + 
+					  "&isPreview=" + prdVar.isPreview+"&isIgnoreAuth="+ false +"&isRenewYn=Y");
+				}
+			}
+			
+			//인증정보 팝업 처리
+			$('[name=kc_info]').on('click', function(e) {
+				var url = "/product/SellerProductDetail.tmall?method=getCertPopup&lang=kor&prdNo=" + prdVar.prdNo;
+				window.open(url, "certPopup", "width=450,height=430,scrollbars=no,status=no");
+				return false;
+			});
+			
+			//제품안전 인증검사
+			$('[name=safetySearch]').on('click', function(e) {
+				window.open("http://safetykorea.kr/subPage.html?mode=4&subID=1&cate=productConfirmSearch");
+				return false;
+			});
+			
+			//제품안전 인증번호 검색 팝업
+			$('[name=safetySearchPop]').on('click', function(e) {
+				var certKey = $(this).attr("data-certKey");
+				window.open("http://safetykorea.kr/search/search_pop.html?authNum="+certKey , "_popup", "width=750,height=700,scrollbars=yes,status=no,location=no");
+				return false;
+			});
+
+            //생활화학 및 살생물제품 승인/신고 번호  팝업
+            $('[name=ecolifePop]').on('click', function(e) {
+                var certKey = $(this).attr("data-certKey");
+                window.open("http://ecolife.me.go.kr/ecolife/prdtinfo.do?CertNo="+certKey , "_popup", "width=750,height=700,scrollbars=yes,status=no,location=no");
+                return false;
+            });
+
+            //적합성평가 현황검색
+			$('#licenseSearch').on('click', function(e) {
+				window.open("http://www.rra.go.kr/ko/license/A_c_search.do");
+				return false;
+			});
+			
+			//의료기기 품목허가번호
+			$('#safetyCertificationLink').on('click', function(e) {
+				window.open("http://www.11st.co.kr/safety/SafetyCertificationLink.tmall");
+				return false;
+			});
+			
+			//축산물 이력번호
+			$('#beefTraceNoSearch').on('click', function(e) {
+				var beefTraceNo = $("#beefTraceNo").val();
+				window.open("http://cattle.mtrace.go.kr/viewbreading/cattle/cattleSearch.do?btsProgNo=010908401&btsActionMethod=SELECT&cattleNo="+beefTraceNo);
+				return false;
+			});
+			
+			// 원재료 성분보기			
+			$("#prdRmaterialBtn").on('click', function(e) {
+				productInfo.showRmaterialBtnClicked();
+			});
+			
+			// 원재료 성분보기 SELECTBOX 선택
+			$("#rmaterialNm").on('change', function(e) {
+				productInfo.rmaterialNmComboChanged();
+			});
+			
+			// so 입력 상품공지
+			$("#prdBbsIfrm").attr(
+					"src",
+					"/product/SellerProductDetail.tmall?method=getProductNoticeInfo&selMnbdNo="
+					+ prdVar.selMnbdNo + "&mdispCtgrNo="
+					+ prdVar.mdispCtgrNo
+					+ "&ntceClfCd=01&dispCtgrCd="
+					+ prdVar.dispCtgrCd
+					+ "&prdNo="+prdVar.prdNo);
+			
+			//.     방송통신 기자재 인증정보 인증현황 정보 보기 팝업 
+			$('[name=corrEq]').on('click', function(e) {
+				var certType = $(this).attr("data-certType");
+				var certKey  = $(this).attr("data-certKey");
+								
+				var url = "/product/SellerProductDetail.tmall?method=getProductCertInfo&certType=" + certType + "&certKey=" + certKey;
+				window.open(url, "certPopup", "width=500,height=400,scrollbars=no,status=no");
+				
+				return false;
+			});
+			
+			// 동영상 광고
+			productInfo.fnAdMovie(prdVar.prdNo);
+			
+			if($('#hotClkRcmYn').val() == "Y"){ // 핫클릭 추천 상품 이 상품과 연관된 상품 리스트 관련 로직
+				// 이 상품과 연관된 상품 광고 클릭시
+				$('#hotClkRcmGoods').find('.ad_link').on('click', function(){
+					if($('#hotClkRcmGoods').find('.help_pop').css('display') == 'block') {
+						$('#hotClkRcmGoods').find('.help_pop').hide();
+					} else {
+						$('#hotClkRcmGoods').find('.help_pop').show();
+					}
+				});
+			}
+			var $hotRecmList = $(".event-hotClkRcmGoods").find("li").not('.virtual-clone');
+			for(var i=0; i<$hotRecmList.length; i++) {
+				var adDispTrcUrl = $hotRecmList.eq(i).find('a').data('dispurl');
+				if(adDispTrcUrl != undefined && adDispTrcUrl != '') {
+					var adDispTrcUrlList = adDispTrcUrl.split(',');
+					productInfo.simpleCallAjax(adDispTrcUrlList); 
+				}
+			}
+			$hotRecmList.find('a').on('click', function(e){
+				e.preventDefault();
+				var callAjaxUrls = [];
+                var adAceUrlVerifyHost = 'action.adoffice.11st.co.kr';
+				var linkUrl = $(this).data('linkurl');
+                var clickUrl = $(this).data('clickurl');
+				var redirectUrl = $(this).data('redirecturl');
+
+				if(clickUrl != undefined && clickUrl != '') {
+					var clickUrlUrlList = clickUrl
+											.split(',')
+											.filter(function(url){
+												return !(url.indexOf(adAceUrlVerifyHost) >= 0);
+											});
+
+					for(var inx=0 ; inx < clickUrlUrlList.length; inx++){
+						callAjaxUrls.push(
+							$.ajax({
+								url : clickUrlUrlList[inx],
+								dataType : 'jsonp'
+							})
+						);
+					}
+				}
+
+				$.when(callAjaxUrls).always(function () {
+					if(redirectUrl){
+						window.location.href = redirectUrl + encodeURIComponent('http://www.11st.co.kr' + linkUrl);
+					}
+				});
+			});
+		}
+	};
+
+	return productInfo;
+}));

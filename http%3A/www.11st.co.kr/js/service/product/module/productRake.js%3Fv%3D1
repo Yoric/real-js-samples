@@ -1,0 +1,286 @@
+/**
+ * @method: productRake
+ * @dependency: requireJS, jQuery
+ */
+(function(root, factory) {
+	'use strict';
+    if (typeof define === 'function' && define.amd) {
+        define([
+            'jquery',
+            'productCommon'
+        ], factory);
+    } else {
+        root.productRake = factory(
+            root.jQuery,
+            root.productCommon
+        );
+    }
+}(window || this, function($, productCommon) {
+	'use strict';
+	
+	var prdVar 		= productPrdInfo;
+	var prdRakeVar	= productRakeLogInfo;
+	
+	var productRake = {		
+		
+		init : function() {
+			// 판매자 로그 세팅
+			var sellNckNm	= $('.seller_tit > .seller_nickname').text();
+			if($('#selOtherPrdYn').val() == "Y"){
+				$("#bestGoods").find('li').find('a').each(function(){
+					var logBody = "{'content_type':'PRODUCT'";
+					logBody += ", 'current_product_no':'"+prdVar.prdNo+"'";
+					logBody += ", 'group_product_no':'"+prdRakeVar.groupProductNo+"'";
+					logBody += ", 'group_product_firstview_no':'"+prdRakeVar.groupFirstViewPrdNo+"'";
+					logBody += ", 'group_product_category_no':'"+prdRakeVar.groupProductCategoryNo+"'";
+					logBody += ", 'position_l2':'"+$(this).data("prdcnt")+"'";
+					logBody += ", 'content_no':'"+$(this).data("prdno")+"'";
+					logBody += ", 'content_name':'"+$(this).data("prdnm")+"'";
+					logBody += ", 'product_price':'"+$(this).data("selprc")+"'";
+					logBody += ", 'last_discount_price':'"+$(this).data("finalprc")+"'";
+					logBody += ", 'seller_no':'"+prdVar.selMnbdNo+"'";
+					logBody += ", 'seller_name':'"+sellNckNm+"'";
+					logBody += "}";
+					
+					$(this).attr('data-log-index', $(this).data("prdcnt"));
+					$(this).attr('data-log-body', logBody);
+				});
+				
+				// 이전 다음 버튼 로그 데이터 세팅
+				var $targetPre 	= $("#bestGoods").find('.in_prev');
+				var $targetNext	= $("#bestGoods").find('.in_next');
+				
+				$targetPre.attr('data-log-actionid-label', 'prev');
+				$targetNext.attr('data-log-actionid-label', 'next');
+				
+				var logBodyCom = "{'current_product_no':'"+prdVar.prdNo+"'";
+				logBodyCom += ", 'group_product_no':'"+prdRakeVar.groupProductNo+"'";
+				logBodyCom += ", 'group_product_firstview_no':'"+prdRakeVar.groupFirstViewPrdNo+"'";
+				logBodyCom += ", 'group_product_category_no':'"+prdRakeVar.groupProductCategoryNo+"'";
+				logBodyCom += "}";
+				
+				$targetPre.attr('data-log-body', logBodyCom);
+				$targetNext.attr('data-log-body', logBodyCom);
+				
+				window.rakeLog && window.rakeLog.scrollHandler();
+			}
+			
+			$('.product_tab_area').find('li > a').each(function(){	// 상품상세 탭 로그 세팅
+				var logBody = "{'current_product_no':'"+prdVar.prdNo+"'";
+				logBody += ", 'group_product_no':'"+prdRakeVar.groupProductNo+"'";
+				logBody += ", 'group_product_firstview_no':'"+prdRakeVar.groupFirstViewPrdNo+"'";
+				logBody += ", 'group_product_category_no':'"+prdRakeVar.groupProductCategoryNo+"'";
+				logBody += "}";
+				
+				$(this).attr('data-log-body', logBody);
+			});
+			
+			// 레코픽 로그 세팅(이 상품과 함께 본 상품)
+			if($('#recopicYn').val() == "Y"){ 
+				$("#togetherGoods").find('li').find('a').each(function(){
+					var logBody = "{'content_type':'PRODUCT'";
+					logBody += ", 'current_product_no':'"+prdVar.prdNo+"'";
+					logBody += ", 'group_product_no':'"+prdRakeVar.groupProductNo+"'";
+					logBody += ", 'group_product_firstview_no':'"+prdRakeVar.groupFirstViewPrdNo+"'";
+					logBody += ", 'group_product_category_no':'"+prdRakeVar.groupProductCategoryNo+"'";
+					logBody += ", 'position_l2':'"+$(this).data("prdcnt")+"'";
+					logBody += ", 'content_no':'"+$(this).data("prdno")+"'";
+					logBody += ", 'content_name':'"+$(this).data("prdnm")+"'";
+					logBody += ", 'colloseo_channel_id':'"+$(this).data("colloceoid")+"'";
+					logBody += ", 'colloseo_click_info':'"+$(this).attr("href")+"'";
+					logBody += ", 'disp_space_no':'0'";
+					logBody += "}";
+					
+					$(this).attr('data-log-body', logBody);
+				});
+				
+				// 이전 다음 버튼 로그 데이터 세팅
+				var $targetPre 	= $("#togetherGoods").find('.in_prev');
+				var $targetNext	= $("#togetherGoods").find('.in_next');
+				
+				$targetPre.attr('data-log-actionid-label', 'prev');
+				$targetNext.attr('data-log-actionid-label', 'next');
+				
+				var logBodyCom = "{'current_product_no':'"+prdVar.prdNo+"'";
+				logBodyCom += ", 'group_product_no':'"+prdRakeVar.groupProductNo+"'";
+				logBodyCom += ", 'group_product_firstview_no':'"+prdRakeVar.groupFirstViewPrdNo+"'";
+				logBodyCom += ", 'group_product_category_no':'"+prdRakeVar.groupProductCategoryNo+"'";
+				logBodyCom += "}";
+				
+				$targetPre.attr('data-log-body', logBodyCom);
+				$targetNext.attr('data-log-body', logBodyCom);
+			}
+
+			//이 상품과 연관된 상품이전 다음 버튼 로그 데이터 세팅(핫클릭 광고상품)
+			if($('#hotClkRcmYn').val() == "Y") {
+				var $targetPre 	= $("#hotClkRcmGoods").find('.in_prev');
+				var $targetNext	= $("#hotClkRcmGoods").find('.in_next');
+
+				$targetPre.attr('data-log-actionid-label', 'prev');
+				$targetNext.attr('data-log-actionid-label', 'next');
+
+				var logBodyCom = "{'current_product_no':'"+prdVar.prdNo+"'";
+				logBodyCom += ", 'group_product_no':'"+prdRakeVar.groupProductNo+"'";
+				logBodyCom += ", 'group_product_firstview_no':'"+prdRakeVar.groupFirstViewPrdNo+"'";
+				logBodyCom += ", 'group_product_category_no':'"+prdRakeVar.groupProductCategoryNo+"'";
+				logBodyCom += "}";
+
+				$targetPre.attr('data-log-body', logBodyCom);
+				$targetNext.attr('data-log-body', logBodyCom);
+			}
+
+			// 하단 라인배너 로그
+			if($('.prdc_cont_banner_2').length > 0 && $('.prdc_cont_banner_2').find('a').length > 0) {
+				var $target = $('.prdc_cont_banner_2').find('a');
+				$('.prdc_cont_banner_2').attr('data-log-actionid-area', 'viewtogether');
+				$target.attr('data-log-actionid-label', 'banner');
+				
+				var logBodyCom = "{'content_type':'BANNER'";
+				logBodyCom += ", 'current_product_no':'"+prdVar.prdNo+"'";
+				logBodyCom += ", 'group_product_no':'"+prdRakeVar.groupProductNo+"'";
+				logBodyCom += ", 'group_product_firstview_no':'"+prdRakeVar.groupFirstViewPrdNo+"'";
+				logBodyCom += ", 'group_product_category_no':'"+prdRakeVar.groupProductCategoryNo+"'";
+				logBodyCom += "}";
+				
+				$target.attr('data-log-body', logBodyCom);
+				
+			}
+			
+			//상단 옵션 로그 세팅
+			if($("#ui_option1").length > 0) {
+				var logBodyCom = "{'current_product_no':'"+prdVar.prdNo+"'";
+				logBodyCom += ", 'group_product_no':'"+prdRakeVar.groupProductNo+"'";
+				logBodyCom += ", 'group_product_firstview_no':'"+prdRakeVar.groupFirstViewPrdNo+"'";
+				logBodyCom += ", 'group_product_category_no':'"+prdRakeVar.groupProductCategoryNo+"'";
+				logBodyCom += "}";
+				
+				$("#ui_option1").attr('data-log-body', logBodyCom);
+				
+				$("#ui_option1").on('click', function(){
+					rakeLog.sendRakeLog(this, 'click');
+				});
+			}
+			
+			// 상단 브랜드
+			if($("#brandShop").length > 0) {
+				$("#brandShop").on('click', function(e){
+					rakeLog.sendRakeLog(this, 'click');
+				});
+			}
+			
+			// 상단 리뷰 영역
+			if($("#prdRating").length > 0) {
+				$("#prdRating").on('click', function(e){
+					rakeLog.sendRakeLog(this, 'click');
+				});
+			}
+			if($("#prdReviewCnt").length > 0) {
+				$("#prdReviewCnt").on('click', function(e){
+					rakeLog.sendRakeLog(this, 'click');
+				});
+			}
+			// 상단 좋아요
+			if($("#likeAdd").length > 0) {
+				$("#likeAdd").on('click', function(e){
+					rakeLog.sendRakeLog(this, 'click');
+				});
+			}
+			// 상단 공유하기
+			if($("#lyBtnShare").find("li > a").length > 0) {
+				$("#lyBtnShare").find("li > a").on('click', function(){
+					rakeLog.sendRakeLog(this, 'click');
+				});
+			}
+			
+			// 쿠폰 적용 버튼
+			if($(".btn_coupon").length > 0) {
+				var $targetBtn	= $(".btn_coupon");
+				
+				$targetBtn.attr('data-log-actionid-area', 'navigation');
+				$targetBtn.attr('data-log-actionid-label', 'prev');
+				
+				var logBodyCom = "{'current_product_no':'"+prdVar.prdNo+"'";
+				logBodyCom += ", 'group_product_no':'"+prdRakeVar.groupProductNo+"'";
+				logBodyCom += ", 'group_product_firstview_no':'"+prdRakeVar.groupFirstViewPrdNo+"'";
+				logBodyCom += "}";
+				
+				$targetBtn.attr('data-log-body', logBodyCom);
+				
+				$targetBtn.on('click', function(){
+					rakeLog.sendRakeLog(this, 'click');
+				});
+			}
+			
+			// 하단 옵션 가격 더보기 버튼 로그
+			if($(".total_area > button").length > 0) {
+				var $targetBtn	= $(".total_area > button"); 
+				
+				$targetBtn.attr('data-log-actionid-area', 'buy_box');
+				$targetBtn.attr('data-log-actionid-label', 'price_more');
+				
+				var logBodyCom = "{'current_product_no':'"+prdVar.prdNo+"'";
+				logBodyCom += ", 'group_product_no':'"+prdRakeVar.groupProductNo+"'";
+				logBodyCom += ", 'group_product_firstview_no':'"+prdRakeVar.groupFirstViewPrdNo+"'";
+				logBodyCom += "}";
+				
+				$targetBtn.attr('data-log-body', logBodyCom);
+			}
+			
+			if(prdVar.isStandardPrd) {	//그룹상품만 해당
+				// 그룹상품 닫기
+				if($("#stdPrdCloseBtn").length > 0) {
+					$("#stdPrdCloseBtn").attr('data-log-actionid-area', 'titlebar');
+					$("#stdPrdCloseBtn").attr('data-log-actionid-label', 'close');
+					
+					var logBodyCom = "{'current_product_no':'"+prdVar.prdNo+"'";
+					logBodyCom += ", 'group_product_no':'"+prdRakeVar.groupProductNo+"'";
+					logBodyCom += ", 'group_product_firstview_no':'"+prdRakeVar.groupFirstViewPrdNo+"'";
+					logBodyCom += "}";
+					
+					$("#stdPrdCloseBtn").attr('data-log-body', logBodyCom);
+				}
+				if($("#stdPrdTopNavi").length > 0) {
+					// 이전 버튼 세팅 다음 버튼 세팅
+					var $preBtn 	= $("#stdPrdTopNavi").find('.btn_group_prev > .btn_group_more');
+					var $nextBtn	= $("#stdPrdTopNavi").find('.btn_group_next > .btn_group_more');
+					
+					$preBtn.attr('data-log-actionid-area', 'navigation');
+					$preBtn.attr('data-log-actionid-label', 'prev');
+					
+					$nextBtn.attr('data-log-actionid-area', 'navigation');
+					$nextBtn.attr('data-log-actionid-label', 'next');
+					
+					var logBodyCom = "{'current_product_no':'"+prdVar.prdNo+"'";
+					logBodyCom += ", 'group_product_no':'"+prdRakeVar.groupProductNo+"'";
+					logBodyCom += ", 'group_product_firstview_no':'"+prdRakeVar.groupFirstViewPrdNo+"'";
+					logBodyCom += "}";
+					
+					$preBtn.attr('data-log-body', logBodyCom);
+					$nextBtn.attr('data-log-body', logBodyCom);
+				}//$('.btn_fixed_wrap').find('.group_item_prev > button').length
+				
+				// 그룹상품 중간 좌우 이동 버튼
+				if($(".btn_fixed_wrap").length > 0) {
+					var $preBtn 	= $('.btn_fixed_wrap').find('.group_item_prev > button');
+					var $nextBtn	= $('.btn_fixed_wrap').find('.group_item_next > button');
+					
+					$preBtn.attr('data-log-actionid-area', 'navigation');
+					$preBtn.attr('data-log-actionid-label', 'list_prev');
+					
+					$nextBtn.attr('data-log-actionid-area', 'navigation');
+					$nextBtn.attr('data-log-actionid-label', 'list_next');
+					
+					var logBodyCom = "{'current_product_no':'"+prdVar.prdNo+"'";
+					logBodyCom += ", 'group_product_no':'"+prdRakeVar.groupProductNo+"'";
+					logBodyCom += ", 'group_product_firstview_no':'"+prdRakeVar.groupFirstViewPrdNo+"'";
+					logBodyCom += "}";
+					
+					$preBtn.attr('data-log-body', logBodyCom);
+					$nextBtn.attr('data-log-body', logBodyCom);
+				}
+			}
+		}
+	};
+
+	return productRake;
+}));

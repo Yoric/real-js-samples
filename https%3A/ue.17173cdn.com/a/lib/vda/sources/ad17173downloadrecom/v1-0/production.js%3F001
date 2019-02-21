@@ -1,0 +1,52 @@
+adv.AdBase.extend('Ad17173DownloadRecom', {
+  init: function (options) {
+    this.base(options)
+    this.cookie = 'Ad17173DownloadRecom'
+    this.isRepeat = false
+    this.emit(adv.ENUM.EVENTS.inited)
+  },
+  tmpl: function () {/*@preserve
+<li>
+  <a class="con" href="@link" target="_blank">
+    <img alt="" src="@image" width="130" height="100" class="">
+    <span class="txt" style="position:relative;width:94px;padding-left:36px;"><i style="position:absolute;left:0;top:2px;width:34px;font-style:normal;color:#fff;line-height:18px;text-align:center;background:#094;">@tip</i>@title</span>
+  </a> 
+</li>
+  */},
+  setup: function (data) {
+    this.data = data;
+    this.emit(adv.ENUM.EVENTS.setuped);
+  },
+  render: function (target, noRepeat) {
+    var me = this
+    var pos = adv.cookie.getCookie(this.cookie) || adv.util.random(this.data.sources.length)
+    var li = target.find('li:last')
+    if (this.isRepeat) {
+      this.isRepeat = false
+      pos++
+    }
+    $('#forsetLink88 .btn-change').on('click',function(){
+      me.isRepeat = false
+    })
+    if (noRepeat && li.length) {
+      this.isRepeat = true
+     /*  setTimeout(function () {
+        me.isRepeat = false
+      }, 1000) */
+    }
+    pos = pos >= this.data.sources.length ? 0 : pos;
+    var source = this.data.sources[pos]
+    var adLi = $(adv.razor(this.tmpl, source))
+    li.remove()
+    target.find('ul').prepend(adLi)
+    pos++
+    adv.cookie.setCookie(this.cookie, pos, adv.cookie.DAY)
+  },
+  play: function () {
+    var me = this
+    this.render($('#' + this.options.advid), true)
+    $(document).on('appendHtml', function (e, target) {
+      target.id == 'inc-jdwy' && me.render($(target))
+    })
+  }
+});

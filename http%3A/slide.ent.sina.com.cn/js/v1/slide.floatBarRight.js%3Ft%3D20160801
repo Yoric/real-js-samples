@@ -1,0 +1,202 @@
+ (function(modules) { // webpackBootstrap
+ 	// The module cache
+ 	var installedModules = {};
+ 	// The require function
+ 	function __webpack_require__(moduleId) {
+ 		// Check if module is in cache
+ 		if(installedModules[moduleId])
+ 			return installedModules[moduleId].exports;
+ 		// Create a new module (and put it into the cache)
+ 		var module = installedModules[moduleId] = {
+ 			exports: {},
+ 			id: moduleId,
+ 			loaded: false
+ 		};
+ 		// Execute the module function
+ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+ 		// Flag the module as loaded
+ 		module.loaded = true;
+ 		// Return the exports of the module
+ 		return module.exports;
+ 	}
+ 	// expose the modules object (__webpack_modules__)
+ 	__webpack_require__.m = modules;
+ 	// expose the module cache
+ 	__webpack_require__.c = installedModules;
+ 	// __webpack_public_path__
+ 	__webpack_require__.p = "http://storage.fedev.sina.com.cn/components/floatBarRight/";
+ 	// Load entry module and return exports
+ 	return __webpack_require__(0);
+ })
+ ([
+ function(module, exports, __webpack_require__) {
+	'use strict';
+	var _tpl = __webpack_require__(1);
+	var _tpl2 = _interopRequireDefault(_tpl);
+	var _weixinTpl = __webpack_require__(2);
+	var _weixinTpl2 = _interopRequireDefault(_weixinTpl);
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	__webpack_require__(3);
+	__webpack_require__(16);
+	__webpack_require__(18);
+	var $CCCFloatBarRight = $('#CCCFloatBarRight');
+	var weiboShare = {};
+	var PAGE_INFO = {};
+	var formList;
+	var $body = $('body');
+	var articleComment;
+	var FloatBarRight = function () {
+	    function FloatBarRight() {
+	        _classCallCheck(this, FloatBarRight);
+	        this.data = $SCOPE.SINA_COMPONENTS.floatBarRight || {};
+	        this.render();
+	        this.setPosition(); //设置位置
+	        this.setConfig(); //设置配置数据
+	        this.bindEvent();
+	    }
+	    FloatBarRight.prototype.render = function render() {
+	        var htmlTpl = doT.template((0, _tpl2['default'])());
+	        $('#CCCFloatBarRight').html(htmlTpl(this.data));
+	    };
+	    FloatBarRight.prototype.bindEvent = function bindEvent() {
+	        $(window).resize(function () {
+	            setTimeout(function () {
+	                var w = $(window).width();
+	                if (w >= 1440) {
+	                    var pageWidth = 1186;
+	                    $(".main_content").css("width", "1186px");
+	                    $(".content_wrappr_left").css("width", "850px");
+	                } else {
+	                    var pageWidth = 1000;
+	                    $(".main_content").css("width", "1000px");
+	                    $(".content_wrappr_left").css("width", "680px");
+	                }
+	                $CCCFloatBarRight.css('margin-left', pageWidth / 2 + 10);
+	            }, 500);
+	        });
+	        /**
+	         * 回到顶部
+	         */
+	        $('#CCCFBRScrollToTop').on('click', function () {
+	            window.scrollTo(0, 1);//window.location.hash = '';
+	        });
+	        /**
+	         * 分享
+	         */
+	        $('#CCCFBRShare').on("click", function () {
+	            bShare && bShare.more("click");
+	            _S_uaTrack && _S_uaTrack('index_news_content', 'share_down_click');
+	        });
+	        $('#CCCFBRShareWeibo').on('click', function () {
+	            var href = ['http://service.weibo.com/share/share.php?appkey=',encodeURIComponent(weiboShare.appkey), '&title=' + encodeURIComponent(weiboShare.title), '&url=' + encodeURIComponent(location.href), '&ralateUid=' + encodeURIComponent(weiboShare.ralateUid), '&pic=' + encodeURIComponent(weiboShare.pic)].join('');
+	            window.open(href, '_blank', "width=650,height=500");
+	        });
+	        /**
+	         * 微信分享
+	         */
+	        $('#CCCFBRShareWeixin').on('click', function () {
+                $(".CCC-wxb-qrcode-box img").attr('src',$(".CCC-wxb-qrcode-box img").attr('data-src'));
+	            $('#CCCWeiXinBox').show();
+	        });
+	        /**
+	         * 隐藏微信分享二维码
+	         */
+	        $('#CCCWXBClose').on('click', function () {
+	            $('#CCCWeiXinBox').hide();
+	        });
+	    };
+	    /**
+	     * 设置位置
+	     */
+	    FloatBarRight.prototype.setPosition = function setPosition() {
+	        var w = $(window).width();
+	        if (w >= 1440) {
+	            var pageWidth = 1186;
+	            $(".main_content").css("width", "1186px");
+	        } else if (w < 1440) {
+	            var pageWidth = 1000;
+	            $(".main_content").css("width", "1000px");
+	        }
+	        $CCCFloatBarRight.css('margin-left', pageWidth / 2 + 10);
+	    };
+	    /**
+	     * 设置配置数据
+	     */
+	    FloatBarRight.prototype.setConfig = function setConfig() {
+	        for (var _iterator = this.data['default'], _isArray = Array.isArray(_iterator), _i = 0, _iterator = _isArray ? _iterator : _iterator[Symbol.iterator]();;) {
+	            var _ref;
+	            if (_isArray) {
+	                if (_i >= _iterator.length) break;
+	                _ref = _iterator[_i++];
+	            } else {
+	                _i = _iterator.next();
+	                if (_i.done) break;
+	                _ref = _i.value;
+	            }
+	            var def = _ref;
+	            if (def.type === 'share-weibo') {
+	                weiboShare = def;
+	            } else if (def.type === 'share-weixin') {
+	                var weixin = doT.template((0, _weixinTpl2['default'])());
+	                $body.append(weixin(def));
+	            }
+	        }
+	    };
+	    /**
+	     * 文章评论
+	     */
+	    FloatBarRight.prototype.articleComment = function articleComment() {
+            ;
+	    };
+	    /**
+	     * 初始化评论组件
+	     */
+	    FloatBarRight.prototype.initComment = function initComment() {
+            ;
+	    };
+	    return FloatBarRight;
+	}();
+	new FloatBarRight();
+ },
+ function(module, exports) {
+	'use strict';
+	/**
+	 * Created by guangtian on 16/5/15.
+	 * 模板
+	 */
+	var tpl = function tpl() {
+	    return ['<a class="CCC-fbr-box CCC-fbr-home" target="_blank" href="http://www.sina.com.cn/" suda-uatrack="key=index_content_right&value=www_back_click">', '<span class="CCC-fbr-dian"></span><span class="CCC-fbr-title">新浪首页</span>', '</a>', '{{ for (var item in it["default"]) { }}', '{{ if (it["default"][item].type === "comment") { }}', '<a class="CCC-fbr-box CCC-fbr-comment" id="CCCFBRComment" href="javascript:void(0);" suda-uatrack="key=index_content_right&value=comment_click">', '<span class="CCC-fbr-title">我要评论</span>', '</a>', '{{ } else if (it["default"][item].type === "share") { }}', '<a class="CCC-fbr-box CCC-fbr-share" id="CCCFBRShare" suda-uatrack="key=index_content_right&value=share_click" href="javascript:void(0);">', '<span class="CCC-fbr-title">分享文章</span>', '</a>', '{{ } else if (it["default"][item].type === "rel-read") { }}', '<a class="CCC-fbr-box CCC-fbr-rel-read" href="{{=it["default"][item].href}}" suda-uatrack="key=news_content_2014&value=right_related">', '<span class="CCC-fbr-title">相关阅读</span>', '</a>', '{{ } else if (it["default"][item].type === "rec-read") { }}', '<a class="CCC-fbr-box CCC-fbr-rec-read" href="{{=it["default"][item].href}}">', '<span class="CCC-fbr-title">推荐阅读</span>', '</a>', '{{ } else if (it["default"][item].type === "share-weibo") { }}', '<a class="CCC-fbr-box CCC-fbr-share-weibo" id="CCCFBRShareWeibo" suda-uatrack="key=index_content_right&value=share_weibo" href="javascript:void(0);">', '<span class="CCC-fbr-title">分享微博</span>', '</a>', '{{ } else if (it["default"][item].type === "share-weixin") { }}', '<a class="CCC-fbr-box CCC-fbr-share-weixin" suda-uatrack="key=index_content_right&value=share_weixing" id="CCCFBRShareWeixin" href="javascript:void(0);">', '<span class="CCC-fbr-title">分享微信</span>', '</a>', '{{ } }}', '{{ } }}', '{{for (var custom in it.custom) { }}', '<a class="CCC-fbr-box" style="background-image: url(\'{{=it.custom[custom].image}}\');" href="{{=it.custom[custom].href}}" suda-uatrack="{{=it.custom[custom].sudaUatrack}}">', '<span class="CCC-fbr-title">{{=it.custom[custom].content}}</span>', '</a>', '{{ } }}', '<a class="CCC-fbr-box CCC-fbr-to-top" id="CCCFBRScrollToTop" href="javascript:void(0);" suda-uatrack="key=index_content_right&value=top_back_click">', '<span class="CCC-fbr-title">回到顶部</span>', '</a>'].join('');
+	};
+	// export default tpl;
+	module.exports = tpl;
+ },
+ function(module, exports) {
+	'use strict';
+	/**
+	 * Created by guangtian on 16/5/15.
+	 * 微信二维码模板
+	 */
+	var weixinTpl = function weixinTpl() {
+	    return ['<div id="CCCWeiXinBox" class="CCC-weixin-box">', '<div id="CCCWXBClose" class="CCC-wxb-close">X</div>', '<div class="CCC-wxb-top">', '<span>分享到 - 微信</span>', '</div>', '<div class="CCC-wxb-qrcode-box">', '<img data-src="{{=it.qrCode}}">', '</div>', '</div>'].join('');
+	};
+	// export default weixinTpl;
+	module.exports = weixinTpl;
+ },
+ function(module, exports) {},
+,
+,
+,
+,
+,
+,
+,
+,
+,
+,
+,
+,
+ function(module, exports) {},
+,
+ function(module, exports) {}
+ ]);

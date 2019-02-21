@@ -1,0 +1,14 @@
+﻿(function(){
+var s = "<"+"div id=\'beacon_5c6d727ae16fc87aeb34083311958a1c\' style=\'position: absolute; left: 0px; top: 0px; visibility: hidden;\'>\n";
+s += "<"+"img width=\"0\" height=\"0\" src=\"https://cat.fr.eu.criteo.com/delivery/lg.php?cppv=1&cpp=BcrPzXxYWmVlbU8wekRyVENOQ1VoWnBDcUQ3Z25vQmhGUFlCMi9FS0ZvTWgrTmkvNkhVdFZFNTEyZU5ESys4T3FqeTlIWG5MbnNVVmc4c2xUa2JiNlhGakxYM1VhV01HNVUvNWY4U3E3V24rZTR1UkZ3cG4reGRKWk43U2JqaDV2R1lsNXh3eUN0dHhoK0FXb0RlVWg3OTc2VTJRNDk3YmVHRXZmbW0xeTNydGdNNnFmNmFMbUw4V2tmTy9EQUdiQUNXeEFYRUxXSFJjc2tURm5BaURGQzVYV0JPVFo5UUZkL1hmTUFUcFBSUEdFL1pFUVQ3LzlTU1ZycE1TYjA5eklERzdLfA%3D%3D\"/>\n";
+s += "<"+"/div>\n";
+s += "<"+"!-- Passback Light AdSlot 1 for Ad Unit \'mail.ru_300*250_mainpage\' ### Size: [[300,250]] -->\n";
+s += "<"+"div data-glade id=\'glade-aslot-1\'\n";
+s += "      data-ad-unit-path=\'/205338224/mail.ru_300*250_mainpage\'\n";
+s += "      width=\'300\' height=\'250\'\n";
+s += "      data-click-url=\'%%CLICK_URL_UNESC%%\'\n";
+s += "      data-page-url=\'https://pogoda.mail.ru\'><"+"/div>\n";
+s += "<"+"script async src=\'https://securepubads.g.doubleclick.net/static/glade.js\'><"+"/script>\n";
+s += "<"+"!-- End -->\n";
+s += "\n";
+document.write(s);})();

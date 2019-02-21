@@ -1,0 +1,5 @@
+// <!-----------------2017-04-06-10:27:54.898---------------------->
+!(function (document, undefined) {var SOTool=window.CloudSdkPlugin.STK["common.SOTool"],ClassObject=SOTool.getObj("core.ClassObject"),Message=SOTool.getObj("model.Message");
+SOTool.creatPlugin("lang.message.plugin.vod",function(){var a={};a[Message.NoSupportPano]="\u8be5\u8bbe\u5907\u8fd8\u4e0d\u652f\u63013d\u529f\u80fd,\u5efa\u8bae\u4f7f\u7528windows\u548c\u5b89\u5353\u7cfb\u7edf\u4e0b\u7684\u8c37\u6b4c\u6d4f\u89c8\u5668\u4f53\u9a8c\u8be5\u529f\u80fd";a[Message.Drm]="\u89c6\u9891\u4e3a\u52a0\u5bc6\u89c6\u9891\uff0c\u65e0\u6cd5\u89e3\u5bc6\u64ad\u653e";a[Message.GSLB_IO]="\u7f51\u7edc\u9519\u8bef\uff0c\u8bf7\u68c0\u67e5\u7f51\u7edc\u8bbe\u7f6e";a[Message.Other]="\u89c6\u9891\u52a0\u8f7d\u5931\u8d25\uff0c\u8bf7\u5237\u65b0\u91cd\u8bd5";
+return a}());
+})(document, undefined);

@@ -1,0 +1,93 @@
+/**
+* @(#)naver.tlist.layer.ClaimComplete.js
+*@since 2014. 8. 6.
+*
+* Copyright NAVER Corp. All rights Reserved.
+* NAVER PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
+*/
+
+/**
+* @author tod2
+* @since 2014. 8. 6.
+* @description
+* 
+* 신고 완료 레이어 및 기능
+*/
+
+window.naver.tlist.layer = window.naver.tlist.layer || {};
+
+window.naver.tlist.layer.ClaimComplete = tljindo.$Class({
+	init : function(option, messageOption) {
+		this.option(option);
+		this.option(messageOption);
+		this._initVar(this.option);
+		this._setTemplate();
+		this._setWrapperElement();
+		this._makeLayer();		
+		this._setWrapperLayerElement();
+		this._attachEvent();
+	},
+	// 인스턴스 변수 초기화
+	_initVar : function(el) {
+		this._htWElement = {};
+		this._htEvent = {};
+		this._oTemplate = {};
+	},
+	// 템플릿 매핑
+	_setTemplate : function() {
+		this._oTemplate["claimComplete"] = new tljindo.$Template(naver.tlist.TEMPLATE_CLAIM_COMPLETE);	// 신고 완료
+		this._oTemplate["title"] = new tljindo.$Template(window.naver.tlist.TEMPLATE_COMMON_NOLINK_TITLE);	// 리스트 항목
+	},
+	// 기본 객체 매핑
+	_setWrapperElement : function() {
+		this._htWElement["base"] = tljindo.$Element(this.option("layerBaseId"));
+	},
+	// 신고 완료 UI에 사용되는 Layer 생성
+	_makeLayer : function() {
+		this._htWElement["base"].appendHTML(this._oTemplate["claimComplete"].process({layerClaimCompleteId : this.option("layerClaimCompleteId")}));
+	},
+	// 레이어 관련 객체 매핑
+	_setWrapperLayerElement : function() {
+		this._htWElement["claimCompleteLayer"] = tljindo.$Element(this.option("layerClaimCompleteId"));	// 신고 완료 레이어
+		this._htWElement["claimCompleteConfirmBtn"] = this._htWElement["claimCompleteLayer"].query(".__BTN_CONFIRM");	// 확인 버튼
+		this._htWElement["claimCompleteListTitle"] = this._htWElement["claimCompleteLayer"].query(".__TITLE");	// 리스트 제목
+	},
+	// 기본 이벤트 binding
+	_attachEvent : function() {
+		if (this._htWElement["claimCompleteConfirmBtn"]) {
+			this._htEvent["claimCompleteConfirmBtn_click"] = {
+				fn : this._htWElement["claimCompleteConfirmBtn"].attach("click", tljindo.$Fn(function(oEvent) {oEvent.stop(tljindo.$Event.CANCEL_DEFAULT);this.fireEvent("confirm", {oEvent : oEvent})}, this).bind()), 
+				el : this._htWElement["claimCompleteConfirmBtn"].$value()
+			};
+		}
+	},
+	// 기본 이벤트 unbinding
+	_detachEvent : function() {
+		for (p in this._htEvent) {
+			var ht = this._htEvent[p];
+			ht.fn.detach(ht.el, p.substring(p.lastIndexOf("_")));
+		}
+	},
+	// 지식리스트 객체 제거. 중복 init 시 기존의 객체를 제거할 때 등 사용 
+	_destory : function() {
+		if (this._htWElement["claimCompleteLayer"]) {
+			this._htWElement["claimCompleteLayer"].leave();
+			this._detachEvent();
+			this._htWElement = this._htEvent = this._oTemplate = null;
+		}
+	},
+	// 레이어 노출
+	show : function(oEvent, sListTitle) {
+		oEvent.stop(tljindo.$Event.CANCEL_DEFAULT);
+		
+		var sListTitleHtml = this._oTemplate["title"].process({title: sListTitle});
+		
+		this._htWElement["claimCompleteListTitle"].html(sListTitleHtml);
+		this._htWElement["claimCompleteLayer"].show();
+	},
+	// 레이어 숨기기
+	hide : function(oEvent) {
+		oEvent.stop(tljindo.$Event.CANCEL_DEFAULT);
+		this._htWElement["claimCompleteLayer"].hide();
+	}
+}).extend(tljindo.UIComponent || tljindo.m.UIComponent);

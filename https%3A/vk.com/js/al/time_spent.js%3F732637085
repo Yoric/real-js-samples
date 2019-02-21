@@ -1,0 +1,156 @@
+// window._spentTimerUpdate
+// window._spentTimerSend
+
+var TimeSpent = {
+  _saveTimer: 5000,
+  _sendTimer: 30000,
+  _data: {},
+
+  update: function(option) {
+    if (!cur.module || (option === false && cur.timeSpentInfo && cur.timeSpentInfo.module === cur.module)) {
+      return;
+    }
+
+    TimeSpent._init(option);
+    TimeSpent._saveTime(option);
+  },
+
+  setTimers: function(saveTimer, sendTimer) {
+    if (saveTimer > 0) {
+      TimeSpent._saveTimer = saveTimer;
+    }
+
+    if (sendTimer > 0) {
+      TimeSpent._sendTimer = sendTimer;
+    }
+
+    if (window._spentTimerUpdate) {
+      clearTimeout(window._spentTimerUpdate);
+    }
+
+    if (window._spentTimerSend) {
+      clearTimeout(window._spentTimerSend);
+    }
+
+    TimeSpent._sendTime();
+    TimeSpent._saveTime();
+  },
+
+  _init: function(option) {
+    if (cur.timeSpentInfo) {
+      return;
+    }
+
+    cur.timeSpentInfo = {
+      module: cur.module,
+      option: option || '',
+    };
+
+    TimeSpent._sendTime();
+  },
+
+  _getData: function() {
+    return ls.get('time_spent') || TimeSpent._data || {};
+  },
+
+  _saveData: function(data) {
+    if (ls.set('time_spent', data) === false) {
+      TimeSpent._data = data;
+    }
+  },
+
+  _saveTime: function(newOption) {
+    if (!cur.timeSpentInfo) {
+      return;
+    }
+
+    var data = TimeSpent._getData();
+    var now = Date.now();
+    var isSwitchModule = cur.module !== cur.timeSpentInfo.module;
+    var isSwitchOption = !isUndefined(newOption) && (newOption !== cur.timeSpentInfo.option);
+
+    if (!data[cur.timeSpentInfo.module]) {
+      data[cur.timeSpentInfo.module] = {
+        full: 0,
+        last: now,
+        options: {},
+      };
+    }
+
+    var info = data[cur.timeSpentInfo.module];
+
+    info.full += now - info.last;
+    info.last = now;
+
+    if (cur.timeSpentInfo.option) {
+      if (!info.options[cur.timeSpentInfo.option]) {
+        info.options[cur.timeSpentInfo.option] = {
+          full: 0,
+          last: now,
+        };
+      }
+
+      var opt = info.options[cur.timeSpentInfo.option];
+
+      opt.full += now - opt.last;
+      opt.last = now;
+    }
+
+    // If switch module or option update current state
+    if (isSwitchModule || isSwitchOption) {
+      cur.timeSpentInfo = {
+        module: cur.module,
+        option: newOption || '',
+      };
+
+      if (!data[cur.timeSpentInfo.module]) {
+        data[cur.timeSpentInfo.module] = {
+          full: 0,
+          last: now,
+          options: {},
+        };
+      }
+
+      data[cur.timeSpentInfo.module].last = now;
+
+      if (newOption && data[cur.timeSpentInfo.module].options[newOption]) {
+        data[cur.timeSpentInfo.module].options[newOption].last = now;
+      }
+    }
+
+    TimeSpent._saveData(data);
+
+    // Update usage time by every N sec
+    if (window._spentTimerUpdate) {
+      clearTimeout(window._spentTimerUpdate);
+    }
+
+    window._spentTimerUpdate = setTimeout(TimeSpent._saveTime, TimeSpent._saveTimer);
+
+    // Log data on server by every N sec
+    if (!window._spentTimerSend) {
+      window._spentTimerSend = setTimeout(TimeSpent._sendTime, TimeSpent._sendTimer);
+    }
+
+  },
+
+  _sendTime: function() {
+    var data = TimeSpent._getData();
+
+    if (!isEmpty(data)) {
+      statlogsValueEvent('time_spent', data);
+
+      ls.remove('time_spent');
+      TimeSpent._data = {};
+    }
+
+    if (window._spentTimerSend) {
+      clearTimeout(window._spentTimerSend);
+      window._spentTimerSend = null;
+    }
+  },
+};
+
+window.timeSpent = TimeSpent;
+
+try{stManager.done('time_spent.js');}catch(e){}

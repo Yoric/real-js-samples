@@ -1,0 +1,10 @@
+﻿(function(){
+var s = "<"+"div id=\'beacon_5c6d727a482e54610d166a8f64c39395\' style=\'position: absolute; left: 0px; top: 0px; visibility: hidden;\'>\n";
+s += "<"+"iframe width=\"0\" height=\"0\" style=\"display:none\" src=\"https://dis.eu.criteo.com/dis/dis.aspx?pu=83584&cb=5c6d727a482e54610d166a8f64c39395\"><"+"/iframe>\n";
+s += "<"+"img width=\"0\" height=\"0\" src=\"https://cat.fr.eu.criteo.com/delivery/lg.php?cppv=1&cpp=fV%2FWRXxWL1hlKytXVWxRczVMa1owbWpCTHZCMU05UEhVbjFnS01jY1Z0OUR3aHJMMnVhRnFGS09NVWdYUXpFSloreWs2YnZkekF1aEp3eklONjM3K1llQU5TTU5HaHlOVWxYb3psNStEZDBGTGVUU2ZwTDRYWFRSWCtrekpyWDlDcndmVVVZaFFvZDNZRlBJQ2RVazBRclNCUHBBZ0xWUlc3NGdZOEM5ZGZwQm5oYTdadG1KRXZPU1VjMmxJRmNIZitIVzZ3VjNpUmc0cldFckxnd01oTzdnUzhDazEyanNTNEVaYzlWVXpWNWtPTXJoMUllSlBDTEVsampDK2N4OFl5aDdTfA%3D%3D\"/>\n";
+s += "<"+"/div>\n";
+s += "<"+"script type=\'text/javascript\'>\n";
+s += "gCRITEO.passback();\n";
+s += "<"+"/script>\n";
+s += "\n";
+document.write(s);})();

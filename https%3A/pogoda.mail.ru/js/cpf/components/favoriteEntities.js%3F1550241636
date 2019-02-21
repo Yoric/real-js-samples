@@ -1,0 +1,117 @@
+/**
+ * Абстрактный контроллер избранных сущностей
+ * @requires 'lib/basic.js'
+ * @requires 'lib/constructors.js'
+ * @requires 'lib/types/types.Array.js'
+ */
+
+(function (window, oCpf) {
+	'use strict';
+
+	var oBasic = oCpf.Basic;
+	var typeOf = oBasic.typeOf;
+	var isArray = oCpf.Types.Array.isArray;
+	var getByPath = oBasic.getByPath;
+
+	/**
+	 * @property {function} transport @returns Promise обеспечивает
+	 * взаимодействие с сервером, принимает тип действия и его параметры
+	 */
+	var defOpts = {
+		transport: null,
+		dataPath: ''
+	};
+
+	var model = oBasic.getModel((function () {
+		var getFavoritesArray = function () {
+			var oFavorites = this._Favorites;
+			return Object.keys(oFavorites).map(function (sEntityId) {
+				return oFavorites[sEntityId] ? sEntityId : null;
+			});
+		};
+
+		var hOnGetListData = function (mData) {
+			var oFavorites = this._Favorites = {};
+			var aFavoriteIds, sEntityId;
+			if (isArray(mData)) {
+				aFavoriteIds = mData;
+			} else {
+				aFavoriteIds = getByPath(this._Opts.dataPath, mData);
+
+			}
+
+			aFavoriteIds = aFavoriteIds || [];
+
+			for (var entityNo = aFavoriteIds.length; entityNo--;) {
+				sEntityId = aFavoriteIds[entityNo];
+				oFavorites[sEntityId] = true;
+			}
+			this._trigger('list_recived', getFavoritesArray.call(this));
+		};
+
+		var hOnStatusToggle = function (bAdded, sEntityId, response) {
+			var oFavorites = this._Favorites;
+			if (oFavorites !== null) {
+				oFavorites[sEntityId] = bAdded;
+			}
+			this._trigger('status_toggle', sEntityId, bAdded, response);
+		};
+
+		var hOnStatusToggleErr = function (sEntityId) {
+			this._trigger('status_toggle_err', sEntityId);
+		};
+
+		return {
+			_Events: {
+				status_toggle: null,
+				status_toggle_err: null,
+				list_recived: {
+					opts: {
+						memory: 1
+					}
+				}
+			},
+
+			_Init: function () {
+				this._Favorites = null;
+				this.getListFromServer();
+			},
+
+			getListFromServer: function () {
+				return this._Opts.transport('get_list', null).then(hOnGetListData.bind(this));
+			},
+
+			isFavEntity: function (sEntityId) {
+				var oFavorites = this._Favorites;
+				return oFavorites && oFavorites[sEntityId] === true;
+			},
+
+			toggleEntityStatus: function (entityId, bAdd) {
+				// отправляем управляющие запросы, только после того, как получили список
+				if (this._Favorites !== null && typeOf(entityId, 'string') && entityId.length) {
+					bAdd = typeOf(bAdd, 'boolean') ? bAdd : !this.isFavEntity(entityId);
+					return this._Opts.transport('toggle', {
+						add: bAdd,
+						id: entityId
+					}).then(hOnStatusToggle.bind(this, bAdd, entityId), hOnStatusToggleErr.bind(this, entityId));
+				}
+			},
+			getFavCount: function () {
+				var oFavorites = this._Favorites;
+				var favCount = 0;
+				if (oFavorites !== null) {
+					for (var entityId in oFavorites) {
+						if (oFavorites.hasOwnProperty(entityId) && oFavorites[entityId] === true) {
+							favCount++;
+						}
+					}
+				}
+				return favCount;
+			}
+		};
+	}()), defOpts, null, 'Favorites');
+
+	oBasic.Extend(window.getNameSpace('Modules', oCpf), {
+		favoriteEntities: model
+	});
+}(this, this.ru.mail.cpf));

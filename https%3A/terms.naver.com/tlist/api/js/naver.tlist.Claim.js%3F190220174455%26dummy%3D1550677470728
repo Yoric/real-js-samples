@@ -1,0 +1,206 @@
+/**
+* @(#)naver.tlist.Claim.js 
+*@since 2014. 8. 6.
+*
+* Copyright NAVER Corp. All rights Reserved.
+* NAVER PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
+*/
+
+
+/**
+* @author tod2
+* @since 2014. 8. 6.
+* @description
+* 
+* 지식리스트 신고 기능
+* 
+* 신고 > 신고 완료 화면 노출
+*/
+window.naver.tlist.Claim = tljindo.$Class({
+	init : function (option, layerOption) {
+		this.option(option);
+		this.option(layerOption);
+		//this._destory();
+		this._initVar(this.option);
+		this._setTemplate();
+		this._makeDimmedLayer();
+		this._setWrapperElement();
+		this._setWrapperLayerElement();
+		this._attachEvent();
+		this._initObject();
+		this._putLayerInfoGlobalHashTable();
+	},	
+	// 인스턴스 변수 초기화
+	_initVar : function(el) {
+		this._htWElement = {};
+		this._htObject = {};
+		this._htEvent = {};
+		this._oTemplate = {};
+		this._sListId = "";
+		this._sListTitle = "";
+	},
+	// 템플릿 매핑
+	_setTemplate : function() {
+		if (!tljindo.$Element(this.option("layerBaseId"))) {
+			this._oTemplate["container"] = new tljindo.$Template(naver.tlist.TEMPLATE_CONTAINER);	// 컨테이너 템플릿. 딤드 레이어를 포함
+		}
+	},
+	// 담기 UI의 기준이 되는 딤드 Layer 생성
+	_makeDimmedLayer : function() {
+		if (!tljindo.$Element(this.option("layerBaseId"))) {
+			tljindo.$Element(document.body).appendHTML(this._oTemplate["container"].process({layerBaseId : this.option("layerBaseId"), layerDimmedId : this.option("layerDimmedId")}));
+		}
+	},
+	// 기본 객체 매핑
+	_setWrapperElement : function() {
+		this._htWElement["base"] = tljindo.$Element(this.option("layerBaseId"));
+		this._htObject["claim"] = new window.naver.tlist.layer.Claim();
+		this._htObject["claimComplete"] = new window.naver.tlist.layer.ClaimComplete();
+	},
+	// 레이어 관련 객체 매핑
+	_setWrapperLayerElement : function() {
+		this._htWElement["body"] = tljindo.$Element(window.document.body);
+		this._htWElement["dimLayer"] = tljindo.$Element(this.option("layerDimmedId"));	// 딤드 레이어
+	},
+	// 지식리스트 기능 레이어를 Hash Table 에 별도 기록
+	_putLayerInfoGlobalHashTable : function() {
+		naver.tlist._htLayer = naver.tlist._htLayer || [];
+		
+		if (this._htObject) {
+			for(var obj in this._htObject){
+				if(this._htObject.hasOwnProperty(obj)){
+					naver.tlist._htLayer.push(this._htObject[obj]);
+				}
+            }
+		}
+	},
+	// 최초 시작 동작 설정
+	_startAction : function(oEvent) {
+		this.fireEvent("onShowDimmLayer", {oEvent : oEvent});
+		this.show(oEvent);
+		this._showClaimLayer(oEvent);
+	},
+	// 신고 레이어 노출
+	_showClaimLayer : function(oEvent) {
+		naver.tlist.hideAllLayer(oEvent);
+		this._htObject["claim"].show(oEvent, this._sListId, this._sListTitle);
+	},
+	// 신고 완료 레이어 노출
+	_showClaimCompleteLayer : function(oEvent) {
+		naver.tlist.hideAllLayer(oEvent);
+		this._htObject["claimComplete"].show(oEvent, this._sListTitle);
+	},
+	// 기본 이벤트 binding
+	_attachEvent : function() {
+		var hideFunc = tljindo.$Fn(this.hide, this).bind();
+		var showClaimLayerFunc = tljindo.$Fn(this._showClaimLayer, this).bind();
+		var showClaimCompleteLayerFunc = tljindo.$Fn(this._showClaimCompleteLayer, this).bind();
+		
+		// 신고
+		this._htObject["claim"].attach({
+			"afterConfirm" : function(oCustomEvt) {
+				this.hide(oCustomEvt.oEvent);
+				showClaimCompleteLayerFunc(oCustomEvt.oEvent);
+			},
+			"cancel" : function(oCustomEvt) {
+				hideFunc(oCustomEvt.oEvent);
+				this.hide(oCustomEvt.oEvent);
+			}
+		});
+		
+		// 신고 완료
+		this._htObject["claimComplete"].attach({
+			"confirm" : function(oCustomEvt) {
+				hideFunc(oCustomEvt.oEvent);
+				this.hide(oCustomEvt.oEvent);
+			}
+		});
+		
+		this._htWElement["body"].delegate("click", this.option("claimSelector"), tljindo.$Fn(function(oEvent) {this._setListInfo(oEvent);this._startAction(oEvent)}, this).bind());
+		
+		// 딤드 클릭 시 닫기
+		/*
+		if (this._htWElement["dimLayer"]) {
+			this._htEvent["dimLayer_click"] = {
+				fn : tljindo.$Fn(function(oEvent) {
+						this.hide(oEvent);
+						
+						// 전체 레이어 닫기
+						for (p in this._htObject) {
+							var ht = this._htObject[p];
+							ht.hide(oEvent);
+						}
+												
+						this.fireEvent("hideDimmLayer", {oEvent : oEvent});
+					}, this).attach(this._htWElement["dimLayer"], "click"), 
+				el : this._htWElement["dimLayer"].$value()
+			};
+		}
+		*/
+	},
+	// 객체 초기화. attach event로 인해 _attachEvent() 후에 호출한다.
+	_initObject : function() {
+		this._htObject["claim"].init(this.option());
+		this._htObject["claimComplete"].init(this.option());
+	},
+	// 기본 이벤트 unbinding
+	_detachEvent : function() {
+		for (p in this._htEvent) {
+			var ht = this._htEvent[p];
+			ht.fn.detach(ht.el, p.substring(p.lastIndexOf("_")));
+		}
+	},
+	// 지식리스트 객체 제거. 중복 init 시 기존의 객체를 제거할 때 등 사용 
+	_destory : function() {
+		if (tljindo.$Element(this.option("layerBaseId"))) {
+			tljindo.$Element(this.option("layerBaseId")).leave();
+			this._detachEvent();
+			
+			naver.tlist.unbindEventCancelBubble();
+			this._htWElement = this._htEvent = this._oTemplate = this._sListId = this._sListTitle = null;
+		}
+	},
+	// 리스트 ID 및 제목 세팅
+	_setListInfo : function(oEvent) {
+		this._sListId = tljindo.$Element(oEvent.delegatedElement).data("listid");
+		this._sListTitle = this.escapeEntity(tljindo.$Element(oEvent.delegatedElement).data("listtitle"));
+	},
+	// dimm 레이어 노출
+    escapeEntity: function(input) {
+		var result = input;
+
+		result = result.replace(/</gi, "&lt;");
+		result = result.replace(/>/gi, "&gt;");
+		result = result.replace(/&/gi, "&amp;");
+
+		return result;
+	},
+	show : function(oEvent) {
+		naver.tlist.bindEventCancelBubble(oEvent);
+		oEvent.stop(tljindo.$Event.CANCEL_DEFAULT);
+
+		this.fireEvent("beforeShow", {oEvent : oEvent});
+		
+		if (this._htWElement["base"]) {
+			this._htWElement["base"].show();
+		}
+		if (this._htWElement["dimLayer"]) {
+			this._htWElement["dimLayer"].show();
+		}
+	},
+	// dimm 레이어 숨기기
+	hide : function(oEvent) {
+		if (this._htWElement["base"]) {
+			this._htWElement["base"].hide();
+		}
+		if (this._htWElement["dimLayer"]) {
+			this._htWElement["dimLayer"].hide();
+		}
+		
+		this.fireEvent("afterHide", {oEvent : oEvent});
+		
+		oEvent.stop(tljindo.$Event.CANCEL_DEFAULT);
+		// Event Bubble 동작을 복구
+		naver.tlist.unbindEventCancelBubble(oEvent);
+	}
+}).extend(tljindo.UIComponent || tljindo.m.UIComponent);

@@ -1,0 +1,47 @@
+!function(t) {
+    function n(a) {
+        if (i[a]) return i[a].exports;
+        var e = i[a] = {
+            "i": a,
+            "l": !1,
+            "exports": {}
+        };
+        return t[a].call(e.exports, e, e.exports, n), e.l = !0, e.exports;
+    }
+    var i = {};
+    n.m = t, n.c = i, n.d = function(t, i, a) {
+        n.o(t, i) || Object.defineProperty(t, i, {
+            "configurable": !1,
+            "enumerable": !0,
+            "get": a
+        });
+    }, n.n = function(t) {
+        var i = t && t.__esModule ? function() {
+            return t["default"];
+        } : function() {
+            return t;
+        };
+        return n.d(i, "a", i), i;
+    }, n.o = function(t, n) {
+        return Object.prototype.hasOwnProperty.call(t, n);
+    }, n.p = "", n(n.s = 0);
+}([ function(t, n, i) {
+    "use strict";
+    var a = i(1);
+    adv.AdBase.extend("Ad17173Jinrijingxuan", {
+        "init": function(t) {
+            this.base(t), this.emit(adv.ENUM.EVENTS.inited);
+        },
+        "setup": function(t) {
+            this.data = t, this.data.ico = this.data.ico || "ico-game-yy1", this.html = adv.razor(a, this.data), 
+            this.emit(adv.ENUM.EVENTS.setuped);
+        },
+        "play": function() {
+            this.data;
+            $(this.options.selector).html("").append(this.html), this.emit(adv.ENUM.EVENTS.played);
+        }
+    });
+}, function(t, n) {
+    t.exports = '<a class="con" href="@link" target="_blank">\r\n    <img alt="@name" src="@img" width="205" height="120" class="">\r\n    <span class="txt">\r\n        <i class="ico @ico"></i>@name\r\n    </span>\r\n    <span class="intro">@desc</span>\r\n</a>';
+} ]);
+//# sourceMappingURL=production.js.map

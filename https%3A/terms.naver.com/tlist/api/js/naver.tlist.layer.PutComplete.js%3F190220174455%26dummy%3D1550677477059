@@ -1,0 +1,127 @@
+/**
+* @(#)naver.tlist.layer.PutComplete.js 
+*@since 2014. 7. 28.
+*
+* Copyright NAVER Corp. All rights Reserved.
+* NAVER PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
+*/
+
+/**
+* @author tod2
+* @since 2014. 7. 28.
+* @description
+* 
+* 지식리스트 담기 완료 레이어 및 기능.
+*/
+
+window.naver.tlist.layer = window.naver.tlist.layer || {};
+
+window.naver.tlist.layer.PutComplete = tljindo.$Class({
+	init : function(option) {
+		this.option(option);
+		this._initVar(this.option);
+		this._setTemplate();
+		this._setWrapperElement();
+		this._makeLayer();		
+		this._setWrapperLayerElement();
+		this._setAPIUrl();
+		this._attachEvent();
+	},
+	// 인스턴스 변수 초기화
+	_initVar : function(el) {
+		this._htWElement = {};
+		this._htEvent = {};
+		this._htAPIUrl = {};
+		this._oTemplate = {};
+		this._sServiceCode = "";
+		this._sContentsId = "";
+	},
+	// 템플릿 매핑
+	_setTemplate : function() {
+		this._oTemplate["putComplete"] = new tljindo.$Template(naver.tlist.TEMPLATE_PUT_COMPLETE);	// 리스트 담기 완료
+	},
+	// 기본 객체 매핑
+	_setWrapperElement : function() {
+		this._htWElement["base"] = tljindo.$Element(this.option("layerBaseId"));
+	},
+	// 담기 완료 UI에 사용되는 Layer 생성
+	_makeLayer : function() {
+		this._htWElement["base"].appendHTML(this._oTemplate["putComplete"].process({layerPutCompleteId : this.option("layerPutCompleteId")}));
+	},
+	// 레이어 관련 객체 매핑
+	_setWrapperLayerElement : function() {
+		this._htWElement["listPutCompleteLayer"] = tljindo.$Element(this.option("layerPutCompleteId"));	// 리스트 담기 완료 레이어
+		
+		this._htWElement["listPutCompleteConfirmBtn"] = this._htWElement["listPutCompleteLayer"].query(".__BTN_CONFIRM");	// 확인 버튼
+		this._htWElement["listPutCompleteMoveBtn"] = this._htWElement["listPutCompleteLayer"].query(".__BTN_MOVE");	// 지식리스트 이동 버튼
+		//this._htWElement["listPutCompleteCnt"] = this._htWElement["listPutCompleteLayer"].query(".__COMPLETE_CNT");	// 담긴 개수 영역
+		this._htWElement["listPutCompleteList"] = this._htWElement["listPutCompleteLayer"].query(".__COMPLETE_LIST");	// 담긴 리스트 노출 영역
+	},
+	// API Url 설정
+	_setAPIUrl : function() {
+		this._htAPIUrl["domain"] = this.option("domain");
+	},
+	// 기본 이벤트 binding
+	_attachEvent : function() {
+		if (this._htWElement["listPutCompleteConfirmBtn"]) {
+			this._htEvent["listPutCompleteConfirmBtn_click"] = {
+				fn : this._htWElement["listPutCompleteConfirmBtn"].attach("click", tljindo.$Fn(function(oEvent) {oEvent.stop(tljindo.$Event.CANCEL_DEFAULT);this.fireEvent("confirm", {oEvent : oEvent});}, this).bind()), 
+				el : this._htWElement["listPutCompleteConfirmBtn"].$value()
+			};
+		}
+		
+		if (this._htWElement["listPutCompleteMoveBtn"]) {
+			this._htEvent["listPutCompleteMoveBtn_click"] = {
+				fn : this._htWElement["listPutCompleteMoveBtn"].attach("click", tljindo.$Fn(function(oEvent) {oEvent.stop(tljindo.$Event.CANCEL_DEFAULT);this.fireEvent("move", {oEvent : oEvent});}, this).bind()), 
+				el : this._htWElement["listPutCompleteMoveBtn"].$value()
+			};
+		}
+	},
+	// 기본 이벤트 unbinding
+	_detachEvent : function() {
+		for (p in this._htEvent) {
+			var ht = this._htEvent[p];
+			ht.fn.detach(ht.el, p.substring(p.lastIndexOf("_")));
+		}
+	},
+	// 지식리스트 객체 제거. 중복 init 시 기존의 객체를 제거할 때 등 사용 
+	_destory : function() {
+		if (this._htWElement["listPutCompleteLayer"]) {
+			this._htWElement["listPutCompleteLayer"].leave();
+			this._detachEvent();
+			this._htWElement = this._htEvent = this._oTemplate = null;
+		}
+	},
+	// 레이어 노출
+	show : function(oEvent, sServiceCode, sContentsId, aListTitle, aListId, sTocIds, nCount) {
+		this._sServiceCode = sServiceCode;
+		this._sContentsId = sContentsId;
+		this._aListTitle = aListTitle;
+		this._aListId = aListId;
+		
+		this._htWElement["listPutCompleteList"].text("");
+		//this._htWElement["listPutCompleteCnt"].text(nCount);		
+		this._htWElement["listPutCompleteLayer"].show();
+		
+		this._showListItem();
+		
+		// UtilBox 영역 Update
+		if (naver.tlist._oUtilBox) {
+			naver.tlist._oUtilBox.update();
+		}
+	},
+	// 레이어 내 담은 리스트명 노출
+	_showListItem : function() {
+		//this._htWElement["listPutCompleteCnt"].text(this._aListTitle.length);
+		
+		for (var i = 0; i < this._aListTitle.length; i++) {
+			var oTemplate = new tljindo.$Template(naver.tlist.TEMPLATE_PUT_COMPLETE_ITEM);
+			this._htWElement["listPutCompleteList"].appendHTML(oTemplate.process({title : tljindo.$S(this._aListTitle[i]).escapeHTML(), listId : this._aListId[i]}));
+		}
+	},
+	// 레이어 숨기기
+	hide : function(oEvent) {
+		oEvent.stop(tljindo.$Event.CANCEL_DEFAULT);
+		this._htWElement["listPutCompleteLayer"].hide();
+	}
+}).extend(tljindo.UIComponent || tljindo.m.UIComponent);

@@ -1,0 +1,1 @@
+document.write("<scrip" + "t language='JavaScript' type='text/javascript' src='" + window.document.location.protocol + "//ds.11st.co.kr/NetInsight/js/11st/11st_product/product@rightbanner_2?noCache=20190221124720&category=1001340'>");document.write("</scrip" + "t>");

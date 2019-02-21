@@ -1,0 +1,2 @@
+try{parent.window.updateRtmField('PS=T.0');
+}catch(e){}

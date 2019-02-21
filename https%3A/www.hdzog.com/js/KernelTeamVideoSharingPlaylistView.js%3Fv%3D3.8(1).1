@@ -1,0 +1,429 @@
+// ============================================================================
+// Developed by Kernel Team.
+// http://kernel-team.com
+// ============================================================================
+
+String.prototype.trim = function() {
+	return this.replace(/^\s+/, '').replace(/\s+$/, '');
+};
+
+// Common functions for reuse =================================================
+
+function stub() {
+}
+
+function commonGet(id) {
+	return document.getElementById(id);
+}
+
+function commonValidId(id) {
+	return (id && commonGet(id));
+}
+
+function commonShow(id) {
+	if (commonValidId(id)) {
+		commonGet(id).style.display = 'block';
+	}
+}
+
+function commonShowInline(id) {
+	if (commonValidId(id)) {
+		commonGet(id).style.display = 'inline';
+	}
+}
+
+function commonHide(id) {
+	if (commonValidId(id)) {
+		commonGet(id).style.display = 'none';
+	}
+}
+
+function commonProcessFieldError(fieldName, errorId) {
+	for (var i = 0; i < 10; i++) {
+		commonHide(fieldName + '_error_' + i);
+	}
+	commonShow(fieldName + '_' + errorId);
+	return (errorId == null);
+}
+
+function commonValidateRequired(form, fieldName, errorCode) {
+	if (!form[fieldName]) {
+		return true;
+	}
+	if (form[fieldName].value.trim().length == 0) {
+		return commonProcessFieldError(fieldName, errorCode);
+	} else {
+		return commonProcessFieldError(fieldName, null);
+	}
+}
+
+function commonGetAjaxParams() {
+	return 'mode=async&rand=' + new Date().getTime();
+}
+
+function commonSendRequest(url, data, isPost, callback) {
+	var req = null;
+	if (window.XMLHttpRequest) {
+		req = new XMLHttpRequest();
+	} else if (window.ActiveXObject) {
+		req = new ActiveXObject('Microsoft.XMLHTTP');
+	}
+	if (!req) {
+		return null;
+	}
+	try {
+		var postData = null;
+		var method = null;
+		if (isPost) {
+			method = 'POST';
+			postData = data;
+		} else if (!data) {
+			method = 'GET';
+		} else if (data.length > 0) {
+			method = 'GET';
+			if (url.indexOf('?') >= 0) {
+				url += '&' + data;
+			} else {
+				url += '?' + data;
+			}
+		}
+		req.open(method, encodeURI(url), true);
+		if (method == 'POST') {
+			req.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+		}
+		req.onreadystatechange = function() {
+			if (req.readyState == 4) {
+				var xml = req.responseXML;
+				if (xml && xml.documentElement) {
+					if (xml.documentElement.nodeName == 'success') {
+						callback(xml.documentElement, null);
+					} else if (xml.documentElement.nodeName == 'failure') {
+						var childs = xml.documentElement.childNodes;
+						var errors = [];
+						for (var i = 0; i < childs.length; i++) {
+							if (childs[i].nodeName == 'error') {
+								var content = null;
+								if (childs[i].textContent) {
+									content = childs[i].textContent;
+								} else if (childs[i].innerText) {
+									content = childs[i].innerText;
+								} else if (childs[i].text) {
+									content = childs[i].text;
+								}
+								errors.push(content);
+							}
+						}
+						callback(null, errors);
+					}
+				}
+			}
+		};
+		req.send(postData);
+	} catch (e) {
+		return e;
+	}
+	return null;
+}
+
+// Playlist view block functions =================================================
+
+var playlistViewMyVote = null;
+
+function playlistViewEnableVoting(params) {
+	var ratingContainer = params['container_id'];
+	var ratingHint = params['hint_message_id'];
+	var ratingSuccess = params['success_message_id'];
+	var ratingFailure = params['failure_message_id'];
+	var emptyImageSrc = params['empty_image_src'];
+	var moverImageSrc = params['mover_image_src'];
+	var playlistId = params['playlist_id'];
+	var callback = params['callback'];
+	var starType = params['star_type'];
+	if (!starType) {
+		starType = 'IMG';
+	}
+
+	if (!commonValidId(ratingContainer)) {
+		return;
+	}
+	var stars = [];
+	var container = commonGet(ratingContainer);
+	if (!container) {
+		return;
+	}
+	var index = 1;
+	for (var i = 0; i < container.childNodes.length; i++) {
+		var el = container.childNodes[i];
+		if (el.tagName != starType) {
+			continue;
+		}
+		el.onmouseover = function() {
+			if (playlistViewMyVote) {
+				return;
+			}
+			var src = moverImageSrc;
+			for (var j = 0; j < stars.length; j++) {
+				if (starType == 'IMG') {
+					stars[j]['el'].src = src;
+				} else {
+					stars[j]['el'].className = src;
+				}
+				if (stars[j]['el'] == this) {
+					src = emptyImageSrc;
+				}
+			}
+		};
+		el.onclick = function() {
+			if (playlistViewMyVote) {
+				return false;
+			}
+			var index = 0;
+			for (var j = 0; j < stars.length; j++) {
+				if (stars[j]['el'] == this) {
+					index = stars[j]['index'];
+					break;
+				}
+			}
+			playlistViewMyVote = index;
+			commonSendRequest('?' + commonGetAjaxParams(), 'action=rate&playlist_id=' + playlistId + '&vote=' + index, false, function(successNode, errorsList) {
+				if (typeof callback == 'function') {
+					if (successNode) {
+						callback(null);
+					} else if (errorsList) {
+						callback(errorsList);
+					}
+				} else {
+					commonHide(ratingHint);
+					if (successNode) {
+						commonShow(ratingSuccess);
+					} else if (errorsList) {
+						commonShow(ratingFailure);
+					}
+				}
+				var src = moverImageSrc;
+				for (var j = 0; j < stars.length; j++) {
+					if (starType == 'IMG') {
+						stars[j]['el'].src = src;
+					} else {
+						stars[j]['el'].className = src;
+					}
+					if (j == index - 1) {
+						src = emptyImageSrc;
+					}
+				}
+			});
+		};
+		stars.push({el: el, initial: (starType == 'IMG' ? el.src : el.className), index: index});
+		index++;
+	}
+	container.onmouseout = function(e) {
+		if (playlistViewMyVote) {
+			return;
+		}
+		if (!e) {
+			e = window.event;
+		}
+		var mouseX = 0;
+		var mouseY = 0;
+		if (e.pageX && e.pageY) {
+			mouseX = e.pageX;
+			mouseY = e.pageY;
+		} else if (e.clientX && e.clientY) {
+			mouseX = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
+			mouseY = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+		}
+
+		var x = 0;
+		var y = 0;
+		var element = container;
+		while (element) {
+			x += element.offsetLeft;
+			y += element.offsetTop;
+			element = element.offsetParent;
+		}
+		if ((mouseX <= x) || (mouseY <= y) || (mouseX >= x + container.offsetWidth) || (mouseY >= y + container.offsetHeight)) {
+			for (var j = 0; j < stars.length; j++) {
+				if (starType == 'IMG') {
+					stars[j]['el'].src = stars[j]['initial'];
+				} else {
+					stars[j]['el'].className = stars[j]['initial'];
+				}
+			}
+		}
+	};
+}
+
+function playlistViewEnableFlagging(params) {
+	var flagContainer = params['container_id'];
+	var flagButton = params['button_id'];
+	var flagTextField = params['text_id'];
+	var flagExternalId = params['flag_external_id'];
+	var flagHint = params['hint_message_id'];
+	var flagSuccess = params['success_message_id'];
+	var flagFailure = params['failure_message_id'];
+	var playlistId = params['playlist_id'];
+
+	if (!commonValidId(flagButton)) {
+		return;
+	}
+
+	commonGet(flagButton).onclick = function() {
+		var flagMessageStr = '';
+		var textfield = commonGet(flagTextField);
+		if (textfield && textfield.value) {
+			flagMessageStr = '&flag_message=' + textfield.value;
+		}
+		commonSendRequest('?' + commonGetAjaxParams(), 'action=flag&playlist_id=' + playlistId + '&flag_id=' + flagExternalId + flagMessageStr, false, function(successNode, errorsList) {
+			commonHide(flagHint);
+			commonHide(flagSuccess);
+			commonHide(flagFailure);
+			if (successNode) {
+				commonShow(flagSuccess);
+				commonHide(flagContainer);
+				if (textfield && textfield.value) {
+					textfield.value = '';
+				}
+			} else if (errorsList) {
+				commonShow(flagFailure);
+			}
+		});
+		return false;
+	}
+}
+
+// Playlist comments block functions =============================================
+
+var playlistCommentsFormVisible = false;
+var playlistCommentsCaptcha = null;
+
+function playlistCommentsEnableComments(params) {
+	var acLink = params['add_link_id'];
+	var acBlock = params['add_block_id'];
+	var acBlockSuccess = params['success_message_id'];
+	var acBlockFailure = params['failure_message_id'];
+	var acForm = params['form_id'];
+	var acCaptcha = params['captcha_id'];
+	var acWait = params['wait_id'];
+	var playlistId = params['playlist_id'];
+
+	if (commonValidId(acLink)) {
+		commonGet(acLink).onclick = function() {
+			if (playlistCommentsFormVisible) {
+				commonHide(acBlock);
+			} else {
+				commonShow(acBlock);
+				if (commonValidId(acCaptcha)) {
+					if (!playlistCommentsCaptcha) {
+						playlistCommentsCaptcha = document.createElement('IMG');
+						commonGet(acCaptcha).appendChild(playlistCommentsCaptcha);
+					}
+					playlistCommentsCaptcha.src = '?action=show_security_code&' + commonGetAjaxParams();
+				}
+			}
+			commonHide(acBlockSuccess);
+			commonHide(acBlockFailure);
+			var st1 = (playlistCommentsFormVisible ? 'collapse_link' : 'expand_link');
+			var st2 = (!playlistCommentsFormVisible ? 'collapse_link' : 'expand_link');
+			playlistCommentsFormVisible = !playlistCommentsFormVisible;
+			if (this.className.indexOf(st1) >= 0) {
+				this.className = this.className.replace(st1, st2);
+			}
+			return false;
+		}
+	}
+	if (commonValidId(acForm)) {
+		commonGet(acForm).onsubmit = function() {
+			var errorField = null;
+			if (!commonValidateRequired(this, 'comment', 'error_1')) {
+				errorField = (errorField ? errorField : 'comment');
+			}
+			if (!commonValidateRequired(this, 'code', 'error_5')) {
+				errorField = (errorField ? errorField : 'code');
+			}
+
+			if (!errorField) {
+				var form = this;
+				var captchaCode = '';
+				if (form['code']) {
+					captchaCode = form['code'].value;
+				}
+				var anonymousUsername = '';
+				if (form['anonymous_username']) {
+					anonymousUsername = form['anonymous_username'].value;
+					if (anonymousUsername != '') {
+						commonCreateCookie('kt_anonymous_username', anonymousUsername, 365);
+					}
+				}
+				commonSendRequest('?' + commonGetAjaxParams(), 'action=add_comment&playlist_id=' + playlistId + '&comment=' + encodeURIComponent(form['comment'].value) + '&code=' + encodeURIComponent(captchaCode) + '&anonymous_username=' + encodeURIComponent(anonymousUsername), true, function(successNode, errorsList) {
+					if (typeof callback == 'function') {
+						if (successNode) {
+							callback(null);
+						} else if (errorsList) {
+							callback(errorsList);
+						}
+					} else {
+						if (successNode) {
+							form.reset();
+							if (commonValidId(acLink)) {
+								commonGet(acLink).onclick(commonGet(acLink));
+							} else {
+								commonHide(acBlock);
+							}
+							commonHide(acWait);
+							commonShow(acBlockSuccess);
+						} else if (errorsList) {
+							for (var i = 0; i < errorsList.length; i++) {
+								commonShow(errorsList[i]);
+							}
+							commonHide(acWait);
+							if (commonValidId(acCaptcha)) {
+								playlistCommentsCaptcha.src = '?action=show_security_code&' + commonGetAjaxParams();
+							}
+						}
+					}
+				});
+				commonShowInline(acWait);
+			} else {
+				this[errorField].focus();
+			}
+			return false;
+		};
+
+		var anonymousUsername = commonReadCookie('kt_anonymous_username');
+		if (anonymousUsername != '') {
+			if (commonGet(acForm)['anonymous_username']) {
+				commonGet(acForm)['anonymous_username'].value = anonymousUsername;
+			}
+		}
+	}
+}
+
+function playlistCommentsVote(params) {
+	var commentId = params['comment_id'];
+	var vote = params['vote'];
+	var callback = params['callback'];
+	commonSendRequest('?' + commonGetAjaxParams(), 'action=vote_comment&comment_id=' + commentId + '&vote=' + vote, false, function(successNode, errorsList) {
+		if (typeof callback == 'function') {
+			if (successNode) {
+				callback(null);
+			} else if (errorsList) {
+				callback(errorsList);
+			}
+		}
+	});
+}
+
+function playlistCommentsEdit(params) {
+	var commentId = params['comment_id'];
+	var comment = params['comment'];
+	var callback = params['callback'];
+	commonSendRequest('?' + commonGetAjaxParams(), 'action=edit_comment&comment_id=' + commentId + '&comment=' + encodeURIComponent(comment), true, function(successNode, errorsList) {
+		if (typeof callback == 'function') {
+			if (successNode) {
+				callback(null);
+			} else if (errorsList) {
+				callback(errorsList);
+			}
+		}
+	});
+}

@@ -1,0 +1,42 @@
+adv.AdBase.extend('Ad17173ZQNewGameRemm', {
+  init: function(options) {
+    this.base(options);
+    this.emit(adv.ENUM.EVENTS.inited);
+  },
+  setup: function(data) {
+    this.data = data;
+    this.emit(adv.ENUM.EVENTS.setuped);
+  },
+  play: function() {
+    var advEl,opt = this.options,ads = this.data.games,ad;
+    advEl = $('.' + opt.advid);
+    if(advEl[0]){
+      for(var i = 0 ;i<ads.length;i++){
+        ad = ads[i];
+        var link = advEl.find('li:eq('+(ad.index-1)+')').find('a');
+        link.attr('href',ad.link);
+        link.find('img').attr('src',ad.img);
+        link.find('.txt').text(ad.name);
+        ad.isHot ? link.find('.txt').addClass('tg-c-red') : link.find('.txt').removeClass('tg-c-red');
+        ad.ipaCode && adv.util.sendIpa(link,ad.ipaCode);
+      }
+    }
+    else{
+        $(document.body).bind('appendHtml', function (e, targetEl) {
+          for(var i = 0 ;i<ads.length;i++){
+            ad = ads[i];
+            advEl = $(targetEl).find('.' + opt.advid);
+            if(advEl[0]){
+              var link = advEl.find('li:eq('+(ad.index-1)+')').find('a');
+              link.attr('href',ad.link);
+              link.find('img').attr('src',ad.img);
+              link.find('.txt').text(ad.name);
+              ad.isHot ? link.find('.txt').addClass('tg-c-red') : link.find('.txt').removeClass('tg-c-red');
+              ad.ipaCode && adv.util.sendIpa(link,ad.ipaCode);
+            }
+          }
+        });
+    }
+    this.emit(adv.ENUM.EVENTS.played);
+  }
+});

@@ -1,0 +1,186 @@
+/**
+ * Модель для
+ *
+ * @requires 'lib/basic.js'
+ * @requires 'lib/constructors.js'
+ * @requires 'tools/DOM/Requests.js'
+ */
+(function ($, window, cpf) {
+	'use strict';
+	var MODULE_NAME = 'MyWidgetModel';
+
+	/**
+	 * Опции Model
+	 * @param {string|number|function} errorNotify дергается при неудачной загрузке
+	 * 		если строка или число, то это id пикселя rs.mail.ru/d
+	 * @param {string|number|function} errorNotifyOnce дергается при неудачной загрузке один раз на странице
+	 * 		если строка или число, то это id пикселя rs.mail.ru/d
+	 */
+	var defaultOptions = {
+		errorNotify: null,
+		errorNotifyOnce: null
+	};
+	var instance = null;
+
+	var Model = cpf.Basic.getModel({
+		_Events: ['data', 'error', 'errorOnce'],
+
+		_Init: function () {
+			if (instance) {
+				return instance;
+			}
+			instance = this;
+			this._state = {
+				slots: {},
+				errorNotifyOnceCalled: false
+			};
+		},
+
+		/**
+		 * Запрос содержимого контейнера
+		 * @param {string} id – id представления.
+		 * @param {object} config – поле options.sdkConfig представления
+		 */
+		requestContent: function (id, config, canReload) {
+			var slot = this._state.slots[id];
+
+			if (slot) {
+				if (slot.loading) {
+					return;
+				}
+
+				canReload = (canReload === 'all') || (canReload === 'error' && slot.error);
+				if (!canReload) {
+					_sendData.call(this, [ id ]);
+					return;
+				}
+			} else {
+				slot = this._state.slots[id] = {};
+			}
+
+			slot.loading = true;
+			slot.error = null;
+			slot.data = null;
+			slot.callback = null;
+
+			loadSDK(window.mwManager.getUID()).then(function (myWidget) {
+				myWidget.get(config.cid, config.sdkParams, _dataReceive.bind(this, id), _dataFail.bind(this, id));
+			}.bind(this));
+		}
+	}, defaultOptions, null, MODULE_NAME);
+
+	cpf.Basic.Extend(true, window.getNameSpace('Modules', cpf), {
+		MyWidgetModel: Model
+	});
+
+	// -------------- privates -------------------------------------------------------
+
+	/**
+	 * Вызывается при удачной загрузке
+	 * @param {string} id - id вьюхи
+	 * @param {object} data - пришедшие данные
+	 * @param {function} callback - функция, которую вьюха вызовет после рендера
+	 */
+	function _dataReceive(id, data, callback) {
+		if (!data || !data._id || !data.list || !data.list.length) {
+			_dataFail.call(this, id);
+			return;
+		}
+		var slot = this._state.slots[id];
+		slot.loading = false;
+		slot.data = data;
+		slot.callback = callback;
+
+		_sendData.call(this, [ id ]);
+	}
+
+	/**
+	 * Вызывается при неудачной загрузке
+	 * @param {string} id - id вьюхи
+	 */
+	function _dataFail(id) {
+		var slot = this._state.slots[id];
+		slot.loading = false;
+		slot.error = true;
+
+		var opts = this._opts;
+		var state = this._state;
+		if (!state.errorNotifyOnceCalled) {
+			state.errorNotifyOnceCalled = true;
+			callErrorNotify(opts.errorNotifyOnce);
+			this._trigger('errorOnce');
+		}
+		callErrorNotify(opts.errorNotify);
+		this._trigger('error');
+
+		_sendData.call(this, [ id ]);
+	}
+
+	/**
+	 * Отправка вьюхам сообщения об окончании загрузки
+	 * @param {Array} ids - массив id
+	 */
+	function _sendData(ids) {
+		var obj = {};
+		for (var i = 0; i < ids.length; ++i) {
+			var slot = this._state.slots[ids[i]];
+			if (slot) {
+				obj[ids[i]] = slot;
+			}
+		}
+		this._trigger('data', obj);
+	}
+
+	// -------------- utils ----------------------------------------------------------
+
+	/**
+	 * Вызов сообщения об ошибке
+	 * @param {string|number|function} errorNotify - см. opts.errorNotify
+	 * @returns {boolean} было ли вызвано сообщение
+	 */
+	function callErrorNotify(errorNotify) {
+		if (errorNotify) {
+			(typeof errorNotify === "function") ? errorNotify() : hitPixel(errorNotify);
+		}
+		return !!errorNotify;
+	}
+
+	/**
+	 * загружает (или проверяет загрузку) sdk
+	 */
+	var loadSDK = (function () {
+		function _loadSDK(uid, done, reject) {
+			var id = 'my-widget-script';
+			var s = document.getElementById(id);
+			if (!s) {
+				s = document.createElement('script');
+				s.src = 'https://likemore-go.imgsmail.ru/widget.js';
+				s.id = id;
+				s.setAttribute('data-uid', uid);
+				document.head.appendChild(s);
+			}
+			s.addEventListener('load', function () {
+				done(window.myWidget);
+			});
+			s.addEventListener('error', reject);
+		}
+
+		var sdkPromise = null;
+
+		return function(uid) {
+			if (!sdkPromise) {
+				sdkPromise = window.myWidget ? Promise.resolve(window.myWidget) : new Promise(_loadSDK.bind(null, uid));
+			}
+			return sdkPromise;
+		};
+	})();
+
+	/**
+	 * Хэлпер, дергающий пиксель счетчика
+	 * @param {string|number} id
+	 */
+	function hitPixel (id) {
+		(new Image()).src = '//rs.mail.ru/d' + id + '.gif?r=' + Math.round(Math.random() * 10e10);
+	}
+
+})(window.jQuery || window.$, window, window.ru.mail.cpf);

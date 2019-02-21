@@ -1,0 +1,134 @@
+$(function() {
+	var $b = $('body'),
+		pathname = document.location.pathname,
+		referrer = document.referrer,
+		isMain = pathname === '/' || pathname === '/newmain',
+		isFromMain = referrer === 'https://agent.mail.ru/' || referrer === 'https://agent.mail.ru/newmain';
+
+	//console.log('isMain', isMain, '\nisFromMain', isFromMain, '(from: "' + document.referrer + '")');
+
+	if (typeof RB === 'undefined') {
+		window.RB = {}
+	}
+
+	RB.isNew = function() {
+		return $.cookie('agent-main') && $.cookie('agent-main') === 'new';
+	}
+
+	RB.isOld = function() {
+		return $.cookie('agent-main') && $.cookie('agent-main') === 'old';
+	}
+
+	RB.pull = function(id) {
+		if (! isMain && (id == 1279729 || id == 1279731 || id == 1302920 || id == 1302921)) {
+			return;
+		}
+
+		var ids = id.toString().split(',');
+		for (var i=0; i<ids.length; i++) {
+			(new Image()).src='//rs.mail.ru/d' + ids[i].replace(/^\s+|\s+$/, '') + '.gif?' + Math.random();
+		}
+	}
+	RB.pullNew = function(id) {
+		if (RB.isNew()) {
+			RB.pull(id);
+		}
+	}
+	RB.pullOld = function(id) {
+		if (RB.isOld()) {
+			RB.pull(id);
+		}
+	}
+	RB.pullOldNew = function(oldId, newId) {
+		//console.log('pull old new', oldId, newId);
+		//console.log('will pull?', isMain || isFromMain);
+		if (! (isMain || isFromMain)) {
+			return;
+		}
+		//console.log('pulling...');
+
+		if (RB.isNew()) {
+			//console.log('pull new');
+			RB.pull(newId);
+		}
+		if (RB.isOld()) {
+			//console.log('pull old');
+			RB.pull(oldId);
+		}
+	}
+
+	$b.on('click', '.js-rb-click', function(e) {
+		var $t = $(this);
+
+		if (! $t.data('clicked')) {
+			e.preventDefault();
+
+			if ($t.data('rb-id')) {
+				RB.pull($t.data('rb-id'));
+			}
+			if ($t.data('rb-id-old')) {
+				RB.pullOld($t.data('rb-id-old'));
+			}
+			if ($t.data('rb-id-new')) {
+				RB.pullNew($t.data('rb-id-new'));
+			}
+
+			if (this.href) {
+				try {
+					if (this.href.indexOf('magentsetup.exe') != -1) {
+						yaCounter10613308.reachGoal('download_score_win');
+					}
+					if (this.href.indexOf('macagent.dmg') != -1) {
+						yaCounter10613308.reachGoal('download_score_mac');
+					}
+				} catch(e) {};
+			}
+			$t.data('clicked', true);
+			setTimeout(function() {
+				$t[0].click();
+			}, 200);
+		}
+	});
+
+	var ua = navigator.userAgent,
+		isWin8 = (function() {
+						var m = ua.match(/Windows NT 6\.(\d)/);
+						if (m) {
+								return +m[1] > 1;
+						}
+				})(),
+		isTrident = ua.indexOf('Trident') >= 0,
+		isIE = ua.indexOf('MSIE') >= 0 || isTrident,
+		isARM = isWin8 && ua.indexOf(' ARM') >= 0,
+		partneridMatch = document.location.href.match(/partnerid=(\d+)/),
+		rfrPart = partneridMatch ? '_rfr' + partneridMatch[1] : '',
+		href,
+		win8Href;
+
+	if (isARM) {
+		if (isIE) {
+			href = win8Href = 'ms-windows-store:PDP?PFN=Mail.Ru.4038759A80173_xvmxebhpsrwpm';
+		} else {
+			href = win8Href = 'http://apps.microsoft.com/windows/ru-ru/app/mail-ru/892c4f17-c884-4edd-94bb-18dc510d99b9';
+		}
+
+		$('.js-win-link').each(function(i, link) {
+			$(link).attr('href', href);
+		});
+	} else {
+		if (isIE && isWin8) {
+			win8Href = 'ms-windows-store:PDP?PFN=Mail.Ru.4038759A80173_xvmxebhpsrwpm';
+		} else {
+			win8Href = 'https://rfr.agent.mail.ru/AgentWin8' + rfrPart + '.exe';
+		}
+	}
+
+	$('.js-win8-link').each(function(i, link) {
+		$(link).attr('href', win8Href);
+	});
+
+	var now = new Date();
+
+	$('.js-current-year').html(now.getFullYear().toString());
+
+});

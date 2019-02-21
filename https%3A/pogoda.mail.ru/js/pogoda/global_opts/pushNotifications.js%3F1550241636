@@ -1,0 +1,49 @@
+(function (cpf, mpf) {
+	'use strict';
+	var tools = cpf.Tools;
+	var setParams = cpf.Basic.moduleOpts.setParams;
+	var getTemplate = tools.getTemplate;
+	var init = mpf.utils.PushNotifications.init;
+
+	var createReporter = mpf.utils.RadarReport.createReporter;
+	var reporter = createReporter({
+		projectName: 'weather',
+		transportType: 'img'
+	});
+
+	setParams('PushNotificationsModel', {
+		options: {
+			_Handlers: {
+				ready: function (state) {
+					reporter.send('push_client_ready_subscribed', state.isSubscribed ? 1 : 0);
+				},
+				subscribe: function () {
+					reporter.send('push_client_subscribe', 1);
+				},
+				unsubscribe: function () {
+					reporter.send('push_client_subscribe', 0);
+				},
+				error: function (err) {
+					var name = 'push_client_error' + (err.code ? ('_' + err.code) : '');
+					reporter.send(name, 1);
+				}
+			},
+			timeMarkDelta: 1000 * 60 * 60 * 24 * 7,
+			getInstance: function () {
+				return init({
+					application: 'pogoda',
+					allowedPlatforms: ['Chrome', 'Firefox'],
+					workerPath: '/push-worker.js',
+					workerScope: '/',
+					serverUrl: '/browser_push/set_settings/'
+				})
+			}
+		}
+	});
+	setParams('PushNotificationsView', {
+		options: {
+			template: getTemplate('ct-push-notifications.xml')
+		}
+	});
+
+}(this.ru.mail.cpf, this.ru.mail.mpf));

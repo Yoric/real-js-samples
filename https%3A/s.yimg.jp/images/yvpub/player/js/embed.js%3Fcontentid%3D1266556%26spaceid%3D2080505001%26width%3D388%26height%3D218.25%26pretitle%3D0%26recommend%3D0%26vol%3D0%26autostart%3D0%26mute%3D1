@@ -1,0 +1,1 @@
+if("undefined"==typeof YAHOO||!YAHOO.JP||!YAHOO.JP.yvpub||!YAHOO.JP.yvpub.video){var timestamp=Math.floor((new Date).getTime()/36e5),jsHost="https:"===document.location.protocol?"https://s":"http://i";document.write('<script type="text/javascript" src="'+jsHost+".yimg.jp/images/yvpub/player/js/player.js?"+timestamp+'" charset="UTF-8"></script>');}

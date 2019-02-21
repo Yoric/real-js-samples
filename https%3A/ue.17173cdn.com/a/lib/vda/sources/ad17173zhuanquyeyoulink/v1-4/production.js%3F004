@@ -1,0 +1,49 @@
+adv.AdBase.extend('Ad17173ZhuanquYeyouLink', {
+  init: function (options) {
+    this.base(options);
+    this.emit(adv.ENUM.EVENTS.inited);
+  },
+  setup: function (data) {
+    this.data = data;
+    this.emit(adv.ENUM.EVENTS.setuped);
+  },
+  replaceLink: function (item, exposure) {
+    var liIndex = Math.ceil(item.index / 6) - 1,
+        linkIndex = (item.index - 1) % 6;
+    var link = this.advEl.find('li:eq('+ liIndex +')').find('.con a:eq('+ linkIndex +')');
+    link.attr('href', item.link);
+    if (item.icon) {
+      link.addClass('tg-glogo-yy').html(adv.razor('<img src="@icon" width="16" height="16">@name', item))
+    }
+    else {
+      link.text(item.name);
+    }
+    if (item.isHot) {
+      link.addClass('tg-c-red')
+    } else {
+      // link.removeClass('tg-c-red').css('border-bottom', '1px dotted #333')
+      link.removeClass('tg-c-red').css('font-weight', 'bold')
+    }
+    this.data.adskey && adv.util.sendIpa(link, this.data.adskey, exposure);
+  },
+  play: function () {
+    var opt = this.options, me = this, ads = this.data.games;
+    this.advEl = $('.' + opt.advid);
+    if (this.advEl[0]) {
+      for (var i = 0; i < ads.length; i++) {
+        me.replaceLink(ads[i]);
+      }
+    }
+    else {
+      $(document.body).bind('appendHtml', function (e, targetEl) {
+        me.advEl = $(targetEl).find('.' + opt.advid);
+        for (var i = 0; i < ads.length; i++) {
+          if (me.advEl[0]) {
+            me.replaceLink(ads[i], i === 0);
+          }
+        }
+      });
+    }
+    this.emit(adv.ENUM.EVENTS.played);
+  }
+});

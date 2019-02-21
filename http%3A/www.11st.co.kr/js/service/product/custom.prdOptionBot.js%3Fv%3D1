@@ -1,0 +1,1094 @@
+;(function (root, factory) {
+	'use strict';
+	if (typeof define === 'function' && define.amd) {   // jshint ignore:line
+		// AMD
+		define([                                            // jshint ignore:line
+			'jquery',
+			'handlebars'
+		], factory);
+	} else {
+		// Browser globals
+		root.skp11 = root.skp11 || {};
+		root.skp11.product = root.skp11.product || {};
+		root.skp11.product.CustomOption = factory(
+			root.jQuery,
+			root.Handlebars
+		);
+	}
+}(this, function ($, Handlebars) {
+	'use strict';
+	var CustomOption;
+
+    var optVar = productOptInfo;
+    var prcVar = productPrcInfo;
+
+	var SelOptRecord = function(data) {
+		this.optNm = data.optNm;
+		this.optItemNo = data.optItemNo;
+		this.optValueNo = data.optValueNo;
+		this.addPrc = data.addPrc;
+		this.stckQty = data.stckQty;
+		this.selOptIdx = data.selOptIdx;
+	};
+
+	var EntOptRecord = function(data) {
+		this.optNm = data.optNm;
+		this.optNo = data.optNo;
+		this.optTxt = data.optTxt;
+	};
+
+	CustomOption = function (optionId, position) {
+		// 사용되는 객체
+		this.$button = $(optionId);
+		this.position = position;
+		this.$win = $(window);
+
+		// 템플릿 컴파일
+		this.source1 = $('#optionTopTemplate').html();
+		this.topHandlebars = Handlebars.compile(this.source1);
+		this.source2 = $('#optionBottomTemplate').html();
+		this.bottomHandlebars = Handlebars.compile(this.source2);
+
+		// 디폴트 값
+		this.index = 0;
+		this.isSoldOutFlag = false;
+		this.isOptSearchFlag = false;
+
+		this.paramData = {};
+
+		this.selOptArr = [];
+		this.entOptArr = [];
+
+		this.timer;
+		// 표준 상품 추가 변수
+		this.optCnt = 0;
+		this.selCnt = 0;
+		this.entCnt = 0;
+		this.prdNo	= 0;
+		this.selOptTyp = "";
+		this.itemNms = "";
+		this.prdNm	= "";
+		this.dscPrc	= 0;
+		this.prdDlvCstStlTyp = "01";	//기본 선결제
+		this.selPrc	= 0;
+		// 단품일 경우 사용하는 추가 변수
+		this.totStockQty = -1;
+		this.totPrdStckNo = -1;
+		this.totPrdPrc = -1;
+		// 주문 제한 변수
+		this.ordObjLimit	= "N";
+		this.limitTypCd		= "";
+		this.ordLimitRedirectURL	= "";
+		this.eventDomainYN	= "";
+		this.isSelLimit	= false;
+		this.selLimitQty	= 0;
+		this.isSelMinLimit	= false;
+		this.selMinLimitQty	= 0;
+		this.selLimitPrdBuyCnt	= -1;
+		this.selLimitTypCd	= "";
+		this.townSelLmtDy	= 0;
+		this.discAmt	= 0;
+		this.prdIndexStr = "";
+		this.visitPrdYn	= "";	//방문 가능 여부
+		//로그 관련 추가 변수
+		this.prdImgUrl	= "";
+		this.lctgrNo	= "";
+		this.mctgrNo	= "";
+		this.sctgrNo	= "";
+		this.dispCtgrNo	= "";
+		this.lctgrNm	= "";
+		this.mctgrNm	= "";
+		this.sctgrNm	= "";
+		this.dsipCtgrNm	= "";
+		this.catalogNo	= "";
+		this.isSale		= "false";
+		this.isAdultPrd	= "false";
+		this.sellerNm	= "";
+		this.brandAddCtgrNo	= "";
+		this.brandCd	= "";
+		this.isNowDlv	= "false";
+	};
+
+	CustomOption.prototype.init = function () {
+		var _this = this;
+
+		_this.bind();
+		_this.setHeigth();
+	};
+	
+	// 이벤트 바인드
+	CustomOption.prototype.bind = function () {
+		var _this = this,
+			text;
+
+		// 상품 버튼
+		_this.$button.on('click', function (e){
+			e.preventDefault();
+			var _target	= $(this).parent();
+
+			if(_target.hasClass('is_open')) {
+				_target.removeClass('is_open');
+				$("#stdOptListBot").removeClass('is_open');
+			} else {
+				_target.addClass('is_open');
+				$("#stdOptListBot").removeClass('is_open');
+			}
+		});
+		
+		// 상품 버튼 클릭
+		$("#stdPrdListBot").find('a').on('click', function (e, clickType){
+			e.preventDefault();
+			var targetPrdNo	= $(this).data("optprdno");
+			_this.prdNm = $(this).data("optprdnm");
+			_this.prdIndexStr	= $(this).data("indexstr");
+			_this.getFirstOptData(targetPrdNo).then(function (returnVal) {
+                _this.drawOptionInfo(returnVal, clickType);
+            });	// 상품및 1depth 옵션 정보를 조회한다.
+		});
+		
+		// 가격 더보기 버튼 클릭
+        $('.total_area > button').on('click', function(){
+        	var _target	= $('.total_wrap');
+        	if(_target.hasClass('is_open')){
+        		_target.removeClass('is_open');
+        	} else {
+        		_target.addClass('is_open');
+        	}
+        	
+        });
+	};
+	// 이벤트 바인드
+	CustomOption.prototype.setHeigth = function () {
+		var totH	= $('.floating_option_wrap').height();
+		var bottomH	= 207;
+		var optBtnH	= 48;
+		var maginH	= 8;
+		var padding	= 16;
+		
+		var topStdPrdH	= totH - (bottomH + optBtnH + maginH + padding);
+		var optStdPrdH	= topStdPrdH - (optBtnH + maginH);
+		
+		$("#stdPrdListBot").css({'height': topStdPrdH});
+		$("#ui_std_option_layer2").css({'height': optStdPrdH});
+		//ui_std_option_layer2 stdOptListBot
+	}
+
+	// 옵션 레이어 호출
+	CustomOption.prototype.viewOption = function (isOpen, isFocus) {
+
+	};
+
+
+	// 상단과 하단의 옵션을 초기화 시킨다
+	CustomOption.prototype.resetOption = function (index) {
+		
+		if("01" == optVar.selOptTyp){
+			var _this = this;
+			// 하위 옵션 초기화
+			$('#ui_std_option_layer2').find('.option_item_list').filter(':gt(' + index + ')').html('');	// 하위 옵션 리스트 초기화
+			// 옵션탭 네이밍 초기화
+			$('#ui_std_option_layer2').find('.bot_option_section').filter(':gt(' + index + ')').each(function(){
+				var originOptNm	= $(this).find('input').val();
+				$(this).find('span.txt_choice').hide();
+				$(this).find('span.accordion_item').html(originOptNm);
+			});
+		}
+	};
+
+	CustomOption.prototype.trim = function(txt) {
+		return txt.replace(/(^\s*)|(\s*$)/gi, "");
+	};
+
+	// 옵션입력박스에 입력이 완료되었는지 확인
+	CustomOption.prototype.checkInput = function(isAlert) {
+		var _this = this;
+		var $inputTarget	=  $('#ui_std_option_layer2 > ul.info_list').find('li > input');
+
+		_this.isInput = true;
+
+		_this.entOptArr = [];
+		$.each($inputTarget, function (index, el) {
+			var txt = _this.trim($(el).val());
+			if (txt === '') {
+				_this.isInput = false;
+			} else {
+				_this.setEntOptRecord($(el));
+			}
+		});
+
+		if(!_this.isInput && isAlert){
+			_this.entOptArr = [];
+			alert('입력형 옵션이 입력되지 않았습니다. 입력형 옵션을 입력 후 선택하세요.');
+		}
+	};
+
+	// 상단과 하단의 옵션을 동기화 시킨다
+	CustomOption.prototype.setTemplate = function (data) {
+		var _this = this,
+			index = parseInt(data.target, 10) - 1;
+
+		if (data.target > 0) {
+			_this.resetOption(index);
+		}
+		
+
+		$("#ui_stdPrdOption2").find('.accordion_body').eq(data.target).html(_this.bottomHandlebars(data));
+		$("#ui_stdPrdOption2").find('.accordion_body').eq(data.target - 1).parent().removeClass('is_open');
+		$("#ui_stdPrdOption2").find('.accordion_body').eq(data.target).parent().addClass('is_open');
+        
+        _this.afterBindEvent();
+	};
+
+
+	CustomOption.prototype.oldIETrigger = function () {
+		var _this = this;
+		if ((navigator.appVersion.indexOf("MSIE 7.") > 0) || (navigator.appVersion.indexOf("MSIE 8.") > 0) || (navigator.appVersion.indexOf("MSIE 9.") > 0)) {
+			$.each(_this.$input, function () {
+				$(this)[0].fireEvent('onblur');
+			});
+		}
+	};
+
+	
+	CustomOption.prototype.getFirstOptData = function (prdNo) {
+
+		var _this = this;
+			
+		var url = "/product/SellerProductDetailAjax.tmall"
+				,param = ""
+				,callBack;
+
+			param = "method=getTopOptionInfoJson&prdNo="
+				+ prdNo;
+				
+			callBack = function(returnVal){
+
+				var returnVal = eval(returnVal);
+
+				if (returnVal.result == "FAIL") {
+					alert("옵션을 불러오는 과정에서 일시적인 오류가 발생했습니다. 새로고침하신 후 이용해주세요.");
+					return;
+				} else if (returnVal.result == "NOSALE") {
+					alert("현재 해당 상품은 구매할 수 없습니다.");
+					return;
+				}
+                _this.optCnt 	= returnVal.optCnt;
+                _this.selCnt	= returnVal.selOptCnt;
+                _this.entCnt	= returnVal.entOptCnt;
+                _this.prdNo		= returnVal.prdNo;
+                _this.selOptTyp	= returnVal.selOptTyp;
+                _this.dscPrc	= returnVal.dscPrc;
+                _this.selPrc	= returnVal.selPrc;
+                _this.totStockQty	= returnVal.totStockQty;
+                _this.totPrdStckNo	= returnVal.totPrdStckNo;
+                _this.totPrdPrc		= returnVal.totPrdPrc;
+                _this.ordObjLimit	= returnVal.ordObjLimit;
+                _this.limitTypCd		= returnVal.limitTypCd;
+                _this.ordLimitRedirectURL	= returnVal.ordLimitRedirectURL;
+                _this.eventDomainYN	= returnVal.eventDomainYN;
+                _this.isSelLimit	= returnVal.isSelLimit;
+                _this.selLimitQty	= returnVal.selLimitQty;
+                _this.isSelMinLimit	= returnVal.isSelMinLimit;
+                _this.selMinLimitQty	= returnVal.selMinLimitQty;
+                _this.selLimitPrdBuyCnt	= returnVal.selLimitPrdBuyCnt;
+                _this.selLimitTypCd		= returnVal.selLimitTypCd;
+                _this.townSelLmtDy		= returnVal.townSelLmtDy;
+                _this.repurchaseDy		= returnVal.repurchaseDy;
+                _this.discAmt			= returnVal.discAmt;
+                _this.visitPrdYn		= returnVal.visitPrdYn;	//방문 가능 여부
+                try{	// 로그 관련 정보 세팅
+                    _this.prdImgUrl		= returnVal.prdImgUrl;
+                    _this.lctgrNo		= returnVal.lctgrNo;
+                    _this.mctgrNo		= returnVal.mctgrNo;
+                    _this.sctgrNo		= returnVal.sctgrNo;
+                    _this.dispCtgrNo	= returnVal.dispCtgrNo;
+                    _this.lctgrNm		= returnVal.lctgrNm;
+                    _this.mctgrNm		= returnVal.mctgrNm;
+                    _this.sctgrNm		= returnVal.sctgrNm;
+                    _this.dsipCtgrNm	= returnVal.dsipCtgrNm;
+                    _this.catalogNo		= returnVal.catalogNo;
+                    _this.isSale		= returnVal.isSale;
+                    _this.isAdultPrd	= returnVal.isAdultPrd;
+                    _this.sellerNm		= returnVal.sellerNm;
+                    _this.brandAddCtgrNo	= returnVal.brandAddCtgrNo;
+                    _this.brandCd		= returnVal.brandCd;
+                    _this.isNowDlv		= returnVal.isNowDlv;
+                } catch (e) {}
+				$("#stdOptListBot").html('').hide();
+
+				return returnVal;
+			};
+
+
+		return $.ajax({
+			url : url,
+			data : param
+		}).then(callBack);
+	};
+	
+	CustomOption.prototype.drawOptionInfo = function (jsonObj, clickType) {
+		var _this	= this
+		var $target	= $('#stdOptListBot');
+		//this.$win.trigger('optionLayerClose');   // 다른 레이어 닫기
+		var optionHtml = '';
+		if(jsonObj.optCnt == 0 && clickType == 'DESCRIPTION_VIEW') {
+            $('#stdPrdListBot > .option_item_list > li a[data-optprdno='+jsonObj.prdNo+']').focus();
+        } else if( jsonObj.optCnt == 0) {
+			_this.addOrderNoOptArr();
+		} else if ( jsonObj.optCnt > 0 ) {
+			$('#ui_stdPrd2').find('.txt').html(_this.prdIndexStr+'. '+_this.prdNm);
+			optionHtml += '<div class="option_choice_wrap" id="ui_stdPrdOption2" >';
+			optionHtml += '	<a href="#" class="btn_option"><span class="txt">옵션 선택</span><span class="ico"></span></a>';
+			optionHtml += '		<div class="option_list_wrap" id="ui_std_option_layer2">';
+			
+			// 입력형 옵션 시작
+			var entOptArray	= jsonObj.entOpt;
+			if(jsonObj.entOptCnt > 0 && entOptArray != undefined && entOptArray.length > 0) {
+				optionHtml += '		<ul class="info_list">';
+				for(var i=0; i<entOptArray.length ; i++) {
+					optionHtml += '		<li>';
+					optionHtml += '			<label for="data" class="info_tit">'+entOptArray[i].dataOptentnm+'</label>';
+					optionHtml += '			<input type="text" data-optentno="'+entOptArray[i].dataOptentno+'" data-optentnm="'+entOptArray[i].dataOptentnm+'"'
+											+ ' class="info_cont" value="" placeholder="'+entOptArray[i].dataOptentnm+' : 입력하세요" name="txtEntOpt" title="옵션명입력" maxlength="50">';
+					optionHtml += '		</li>';
+				}
+				optionHtml += '		</ul>';
+			}
+			// 입력형 옵션 끝
+			
+			// 선택형 시작
+			if( jsonObj.selOptCnt > 0) {
+				var index	= 0;
+				var selOptArray		= jsonObj.selOptList;
+				var selTitleArray	= jsonObj.selOptTitleList;
+
+				for(var i=0; i<selTitleArray.length; i++) {
+					optionHtml += '	<div class="accordion_section bot_option_section">';
+					_this.itemNms	= _this.itemNms +selTitleArray[i]+ ",";
+					optionHtml += '		<a href="#" class="accordion_head">';
+					optionHtml += '			<span class="accordion_item">'+selTitleArray[i]+'</span>';
+					optionHtml += '			<span class="txt_choice" style="display:none;">선택됨</span>';
+					optionHtml += '			<span class="ico_open"><span class="skip">옵션 보기</span></span>';
+					optionHtml += '			<input type="hidden" name="botOptTitle" value="'+selTitleArray[i]+'"/>';
+					optionHtml += '		</a>';
+					optionHtml += '		<div class="accordion_body">';
+					if(jsonObj.selOptTyp == '02') {	// 독립형
+						optionHtml += '		<ul class="option_item_list">';
+						for(var j=0; j<selOptArray.length; j++) {
+							optionHtml += '		<li>';
+							optionHtml += '			<a href="#"	data-optno="'+selOptArray[j].dataOptno+'"';
+							optionHtml += '					data-optitemno="'+selOptArray[j].dataOptitemno+'"';
+							optionHtml += '					data-optvalueno="'+selOptArray[j].dataOptvalueno+'"';
+							optionHtml += '					data-dtloptnm="'+selOptArray[j].dataDtloptnm+'"';
+							optionHtml += '					data-mergeoptnm="'+selOptArray[j].dataMergeoptnm+'"';
+							optionHtml += '					data-minaddprc="0"';
+							optionHtml += '					data-maxaddprc="0"';
+							optionHtml += '					data-stckqty="999999"';
+							optionHtml += '					data-addprc="0"';
+							optionHtml += '					data-seloptidx="'+selOptArray[j].dataSeloptidx+'"';
+							optionHtml += '					data-stckno="-1"';
+							optionHtml += '					data-price="0"';
+							optionHtml += '					data-price="0" class="option_item">';
+							optionHtml += '				<div class="option_item_info">';
+							optionHtml += '					<span class="option_name">'+selOptArray[j].dataDtloptnm+'</span>';
+							optionHtml += '					<span class="option_price"><strong class="num prdc_price"></strong></span>';
+							optionHtml += '				</div>';
+							optionHtml += '			</a>';
+							optionHtml += '		</li>';
+						}
+						optionHtml += '		</ul>';
+						
+					} else if (jsonObj.selOptTyp == '01' && i == 0) {	// 조합형
+						optionHtml += '		<ul class="option_item_list">';
+						for(var j=0; j<selOptArray.length; j++) {
+							var smartOptImg	= selOptArray[j].smartOptImg;
+							var addClass = "soldout";
+							if(selOptArray[j].dataStckqty != undefined && Number(selOptArray[j].dataStckqty) > 0) {
+								addClass	= "";
+							}
+							optionHtml += '		<li class="'+addClass+'">';
+							optionHtml += '			<a href="#" id="customOpt_top_'+selOptArray[j].dataOptvalueno+'"';
+							optionHtml += '					data-optno="'+selOptArray[j].dataOptno+'"';
+							optionHtml += '					data-optitemno="'+selOptArray[j].dataOptitemno+'"';
+							optionHtml += '					data-optvalueno="'+selOptArray[j].dataOptvalueno+'"';
+							optionHtml += '					data-dtloptnm="'+selOptArray[j].dataDtloptnm+'"';
+							optionHtml += '					data-minaddprc="'+selOptArray[j].dataMinaddprc+'"';
+							optionHtml += '					data-maxaddprc="'+selOptArray[j].dataMaxaddprc+'"';
+							optionHtml += '					data-stckqty="'+selOptArray[j].dataStckqty+'"';
+							optionHtml += '					data-addprc="'+selOptArray[j].dataAddprc+'"';
+							optionHtml += '					data-seloptidx="1"';
+							optionHtml += '					data-stckno="'+selOptArray[j].dataStckno+'"';
+							optionHtml += '					data-price="'+selOptArray[j].dataPrice+'"';
+							optionHtml += '			class="option_item">';
+							if(smartOptImg != undefined && smartOptImg.length > 0) {
+								optionHtml += '			<span class="photo_wrap"><img src="'+smartOptImg+'" alt="" style="width:50px;height:50px;"></span>';
+							}
+							optionHtml += '				<div class="option_item_info">';
+							optionHtml += '					<span class="option_name">'+selOptArray[j].dataDtloptnm+'</span>';
+							if (selOptArray[j].stckTxt != undefined && selOptArray[j].stckTxt != '') {
+								optionHtml += '				<span class="soldout_notice">'+selOptArray[j].stckTxt+'</span>';
+							}
+							if( addClass == '') {
+								optionHtml += '				<span class="option_price"><strong class="num">'+selOptArray[j].dataPrice+'</strong>원</span>';
+							}
+							optionHtml += '				</div>';
+
+							optionHtml += '		</a></li>';
+						}
+						optionHtml += '		</ul>';
+
+					}
+					optionHtml += '		</div>';	// 선택형 옵션 닫기
+					optionHtml += '	</div>';	// 선택형 영역 닫기
+				}
+			}
+			// 선택형 끝
+			if(jsonObj.entOptCnt > 0 && jsonObj.selOptCnt == 0) {
+				optionHtml += '		<button type="button" id="ent_bot_btn" name="btnEntOptDone" class="btn_decided">입력한 정보로 선택완료</button>';
+			}
+			
+			optionHtml += '		</div>';	// 옵션 레이어 닫기
+			optionHtml += '</div>';			// 옵션 영역 닫기
+			
+			$target.html(optionHtml);
+			$('#stdOptListBot').show();
+
+            $('#stdOptListBot').addClass('is_open');
+            $('#ui_stdPrd2').parent().removeClass('is_open');
+            _this.setHeigth();
+            if(jsonObj.entOptCnt == 0 && jsonObj.selOptTyp == '01' ) {
+                $('#ui_stdPrdOption2').find('.accordion_section').eq(0).addClass('is_open');
+            }
+		}
+		//_this.$templateContent = $('#selOptList').find('.ui_option_list');
+		_this.afterBindEvent();
+	};
+	
+	CustomOption.prototype.afterBindEvent = function(paramData){
+		var _this	= this;
+		$("#ui_stdPrdOption2").find('a.btn_option').unbind().on('click', function(e){	// 옵션창 보이기
+			e.preventDefault();
+			var _target	= $(this).parent().parent();
+			if(_target.hasClass('is_open')) {
+				_target.removeClass('is_open');
+				$('#ui_stdPrdOption2').find('.accordion_section').removeClass('is_open');
+			} else {
+				_target.addClass('is_open');
+				_this.checkInput(false);
+				if (_this.isInput) {	
+					$('#ui_stdPrdOption2').find('.accordion_section').eq(0).addClass('is_open');
+				}
+			}
+		});
+		
+		$("#ui_std_option_layer2").find('.option_item_list').find('li').find('a').unbind().on('click', function(e){	// 상단 옵션리스트 클릭
+			e.preventDefault();
+			var _openClass	= 'is_open';
+			var _soldOutClass	= 'soldout';
+			var paramData = {};
+			
+			var $this 		= $(this);
+			var _targetLi	= $(this).parent();
+			
+			_this.checkInput(true);
+			if (!_this.isInput) {	
+				return false;
+			}
+			
+			if(_targetLi.hasClass(_soldOutClass)){	// 품절일 경우에는 스킵
+				return false;
+			} else {
+				if(_this.chkDuplicateSelOption($this.data("optno"))) {
+					return false;
+				}
+				
+				var objData = _this.extractData($this);
+				_this.index = objData.seloptidx - 1;
+				
+				var $target	 = $('#ui_std_option_layer2').find('.accordion_section').eq(_this.index);
+				$target.find('span.accordion_item').html(objData.dtloptnm);
+				if(!$target.hasClass('is_choice'))$target.addClass('is_choice');
+				$target.find('span.txt_choice').show();
+				
+				//선택 옵션 정보 저장
+				_this.setSelOptRecord($this);
+				var isLast = (_this.selCnt == $this.data('seloptidx')) ? true : false;
+				//console.log(_this.selCnt + ',' + $this.data('seloptidx') )
+				
+				//마지막 옵션 선택으로 인한 주문옵션에 추가
+				if (isLast){
+					// 마지막 옵션을 선택한 경우 상품을 추가한다.
+					_this.chkOptStock();
+				} else {
+					paramData.optNo = objData.optno;
+					paramData.selOptIdx = Number(objData.seloptidx);
+					
+					_this.getNextOptList(paramData);
+				}
+			}
+			
+			
+		});
+		
+		$("#ui_std_option_layer2 > .accordion_section > a.accordion_head").unbind().on('click', function(e){	// 옵션탭 클릭시
+			e.preventDefault();
+			_this.checkInput(true);
+			if (!_this.isInput) {
+				return false;
+			}
+			var _openClass	= 'is_open';
+			
+			var _target	= $(this).parent();
+        	var optCnt	= _target.find("ul").find("li").length;
+        	var optGrpIndex	= _target.index();
+			
+			if(optCnt > 0 ) {	// 하위 옵션이 없을 경우 열리지 않는다.
+        		if(_target.hasClass(_openClass)) {
+        			_target.removeClass(_openClass);
+               	} else {
+               		_target.addClass(_openClass);
+               	}
+        		
+        		$('.bot_option_section').each(function(e){	// 다른 옵션창이 열려있을 경우 닫아 준다.
+        			var tempOptGrpIndex	= $(this).index();
+        			if(tempOptGrpIndex != optGrpIndex) $(this).removeClass(_openClass);
+        		});
+        	}
+		});
+		
+		$('#ent_bot_btn').on('click', function(){	// 입력형 옵션만 있을 경우 선택박스
+            if("btnEntOptDone" == $(this).attr("name")){
+                if(_this.chkDuplicateSelOption(_this.totPrdStckNo)){
+                    return false;
+                }
+                _this.checkInput(true);
+                if(_this.isInput){
+                    var dataArr = [{
+                    	prdStckNo : _this.totPrdStckNo
+                        ,addPrc : 0
+                        ,stckQty : _this.totStockQty
+                    }];
+                    _this.addOrderOptArr(dataArr);
+                }
+            }
+            return false;
+        });
+		
+	};
+	
+	CustomOption.prototype.getNextOptList = function(paramData){
+		var _this = this;
+		paramData.searchType = "nextOpt";
+
+		if("02" == _this.selOptTyp){
+			_this.openNextOption(_this.index+1);
+		}else{
+			_this.getNextOptionData(paramData);
+		}
+
+	};
+	
+	CustomOption.prototype.getIsLastOptSelected = function(){
+		var _this = this;
+		var isLast = false;
+		if("01" == _this.selOptTyp){
+			if (_this.selCnt == _this.selOptArr.length && _this.selCnt == _this.index +1){
+				isLast = true;
+			}
+		}else if("02" == _this.selOptTyp){
+			if (_this.setCnt == _this.selOptArr.length){
+				isLast = true;
+			}
+		}
+		return isLast;
+	};
+	
+	CustomOption.prototype.getNextOptionData = function (paramData) {
+
+		var _this = this;
+		if("nextOpt" == paramData.searchType){
+			
+			var url = "/product/SellerProductDetailAjax.tmall"
+				,optNoArr = paramData.optNo
+				,optLvl = paramData.selOptIdx + 1
+				,param = ""
+				,callBack;
+
+            // _this.index = paramData.seloptidx - 1;
+
+			//마지막 추가
+			if (_this.selCnt == optLvl ) {
+				
+				param = "method=getProductDetailLastOptionList&prdNo="
+					+ _this.prdNo + "&optNoArr=" + optNoArr
+					+ "&selOptCnt=" + _this.selCnt
+					+ "&isNewOption=" + true;
+				
+				callBack = function(returnVal){
+
+					if (returnVal == "FAIL") {
+						alert("서비스 장애가 있습니다. 고객센터로 연락 주세요.");
+						return;
+					}
+					var jsonObj = eval(returnVal);
+					jsonObj = _this.getTransOptionData(jsonObj, optLvl);
+					_this.index = optLvl-1;
+					var data = $.extend({"target": _this.index}, jsonObj);
+					_this.setTemplate(data);
+				};
+				
+			//중간 추가
+			}else{
+				param = "method=getProductDetailSubOptionList&prdNo="
+					+ _this.prdNo + "&optNoArr=" + optNoArr + "&optLvl="
+					+ optLvl + "&selOptCnt=" + _this.selCnt
+					+ "&isNewOption=" + true;
+				
+				callBack = function(returnVal){
+
+					if (returnVal == "FAIL") {
+						alert("옵션을 불러오는 과정에서 일시적인 오류가 발생했습니다. 새로고침하신 후 이용해주세요.");
+						return;
+					}
+
+					var jsonObj = eval(returnVal);
+					jsonObj = _this.getTransOptionData(jsonObj, optLvl);
+					_this.index = optLvl-1;
+					var data = $.extend({"target": _this.index}, jsonObj);
+					_this.setTemplate(data);
+				};
+			}
+
+			_this.paramData = paramData;
+
+			$.ajax({
+				url : url,
+				data : param,
+				success : callBack
+			});
+			
+		}
+	};
+	
+	CustomOption.prototype.extractData = function ($obj) {
+		var dataList = [];
+		
+		$.each( $obj, function( key, value ) {
+			dataList.push( $(value).data() );
+		});
+
+		if(dataList.length == 1) {
+			return dataList[0];
+		}else{
+			return dataList;
+		}
+	};
+
+	
+	CustomOption.prototype.getTransOptionData = function(jsonObj, optLvl) {
+		var _this = this;
+		var size = jsonObj.infoList.length;
+		for(var i=0;i<size;i++){
+			jsonObj.infoList[i] = _this.getOptionLiData(jsonObj.infoList[i], optLvl);
+		}
+		return jsonObj;
+	};
+	
+	CustomOption.prototype.getOptionLiData = function(obj, optLvl) {
+		var _this = this;
+		obj.optNo = _this.paramData.optNo + "," + obj.optNo;
+		obj.selOptIdx = Number(optLvl);
+
+		obj.dtlOptNm = obj.dtlOptNm.replace(/^@#@\[/g, "[");
+
+		if((Number(obj.minAddPrc) == 0 && Number(obj.maxAddPrc) == 0) || Number(obj.minAddPrc) == Number(obj.maxAddPrc)) {
+			obj.price = _this.commaFormat(Number(_this.dscPrc) + Number(obj.minAddPrc));
+		} else if(obj.stckNo > 0){
+			obj.price = _this.commaFormat(Number(_this.dscPrc) + Number(obj.minAddPrc));
+		} else {
+			obj.price = _this.commaFormat(Number(_this.dscPrc) + Number(obj.minAddPrc)) +" ~ " + _this.commaFormat(Number(_this.dscPrc) + Number(obj.maxAddPrc));
+		}
+		
+		return obj;
+	};
+
+	CustomOption.prototype.setSelOptRecord = function($this){
+		var _this = this
+			,optData = _this.extractData($this)
+			,selOptArrSize = _this.selOptArr.length;
+
+		var selOptRecord = new SelOptRecord({
+			"optNm" : optData.dtloptnm
+			,"optItemNo" : optData.optitemno
+			,"optValueNo" : optData.optvalueno
+			,"addPrc" : optData.addprc
+			,"stckQty" : optData.stckqty
+			,"selOptIdx" : optData.seloptidx
+		});
+
+		if(selOptArrSize > 0){
+			var index = _this.chkArrIndexOf(selOptArrSize, selOptRecord.optItemNo);
+
+			if(index > -1){
+				_this.editSelOptArr(selOptRecord, index);
+                _this.selOptArr.splice(index+1, 1);
+			}else{
+				_this.addSelOptArr(selOptRecord);
+			}
+		}else{
+			_this.addSelOptArr(selOptRecord);
+		}
+	};
+
+	CustomOption.prototype.addSelOptArr = function(selOptRecord){
+		var _this = this;
+		_this.selOptArr.push(selOptRecord);
+
+		// 아이템 번호로 정렬
+		_this.selOptArr.sort(function(i1, i2) {
+			return i1.selOptIdx - i2.selOptIdx;
+		});
+	};
+
+	CustomOption.prototype.editSelOptArr = function(selOptRecord, index){
+		var _this = this;
+		_this.selOptArr[index].optNm = selOptRecord.optNm;
+		_this.selOptArr[index].optItemNo = selOptRecord.optItemNo;
+		_this.selOptArr[index].optValueNo = selOptRecord.optValueNo;
+		_this.selOptArr[index].addPrc = selOptRecord.addPrc;
+		_this.selOptArr[index].stckQty = selOptRecord.stckQty;
+	};
+
+
+	CustomOption.prototype.chkArrIndexOf = function(size, optItemNo) {
+		var _this = this;
+		for ( var i = 0; i < size; i++) {
+			if (_this.selOptArr[i].optItemNo == optItemNo) {
+				return i;
+			}
+		}
+		return -1;
+	};
+
+	CustomOption.prototype.getCurrentOptMixNo = function(separator) {
+		var currentOptMixNo = "";
+        if(this.selCnt > 0){
+            for(var i = 0; i < this.selCnt; i++){
+                currentOptMixNo = currentOptMixNo + this.selOptArr[i].optItemNo
+                    + ":" + this.selOptArr[i].optValueNo + separator;
+            }
+            var lastIndex = currentOptMixNo.lastIndexOf(separator);
+            currentOptMixNo = currentOptMixNo.substring(0, lastIndex);
+        }else{
+            currentOptMixNo = "nonSelOpt";
+        }
+
+		return currentOptMixNo;
+	};
+
+	CustomOption.prototype.getCurrentOptMixNm = function(separator, clsf) {
+		var currentOptMixNm = "";
+		if("ALL" == clsf || "ENT" == clsf){
+			for(var i = 0; i < this.entCnt; i++){
+				currentOptMixNm = currentOptMixNm + this.entOptArr[i].optTxt + separator;
+			}
+		}
+		if("ALL" == clsf || "SEL" == clsf) {
+			for (var i = 0; i < this.selCnt; i++) {
+				currentOptMixNm = currentOptMixNm + this.selOptArr[i].optNm + separator;
+			}
+		}
+		var lastIndex = currentOptMixNm.lastIndexOf(separator);
+		currentOptMixNm = currentOptMixNm.substring(0, lastIndex);
+		return currentOptMixNm;
+	};
+
+	CustomOption.prototype.chkOptStock = function() {
+		var _this = this;
+		var url = "/product/SellerProductDetailAjax.tmall";
+		var mixOptNo = _this.getCurrentOptMixNo(",");
+		var mixOptNm = _this.getCurrentOptMixNm(",", "SEL");
+		var itemNames	= _this.itemNms;
+
+		var param = "method=getStockInfoByOptNos&prdNo=" + _this.prdNo
+			+ "&mixOptNo=" + mixOptNo + "&selOptCnt=" + _this.selCnt
+			+ "&selOptTyp=" + _this.selOptTyp
+			+ "&optNmList=" + escape(encodeURIComponent(itemNames))
+			+ "&mixOptNm=" + escape(encodeURIComponent(mixOptNm));
+
+		optVar.optCheckStatus = "CHECK";
+
+		var callback = function(returnVal){
+			optVar.optCheckStatus = "OK";
+			if (returnVal == "FAIL") {
+				alert("옵션을 불러오는 과정에서 일시적인 오류가 발생했습니다. 새로고침하신 후 이용해주세요!");
+				return;
+			}
+			var jsonObj = eval(returnVal);
+
+			if( jsonObj == null || jsonObj[0] == null ) {
+				alert("옵션정보가 변경되어 선택 불가합니다. 새로고침하신 후 이용해주세요!");
+				return;
+			}
+
+			_this.addOrderOptArr(jsonObj);
+		};
+
+		$.ajax({
+			url : url,
+			data : param,
+			success : callback
+		});
+	};
+
+	CustomOption.prototype.chkDuplicateStckNo = function(prdStckNo){
+		var _this = this;
+		for(var i=0,size=optVar.orderOptArr.length;i<size;i++){
+			if(optVar.orderOptArr[i].prdStckNo == prdStckNo){
+				if(_this.optCnt == 0 ) {
+					alert("이미 선택되어 있는 상품입니다.");
+				}else {
+					alert("이미 선택되어 있는 옵션입니다.");
+				}
+				return true;
+			}
+		}
+		return false;
+	};
+
+	CustomOption.prototype.addOrderOptArr = function(data) {
+		var _this = this;
+        if(_this.chkDuplicateStckNo(data[0].prdStckNo)){
+            return false;
+        }
+
+		var orderOpt = {};
+		orderOpt.selOptArr = _this.selOptArr;
+		orderOpt.entOptArr = _this.entOptArr;
+		orderOpt.optMixNo = _this.getCurrentOptMixNo(",");
+		orderOpt.prdStckNo = data[0].prdStckNo;
+		orderOpt.amount = 1;
+		orderOpt.addPrc = data[0].addPrc;
+		orderOpt.price = Number(_this.dscPrc) + Number(data[0].addPrc);
+		orderOpt.stckQty = data[0].stckQty;
+		orderOpt.sumDscPrc = _this.discAmt;
+		orderOpt.choiceCupnIssNo = 0;
+		orderOpt.bonusCupnIssNo = 0;
+		orderOpt.plusDscAmt = 0;
+		orderOpt.rntlCst = data[0].rntlCst;
+		orderOpt.rntlSavePoint =  Math.floor( data[0].rntlCst * prcVar.prdRltnSavingRate / 100 ) ;
+		orderOpt.optPrdNo 	= _this.prdNo;
+		orderOpt.optPrdNm 	= _this.prdNm;
+		orderOpt.dscPrc		= _this.dscPrc;
+		orderOpt.dlvIssCupnNo = 0;
+		orderOpt.prdVisitDlvYn = 'N';
+		orderOpt.prdDlvCstStlTyp = _this.prdDlvCstStlTyp;
+		orderOpt.optCnt	= _this.optCnt;
+		orderOpt.selCnt = _this.selCnt;
+		orderOpt.entOptCnt = _this.entCnt;
+		orderOpt.selPrc	= _this.selPrc;
+		orderOpt.ordObjLimit	= _this.ordObjLimit;
+		orderOpt.limitTypCd		= _this.limitTypCd;
+		orderOpt.ordLimitRedirectURL	= _this.ordLimitRedirectURL;
+		orderOpt.eventDomainYN			= _this.eventDomainYN;
+		orderOpt.isSelLimit				= _this.isSelLimit;
+		orderOpt.selLimitQty			= _this.selLimitQty;
+		orderOpt.isSelMinLimit			= _this.isSelMinLimit;
+		orderOpt.selMinLimitQty			= _this.selMinLimitQty;
+		orderOpt.selLimitPrdBuyCnt	= _this.selLimitPrdBuyCnt;
+		orderOpt.selLimitTypCd		= _this.selLimitTypCd;
+		orderOpt.townSelLmtDy		= _this.townSelLmtDy;
+		orderOpt.repurchaseDy		= _this.repurchaseDy;
+		orderOpt.discAmt			= _this.discAmt;
+		orderOpt.visitPrdYn			= _this.visitPrdYn;	//방문 가능 여부
+		try{	// 로그 관련 정보 세팅
+			orderOpt.prdImgUrl		= _this.prdImgUrl;
+			orderOpt.lctgrNo		= _this.lctgrNo;
+			orderOpt.mctgrNo		= _this.mctgrNo;
+			orderOpt.sctgrNo		= _this.sctgrNo;
+			orderOpt.dispCtgrNo		= _this.dispCtgrNo;
+			orderOpt.lctgrNm		= _this.lctgrNm;
+			orderOpt.mctgrNm		= _this.mctgrNm;
+			orderOpt.sctgrNm		= _this.sctgrNm;
+			orderOpt.dsipCtgrNm		= _this.dsipCtgrNm;
+			orderOpt.catalogNo		= _this.catalogNo;
+			orderOpt.isSale			= _this.isSale;
+			orderOpt.isAdultPrd		= _this.isAdultPrd;
+			orderOpt.sellerNm		= _this.sellerNm;
+			orderOpt.brandAddCtgrNo	= _this.brandAddCtgrNo;
+			orderOpt.brandCd		= _this.brandCd;
+			orderOpt.isNowDlv		= _this.isNowDlv;
+		} catch (e) {}
+		
+		_this.pushOrderOptArr(orderOpt);
+
+		_this.addOrderOptArea(orderOpt);
+	};
+	
+	CustomOption.prototype.addOrderNoOptArr = function() {
+		var _this = this;
+        if(_this.chkDuplicateStckNo(_this.totPrdStckNo)){
+            return false;
+        }
+
+		var orderOpt = {};
+		orderOpt.selOptArr = _this.selOptArr;
+		orderOpt.entOptArr = _this.entOptArr;
+		orderOpt.optMixNo = "nonSelOpt";
+		orderOpt.prdStckNo = _this.totPrdStckNo;
+		orderOpt.amount = 1;
+		orderOpt.addPrc = _this.totPrdPrc;
+		orderOpt.price = Number(_this.dscPrc) + Number(_this.totPrdPrc);
+		orderOpt.stckQty = _this.totStockQty;
+		orderOpt.sumDscPrc = _this.discAmt;
+		orderOpt.choiceCupnIssNo = 0;
+		orderOpt.bonusCupnIssNo = 0;
+		orderOpt.plusDscAmt = 0;
+		orderOpt.rntlCst = 0;
+		orderOpt.optPrdNo 	= _this.prdNo;
+		orderOpt.optPrdNm 	= _this.prdNm;
+		orderOpt.dscPrc		= _this.dscPrc;
+		orderOpt.dlvIssCupnNo = 0;
+		orderOpt.prdVisitDlvYn = 'N';
+		orderOpt.prdDlvCstStlTyp = _this.prdDlvCstStlTyp;
+		orderOpt.optCnt	= _this.optCnt;
+		orderOpt.selCnt = _this.selCnt;
+		orderOpt.entOptCnt = _this.entCnt;
+		orderOpt.selPrc	= _this.selPrc;
+		orderOpt.ordObjLimit	= _this.ordObjLimit;
+		orderOpt.limitTypCd		= _this.limitTypCd;
+		orderOpt.ordLimitRedirectURL	= _this.ordLimitRedirectURL;
+		orderOpt.eventDomainYN			= _this.eventDomainYN;
+		orderOpt.isSelLimit				= _this.isSelLimit;
+		orderOpt.selLimitQty			= _this.selLimitQty;
+		orderOpt.isSelMinLimit			= _this.isSelMinLimit;
+		orderOpt.selMinLimitQty			= _this.selMinLimitQty;
+		orderOpt.selLimitPrdBuyCnt	= _this.selLimitPrdBuyCnt;
+		orderOpt.selLimitTypCd		= _this.selLimitTypCd;
+		orderOpt.townSelLmtDy		= _this.townSelLmtDy;
+		orderOpt.repurchaseDy		= _this.repurchaseDy;
+		orderOpt.discAmt			= _this.discAmt;
+		orderOpt.visitPrdYn			= _this.visitPrdYn;	//방문 가능 여부
+		try{	// 로그 관련 정보 세팅
+			orderOpt.prdImgUrl		= _this.prdImgUrl;
+			orderOpt.lctgrNo		= _this.lctgrNo;
+			orderOpt.mctgrNo		= _this.mctgrNo;
+			orderOpt.sctgrNo		= _this.sctgrNo;
+			orderOpt.dispCtgrNo		= _this.dispCtgrNo;
+			orderOpt.lctgrNm		= _this.lctgrNm;
+			orderOpt.mctgrNm		= _this.mctgrNm;
+			orderOpt.sctgrNm		= _this.sctgrNm;
+			orderOpt.dsipCtgrNm		= _this.dsipCtgrNm;
+			orderOpt.catalogNo		= _this.catalogNo;
+			orderOpt.isSale			= _this.isSale;
+			orderOpt.isAdultPrd		= _this.isAdultPrd;
+			orderOpt.sellerNm		= _this.sellerNm;
+			orderOpt.brandAddCtgrNo	= _this.brandAddCtgrNo;
+			orderOpt.brandCd		= _this.brandCd;
+			orderOpt.isNowDlv		= _this.isNowDlv;
+		} catch (e) {}
+		
+		_this.pushOrderOptArr(orderOpt);
+
+		_this.addOrderOptArea(orderOpt);
+		
+	};
+
+	CustomOption.prototype.addOrderOptArea = function(data) {
+		var _this = this;
+		var selOptData = $.extend({}, {"target": "ui_optSelWrapper"}, _this.getTransSetItemData(data));
+
+		// 상품 추가는 product.setItem.js 모듈에서 관리한다. -> 추후 다른 부분에서도 상품 선택시 사용 가능하다.
+		_this.$win.trigger('setItem', selOptData);
+		$(".option_choice_wrap").removeClass('is_open');	// 최상단 탭 닫기
+		$(".accordion_section").removeClass('is_open');		// 하위 탭 닫기
+		//선택한 옵션 추가후 기본적인 작업을 진행
+		_this.clearOpt('all');
+		$("#ui_stdPrdOption2").html('');
+		$('#ui_stdPrd2').find('.txt').html('상품 선택');
+
+		$("[name=selOptMergeNm]").each(function(){
+			$(this).text("");
+		});
+		_this.selOptArr = [];
+		_this.entOptArr = [];
+		//_this.viewOptionNew(false, true);
+	};
+
+	CustomOption.prototype.getTransSetItemData = function(data){
+		var _this = this;
+		var optMixNm	= _this.getCurrentOptMixNm(" / ", "ALL");
+		data.idxMixNo = data.optMixNo;
+		if(optMixNm != "" && optMixNm.length > 0) {
+			data.dispNm = _this.prdIndexStr + '. ' +_this.prdNm+' / '+optMixNm;
+		} else {
+			data.dispNm = _this.prdIndexStr + '. ' +_this.prdNm;
+		}
+		data.priceTxt = _this.commaFormat(data.price);
+		data.saveRntlPointStr = "";
+		 
+		return data;
+	};
+	CustomOption.prototype.clearOpt = function(target, $obj) {
+		var _this = this;
+		
+		if(target == 'all') {
+			$('.bot_option_section').each(function(){
+				var _titleTarget	= $(this);
+				_titleTarget.find('span.accordion_item').html(_titleTarget.find('input').val());
+				_titleTarget.removeClass('is_choice');
+				_titleTarget.removeClass('is_open');
+				_titleTarget.find('span.txt_choice').hide();
+			});
+			$('.option_choice_wrap').each(function(){
+				$(this).removeClass('is_open');
+			});
+			//데이터 초기화
+			if(_this.selOptTyp == '01' && _this.selCnt > 0) {
+				for(var i=1; i<_this.selCnt; i++) {
+					$('#ui_stdPrdOption2').find('.option_item_list').eq(i).html('')
+				}
+			}
+		}
+	};
+
+	CustomOption.prototype.pushOrderOptArr = function(data){
+
+		optVar.orderOptArr.push(data);
+	};
+
+	CustomOption.prototype.setEntOptRecord = function ($obj) {
+		var entOptRecord = new EntOptRecord({
+			"optNo" : $obj.data("optentno"),
+			"optNm" : $obj.data("optentnm"),
+			"optTxt" : $obj.val()
+		});
+
+		this.entOptArr.push(entOptRecord);
+	};
+
+	CustomOption.prototype.chkDuplicateSelOption = function(optMixNo){
+		for(var i=0,size=optVar.orderOptArr.length;i<size;i++){
+			if(optVar.orderOptArr[i].optMixNo == optMixNo && optVar.orderOptArr[i].optPrdNo == this.prdNo){
+				alert("이미 선택되어 있는 옵션입니다.");
+				return true;
+			}
+		}
+		return false;
+	};
+
+	CustomOption.prototype.commaFormat = function (num) {
+		if (num === 0) {
+			return 0;
+		}
+		var reg = /(^[+-]?\d+)(\d{3})/,
+			n = (num + '');
+
+		while (reg.test(n)) {
+			n = n.replace(reg, '$1' + ',' + '$2');
+		}
+		return n;
+	};
+
+	return CustomOption;
+}));

@@ -1,0 +1,74 @@
+!function(t) {
+    function e(n) {
+        if (i[n]) return i[n].exports;
+        var s = i[n] = {
+            "i": n,
+            "l": !1,
+            "exports": {}
+        };
+        return t[n].call(s.exports, s, s.exports, e), s.l = !0, s.exports;
+    }
+    var i = {};
+    e.m = t, e.c = i, e.d = function(t, i, n) {
+        e.o(t, i) || Object.defineProperty(t, i, {
+            "configurable": !1,
+            "enumerable": !0,
+            "get": n
+        });
+    }, e.n = function(t) {
+        var i = t && t.__esModule ? function() {
+            return t["default"];
+        } : function() {
+            return t;
+        };
+        return e.d(i, "a", i), i;
+    }, e.o = function(t, e) {
+        return Object.prototype.hasOwnProperty.call(t, e);
+    }, e.p = "", e(e.s = 0);
+}([ function(t, e, i) {
+    "use strict";
+    adv.AdBase.extend("Ad17173Banner2", {
+        "init": function(t) {
+            this.base(t), this.timer = null, this.emit(adv.ENUM.EVENTS.inited);
+        },
+        "setup": function(t) {
+            this.data = t;
+            var e = adv.cookie.getCookie(this.options.advid);
+            e = e || adv.util.random(t.sources), e = e >= t.sources.length ? 0 : e, this.currentIndex = 1 * e, 
+            e++, adv.cookie.setCookie(this.options.advid, e, adv.cookie.DAY), this.emit(adv.ENUM.EVENTS.setuped);
+        },
+        "render": function() {
+            var t, e, i = this, n = this.data.sources, s = $("." + this.options.advid);
+            this.advEl = s, this.tabTGEl = this.advEl.find(".tab-tg li"), this.tabPnEl = this.advEl.find(".tab-pn>div");
+            for (var r = 0; r < n.length; r++) e = n[r], t = s.find(".tab-tg li a:eq(" + r + ")"), 
+            t.attr("data-index", r), t.text(e.text), e.adskey && adv.util.sendIpa(s.find(".tab-pn div:eq(" + r + ")"), e.adskey, !0), 
+            s.find(".tab-pn a:eq(" + r + ")").attr("href", e.link).find("img").attr("src", e.source);
+            i.slide(), s.show();
+        },
+        "slide": function() {
+            this.currentIndex = this.currentIndex % this.data.sources.length, this.tabTGEl.removeClass("current").eq(this.currentIndex).addClass("current"), 
+            this.tabPnEl.hide().eq(this.currentIndex).show();
+        },
+        "bindEvent": function() {
+            var t = this, e = t.advEl.find(".tab-tg li a"), i = $("." + this.options.advid);
+            e.on("mouseover", function() {
+                t.currentIndex = $(this).attr("data-index"), t.slide();
+            }), i.hover(function() {
+                clearTimeout(t.timer);
+            }, function() {
+                t.autoToggle();
+            });
+        },
+        "autoToggle": function() {
+            var t = this;
+            clearTimeout(this.timer), this.timer = setTimeout(function() {
+                t.currentIndex++, t.slide(), t.autoToggle();
+            }, 3e3);
+        },
+        "play": function() {
+            this.options;
+            this.render(), this.bindEvent(), this.autoToggle(), this.emit(adv.ENUM.EVENTS.played);
+        }
+    });
+} ]);
+//# sourceMappingURL=production.js.map

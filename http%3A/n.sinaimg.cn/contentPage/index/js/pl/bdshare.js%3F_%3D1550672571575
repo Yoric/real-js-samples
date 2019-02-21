@@ -1,0 +1,311 @@
+//Bshare updates start
+(function(){
+    var _isIE6 = !window.XMLHttpRequest;
+    var _coverLayer = {
+        divObj : null,
+        _coverTime : null,
+        _coverRe : function(){
+            if(document.body.offsetHeight < document.documentElement.clientHeight){
+                this.divObj.style.width = document.body.clientWidth + "px";
+                this.divObj.style.height = document.documentElement.clientHeight + "px";
+            }else{
+                this.divObj.style.width = document.body.clientWidth + "px";
+                this.divObj.style.height = document.body.clientHeight + "px";
+            }
+        },
+        isIE : navigator.appVersion.indexOf("MSIE")!=-1?true:false,
+        on : function(noSave){
+            var me = this;
+            if(this.divObj == null){
+                this.divObj = document.createElement("div");
+                this.divObj.style.zIndex = 9900;
+                this.divObj.style.left = '0px';;
+                this.divObj.style.top = '0px';;
+                this.divObj.style.position = "absolute";
+                this.divObj.style.backgroundColor = "#000";
+                if(this.isIE){
+                    var tempFrame = document.createElement("iframe");
+                    tempFrame.style.filter = "Alpha(Opacity=0)";
+                    tempFrame.frameBorder = 0;
+                    tempFrame.scrolling = "no";
+                    tempFrame.style.width = "100%";
+                    tempFrame.style.height = "100%";
+                    this.divObj.appendChild(tempFrame);
+                    this.divObj.style.filter = "Alpha(Opacity=30)";
+                }else{
+                    this.divObj.style.opacity = 0.3;
+                };
+                document.body.appendChild(this.divObj);
+            };
+            if(document.body.offsetHeight < document.documentElement.clientHeight){
+                this.divObj.style.width = document.body.clientWidth + "px";
+                this.divObj.style.height = document.documentElement.clientHeight + "px";
+            }else{
+                this.divObj.style.width = document.body.clientWidth + "px";
+                this.divObj.style.height = document.body.clientHeight + "px";
+            };
+            this.divObj.style.display = "block";
+            clearInterval(this._coverTime);
+            this._coverTime = setInterval(function(){
+                me._coverRe()
+            }, 50);
+        },
+        off : function(noSave){ //\u5173\u95ED\u906E\u76D6\u5C42
+            if(this.divObj){this.divObj.style.display = "none"};
+            clearInterval(this._coverTime);
+        }
+    };
+    var popW, h5QR;
+
+    function _id (id) {
+        return document.getElementById(id);
+    }
+    function _class (classname, node) {
+        if (node == null) node = document;
+        if (node.getElementsByClassName) {
+            return node.getElementsByClassName(classname);
+        }
+        else {
+            return (function getElementsByClass(searchClass, node) {
+                var classElements = [],
+                    els = node.getElementsByTagName("*"),
+                    elsLen = els.length,
+                    pattern = new RegExp("(^|\\s)" + searchClass + "(\\s|$)"),
+                    i, j;
+                for (i = 0, j = 0; i < elsLen; i++) {
+                    if (pattern.test(els[i].className)) {
+                        classElements[j] = els[i];
+                        j++;
+                    }
+                }
+                return classElements;
+            })(classname, node);
+        }
+    }
+    function _byAttrInHead (attribute, attributeValue) {
+        var elementArray = [];
+        var matchedArray = [];
+        elementArray = document.getElementsByTagName("meta");
+        if(document.querySelectorAll){
+            return document.getElementsByTagName("head")[0].querySelectorAll('[' + attribute + '=' + attributeValue + ']');
+        }
+        for (var i = 0; i < elementArray.length; i++) {
+            if (attribute == "class") {
+                var pattern = new RegExp("(^| )" + attributeValue + "( |$)");
+                if (elementArray[i].className.match(pattern)) matchedArray.push(elementArray[i]);
+            } else if (elementArray[i].getAttribute(attribute) == attributeValue) matchedArray.push(elementArray[i]);
+        }
+        return matchedArray;
+    }
+    function _addEvent (obj, type, fn) {
+        if (obj.addEventListener)
+            obj.addEventListener(type, fn, false);
+        else if (obj.attachEvent) {
+            obj["e" + type + fn] = fn;
+            obj[type + fn] = function() {
+                obj["e" + type + fn](window.event);
+            }
+            obj.attachEvent("on" + type, obj[type + fn]);
+        }
+    }
+
+    function _hasClass (element, name) {
+        var re = new RegExp('(^| )' + name + '( |$)');
+        return re.test(element.className);
+    }
+    function _removeClass (element, name) {
+        var re = new RegExp('(^| )' + name + '( |$)');
+        if (name) {
+            element.className = element.className.replace(re, ' ').replace(/^\s+|\s+$/g, "");
+        } else {
+            element.className = '';
+        }
+    }
+    function _addClass (element, name) {
+        if (!_hasClass(element, name)) {
+            element.className += ' ' + name;
+        }
+    }
+
+    function _openDiag (conf) {
+        _coverLayer.on();
+        if(!popW){
+            popW = document.createElement('div');
+            popW.className = 'popup_share_w';
+            _addEvent(popW, 'click', function (e) {
+                var e = e || window.event;
+                var target = e.target || e.srcElement;
+                if(_hasClass(target, 'popup_share_close')){
+                    _closeDiag();
+                }
+            });
+            document.body.appendChild(popW);
+        }
+        popW.innerHTML = conf.inner;
+        _showPopUp(conf);
+    }
+
+    function _closeDiag (conf) {
+        _coverLayer.off();
+        _hidePopUp(conf);
+        popW.innerHTML = '';
+    }
+
+    function _showPopUp (conf) {
+        var st = Math.max(document.documentElement.scrollTop, document.body.scrollTop);
+        var sl = Math.max(document.documentElement.scrollLeft, document.body.scrollLeft);
+        var vH = (window.innerHeight) ? window.innerHeight : (document.documentElement && document.documentElement.clientHeight) ? document.documentElement.clientHeight : document.body.offsetHeight;
+        var vW = (window.innerWidth) ? window.innerWidth : (document.documentElement && document.documentElement.clientWidth) ? document.documentElement.clientWidth : document.body.offsetWidth;
+        var top, left;
+        // 20\uFF1A\u9884\u7559\u7ED9\u5173\u95ED\u6309\u94AE\u7684\u9AD8\u5EA6
+        top = vH > 560 ? st + (vH - 560)/2 : st + 20;
+        left = vW > 560 ? sl + (vW - 560)/2 : sl;
+        popW.style.top = top + 'px';
+        popW.style.left = left + 'px';
+        popW.style.display = 'block';
+        _addClass(popW, 'sharePopUp');
+    }
+
+    function _hidePopUp (conf) {
+        if(popW){
+            popW.style.display = 'none';
+            _removeClass(popW, 'sharePopUp');
+        }
+    }
+
+    function _openWXDiag (wxBtnEle) {
+        var wxBtnW = wxBtnEle.parentNode;
+        var tipWXW = _class('tip_weixin', wxBtnW)[0];
+        if(!tipWXW){
+            tipWXW = document.createElement('div');
+            tipWXW.className = 'tip_weixin';
+            tipWXW.innerHTML = '<img src="' + _getQR () + 'weixin' + '" alt="" class="weixin_qr" /><span class="tip_weixin_close" suda-uatrack="key=menhu_weixin_share&value=weixin_layer_close"></span><p class="weixin_qr_intro">\u7528\u5FAE\u4FE1\u626B\u63CF\u4E8C\u7EF4\u7801<br />\u5206\u4EAB\u81F3\u597D\u53CB\u548C\u670B\u53CB\u5708</p>';
+            _addEvent(tipWXW, 'click', function (e) {
+                var e = e || window.event;
+                var target = e.target || e.srcElement;
+                if(_hasClass(target, 'tip_weixin_close')){
+                    _closeWXDiag(tipWXW);
+                }
+            });
+            wxBtnW.appendChild(tipWXW);
+        }
+        if(_hasClass(tipWXW, 'weixinPullUp')){
+            tipWXW.style.display = 'none';
+            _removeClass(tipWXW, 'weixinPullUp');
+        }
+        else{
+            tipWXW.style.display = 'block';
+            _addClass(tipWXW, 'weixinPullUp');
+        }
+    }
+
+    function _closeWXDiag (tipWXW) {
+        if(tipWXW){
+            tipWXW.style.display = 'none';
+            _removeClass(tipWXW, 'weixinPullUp');
+        }
+    }
+
+    function _getQR () {
+        var html5Cont, mbUrl, codeImgSrc;
+        if(h5QR) return h5QR;
+        try{
+            html5Cont = document.querySelectorAll ? _byAttrInHead('http-equiv', 'mobile-agent')[0].getAttribute('content') : _byAttrInHead('httpEquiv', 'mobile-agent')[0].getAttribute('content');
+        }
+        catch(e){
+          //  throw new Error('\u7F3A\u5C11\u5E26mobile link\u4FE1\u606F\u7684meta\u6807\u7B7E');
+        }
+        mbUrl = html5Cont.substring(html5Cont.indexOf('url=') + 4);
+        codeImgSrc = 'http://comet.blog.sina.com.cn/qr?' + decodeURIComponent(mbUrl);
+        if(codeImgSrc.indexOf('%3F') > 0){
+            codeImgSrc = codeImgSrc + '%26fromsinaweb%3D';
+        }
+        else{
+            codeImgSrc = codeImgSrc + '%3Ffromsinaweb%3D';
+        }
+        h5QR = codeImgSrc;
+        return codeImgSrc;
+    }
+
+    function bShareUpdate (wrap) {
+        var wrapEle = typeof(wrap) === 'object' ? wrap : _id(wrap);
+        var btn_wm = _class('share_weimi', wrapEle)[0];
+        var btn_lw = _class('share_laiwang', wrapEle)[0];
+        var btn_wx = _class('share_weixin', wrapEle)[0];
+        var h5QRsrc = _getQR();
+        if(btn_wm){
+            _addEvent(btn_wm, 'click', function (e) {
+                _openDiag({
+                    inner : '\
+                        <iframe style="width:560px;height:560px;position:absolute;left:0;filter:Alpha(opacity=0);opacity:0;border:none"></iframe>\
+                        <div class="popup_share">\
+                            <span class="popup_share_close" suda-uatrack="key=menhu_weimi_share&value=weimi_layer_close"></span>\
+                            <div class="popup_share_tt">\
+                                <h4>\u5FAE\u7C73\u5206\u4EAB</h4>\
+                                <p>\u8BF7\u524D\u5F80<a href="http://www.weimi.me/" target="_blank" suda-uatrack="key=menhu_weimi_share&value=weimi_layer_url">www.weimi.me</a>\u4E0B\u8F7D\u5FAE\u7C73\u5BA2\u6237\u7AEF</p>\
+                            </div>\
+                            <div class="popup_share_c">\
+                                <div class="popup_share_bg">\
+                                    <img src="' + h5QRsrc + 'weimi' + '" alt="">\
+                                </div>\
+                            </div>\
+                        </div>'
+                });
+            });
+        }
+        if(btn_lw){
+            _addEvent(btn_lw, 'click', function (e) {
+                _openDiag({
+                    inner : '\
+                        <iframe style="width:560px;height:560px;position:absolute;left:0;filter:Alpha(opacity=0);opacity:0;border:none"></iframe>\
+                        <div class="popup_share" style="width:560px;height:560px;position:absolute;left:0">\
+                            <span class="popup_share_close" suda-uatrack="key=menhu_laiwang_share&value=laiwang_layer_close"></span>\
+                            <div class="popup_share_tt">\
+                            <h4>\u6765\u5F80\u5206\u4EAB</h4>\
+                            <p>\u8BF7\u524D\u5F80<a href="http://www.laiwang.com/" target="_blank" suda-uatrack="key=menhu_laiwang_share&value=laiwang_layer_url">www.laiwang.com</a>\u4E0B\u8F7D\u6765\u5F80\u5BA2\u6237\u7AEF</p>\
+                            </div>\
+                            <div class="popup_share_c">\
+                              <div class="popup_share_bg popup_share_lw_bg">\
+                                  <img src="' + h5QRsrc + 'laiwang' + '" alt="">\
+                              </div>\
+                            </div>\
+                        </div>'
+
+                });
+            });
+        }
+        if(btn_wx){
+            _addEvent(btn_wx, 'click', function (e) {
+                _openWXDiag(btn_wx);
+            });
+        }
+        // _coverLayer.on();
+    }
+    window.bShareUpdate = bShareUpdate;
+})();
+
+jQuery(document).ready(function (){
+    $=window.jQuery;
+(function(window) {
+    //分享
+    var script = document.createElement('script');
+            script.id = 'bdshell_js';
+            script.type = 'text/javascript';
+            document.getElementsByTagName('head')[0].appendChild(script);
+
+            (function(exports){
+                exports.bds_config = {
+                    "snsKey": {
+                        'tsina': 'false',
+                        'tqq': '',
+                        't163': '',
+                        'tsohu': ''
+                    },
+                    'wbUid':'1225314032',
+                    'searchPic':false
+                };
+                document.getElementById("bdshell_js").src = "http://bdimg.share.baidu.com/static/js/shell_v2.js?cdnversion=" + Math.ceil(new Date()/3600000);
+            })(window)
+
+})(window)
+})

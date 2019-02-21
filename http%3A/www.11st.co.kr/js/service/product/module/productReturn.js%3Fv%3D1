@@ -1,0 +1,118 @@
+/**
+ * @method: productReturn
+ * @dependency: requireJS, jQuery
+ */
+(function(root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define([
+            'jquery',
+            'productCommon'
+        ], factory);
+    } else {
+        	root.productReturn = factory(
+            root.jQuery,
+            root.productCommon
+        );
+    }
+}(window || this, function($, productCommon) {
+	'use strict';
+	
+	var prdVar = productPrdInfo;
+	
+	var productReturn = {	
+						
+		init : function() {	
+	
+			$("#btnReturnEx").click(function() {
+				$("#lyReturnEx").show();
+				return false;
+			});
+			$("#btnExClose").click(function() {
+				$("#lyReturnEx").hide();
+			});
+			$("#btnReturnEx2").click(function() {
+				$("#lyReturnEx2").show();
+				return false;
+			});
+			$("#btnExClose2").click(function() {
+				$("#lyReturnEx2").hide();
+			});
+			$("#returnLink0, #returnLink1, #returnLink2").click(function() {
+				productCommon.openPopup("http://buy.11st.co.kr/order/popAppmtGuide.tmall", 510, 750);
+			});
+		
+			$('#btnMoLay6').click(function(e) {
+				var btn_position = $(this).position();
+				var ly_top = $(this).height() + btn_position.top + 1;
+				var ly_left = btn_position.left + 5;
+				$('#mo_lay6').css({
+					'display' : 'block',
+					'top' : ly_top,
+					'left' : ly_left
+				});
+				return false;
+			});
+	
+			$('#btnMoLayCls').click(function(e) {
+				$('#mo_lay6').hide();
+				return false;
+			});
+		
+	/*		if ('16' != this._prdTypCd && '10' == this._dlvCstInstBasiCd)
+				$("#_glbDeliPrc_").text(this._abrdCnDlvCst);
+			}*/
+			
+			if(prdVar.selMnbdNo != null){			
+				$("#rtnDescIfrm").attr(
+						"src",
+						"/product/SellerProductDetail.tmall?method=getProductNoticeInfo&selMnbdNo="
+						+ prdVar.selMnbdNo + "&mdispCtgrNo="
+						+ prdVar.mdispCtgrNo
+						+ "&ntceClfCd=02&dispCtgrCd="
+						+ prdVar.dispCtgrCd
+						+ "&prdNo="+prdVar.prdNo
+						+ "&isRenewYn=Y");
+				}
+			
+			$('#previliagePrd').click(function(e) {
+				var url = "/html/common/pop_singodown.html";
+				var _win = productCommon.launchCenter(url, "_blank", 537, 800, "yes");
+				_win.focus();
+			});
+
+			
+			$('#reportPrdGo').click(function(e) {
+				var url = "http://www.11st.co.kr/safety/SafetyMain.tmall";
+				window.open(url, "_blank");
+			});
+
+			$('#reportProductPop').click(function(e) {
+				var prdNo = $(this).attr("data-prdNo");
+				var prdNm = $(this).attr("data-prdNm");
+				var sellerNo = $(this).attr("data-selMnbdNo");	
+				var sellerId = $(this).attr("data-memID");	
+				
+				productReturn.reportProductPop(prdNo, prdNm, sellerNo,sellerId);
+			});
+		
+		},
+		
+		/**
+		 * 11번가 안전거래센터 - 11번가 신고센터
+		 *
+		 * @return
+		 */
+		reportProductPop : function(prdNo, prdNm, sellerNo, sellerId){
+			var url = "http://help.11st.co.kr/11st/mail/MailStatementPopup.jsp?ordNo=&prdNo="
+				+ prdNo
+				+ "&prdNm="
+				+ prdNm
+				+ "&sellerNo="
+				+ sellerNo
+				+ "&sellerGrade=&sellerId=" + sellerId;
+			window.open(url, "_blank","width=100, height=100, resizable=no, scrollbar=no, toolbar=no,menubar=no");
+		}
+	};
+
+	return productReturn;
+}));

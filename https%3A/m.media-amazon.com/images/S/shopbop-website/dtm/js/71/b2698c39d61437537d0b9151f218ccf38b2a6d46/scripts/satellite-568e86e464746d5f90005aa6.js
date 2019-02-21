@@ -1,0 +1,1 @@
+_satellite.pushAsyncScript(function(a,b,c){"WOMENS"===digitalData.page.attributes.brand.toUpperCase()?appendPixelImage("https://www.facebook.com/tr?id=152051348482989&ev=PageView&noscript=1"):appendPixelImage("https://www.facebook.com/tr?id=900115550085071&ev=PageView&noscript=1")});

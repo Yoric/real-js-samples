@@ -1,0 +1,51 @@
+adv.AdBase.extend('Ad17173CeShiTuijian', {
+  init: function(options) {
+    this.base(options);
+    this.emit(adv.ENUM.EVENTS.inited);
+  },
+  setup: function(data) {
+    this.data = data;
+    this.emit(adv.ENUM.EVENTS.setuped);
+  },
+itemTmpl:function(){/*@preserve
+<li class="item">
+  <div class="c1"><span style="display:block; width:34px; height:18px; margin:4px 0 0 1px; line-height:18px; text-align:center; color:#fff; background:#ff5c00;">@mark</span></div>
+  <div class="c2">
+    <div class="art-item">
+      <a href="@link" target="_blank">@name<span style="display:inline-block;position:relative;min-width:1.3em;height:16px;margin:0 0 2px 7px;padding:0 3px;color:#ff5c00;line-height:16px;text-align:center;border:1px solid #ff5c00;border-radius:2px;background:#fff;vertical-align:middle;text-decoration:none;cursor:pointer;"><i style="position:absolute;top:1px;left:-5px;overflow:hidden;width:5px;height:14px;background:url(//ue.17173cdn.com/a/www/index/2016v2/img/tg-2.png) no-repeat 0 50%"></i>@tip</span></a>
+    </div>
+  </div>
+  <div class="c3 "><a href="@link" target="_blank" class="c-gray1">@testStatus</a></div>
+  <div class="c5" style="width:7em; text-align:right;"><a href="@link" target="_blank" class="c-red1">@desc</a></div>
+</li>
+*/},
+  play: function() {
+    var me = this,
+        advEl = $('.' + this.options.advid),
+        adItem = $(adv.razor(me.itemTmpl,me.data)),
+        item,
+        now = new Date(),
+        gameDate = [now.getMonth() + 1,now.getDate()],
+        ul = advEl.find('.list-rank-total'),
+        lis =  advEl.find('li');
+    if(this.data.upOnly){
+      item = ul.find('li:eq(0)');
+    }
+    else{
+      lis.each(function(i,n){
+        var date = $(n).find('.c1').text().split('-');
+        date[0] = date[0]*1;
+        date[1] = date[1]*1;
+        if(item || (date[0] == 1 && gameDate[0]==12))return;
+        if(date[0] < gameDate[0] ||(date[0] === gameDate[0] && date[1] <= gameDate[1])){
+          item = $(n);
+        }
+      });
+    }
+    item.before(adItem);
+    advEl.find('li:eq(15)').addClass('item-hide');
+    advEl.find('li:last').remove();
+    adv.util.sendIpa(adItem,this.data.adskey,true);
+    this.emit(adv.ENUM.EVENTS.played);
+  }
+});

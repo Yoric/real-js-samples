@@ -1,0 +1,3031 @@
+/**
+ * @method: orderInfo
+ * @dependency: requireJS, jQuery, prdVar, ordVar, optVar, myCupnInfo
+ */
+(function(root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define([
+            'jquery',
+            // 'prdVar',
+            // 'ordVar',
+            // 'optVar',
+            'myCupnInfo'
+        ], factory);
+    } else {
+        root.orderInfo = factory(
+            root.jQuery,
+            // root.prdVar,
+            // root.ordVar,
+            // root.optVar,
+            root.myCupnInfo
+        );
+    }
+}(window || this, function($, myCupnInfo) {
+
+	var prdVar = productPrdInfo;
+	var prcVar = productPrcInfo;
+	var ordVar = productOrdInfo;
+	var optVar = productOptInfo;
+	var logVar = productRakeLogInfo;
+
+	var orderInfo = {
+
+		$win : $(window),
+
+		buyStatus : true,
+		isChangingCupn : false, //isChangeChkStart : false,
+		bcktType : "",
+
+        position : "",
+
+		// 템플릿 적용 컨텐츠 : 상단과 하단 두군데에 있다.
+		$templateContent : $('.option_mini'),
+		// bottom 추가
+		$templateContentBot : $('.option_bottom'),
+
+		$mdRecmContent : $('ul.list_together'),
+
+		// 합계금액 및 수량
+		$totalPrice : $('.ui_total_price'),
+		$totalCount : $('.ui_total_count'),
+
+		popupSerial : Math.floor(Math.random() * 10000) + 1,
+
+		isSyrupAvailCupn : true,
+		
+		isLifePlus : prdVar.isLifePlusPrd, //생활편의 상품 여부
+
+		init : function() {
+
+			if("02" == ordVar.dlvCstPayTypCd){
+				$("[name=prdDlvCstStlTyp]").val("02");
+			}else if("03" == ordVar.dlvCstPayTypCd || "10" == ordVar.dlvCstPayTypCd){
+				$("[name=prdDlvCstStlTyp]").val("01");
+			}
+
+			//선물하기 기본값셋팅
+			$("#sendGiftYn").val("N");
+
+			this.bind();
+			this.loadPrivateInfoPolicy();
+			this.customOrderPopUpSetting();
+            myCupnInfo.init();
+
+            this.GA_push('detail');
+            
+            //DSR-4259 : 광고 관련 Api 공통화 작업
+			try {
+				callCommonAd('view', 'http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=' + prdVar.prdNo, JSON.stringify(this.makeSyrupData()));
+			} catch(e){}
+
+		},
+		
+		loadPrivateInfoPolicy : function (){
+			
+			if( !prdVar.isRental ) return;
+			
+			var url = 'http://buy.11st.co.kr/pay/rentalOrderProcess.tmall?method=getOrderAgreeDetail';
+
+			$.ajax({
+	     		url: url,
+	     		cache: false,
+	     		type: 'POST',
+	     		dataType: 'jsonp',
+	     		jsonp: 'callback',
+	     		scriptCharset: 'UTF-8',
+ 	            data: { prdNo : prdVar.prdNo },
+ 	            success : function(data) {
+					$('div.ly_agree_info').each(function(index, elementNode) {
+						var agreeStr = data.result;
+						if(index === 0) {
+							agreeStr = agreeStr.replace(/<(\li)([^>]*)>/gi, '<li>- ');
+						}
+						elementNode.innerHTML = agreeStr;
+					});
+	     		}
+	     	});
+		},
+
+		// Popup 위치 버그 관련한 세팅
+		customOrderPopUpSetting : function() {
+			if(prdVar.prdStatCd === '10') {
+				$('.btn_dshop.pay11').each(function(index, elements) {
+					if(index === 0) {
+						$(elements).addClass("position_top");
+						return;
+					}
+				});
+			}
+		},
+
+		bind : function(){
+			
+			var _this = this;
+
+            //최초 로딩시 쿠폰적용가 호출
+            _this.$win.on('callMyCupnInfo', function (e) {
+                myCupnInfo.getMyCupnInfo(true);
+            });
+
+            //장바구니 콜백이벤트
+            _this.$win.on('callBackBckt', function (e) {
+
+                try {
+                    try{
+                        removeCookieWB();
+                        resetWB("Cart");
+    					$('#hiddenProcessId').attr('src', 'about:blank');
+                    }catch(e){}
+
+                    _this.$win.trigger('optionLayerClose');
+
+                    if("bottom" == _this.position){
+                        jQuery(".lay_nw_def.ui_info_content.cart.position_bottom").show();
+                    }else{
+                        jQuery(".lay_nw_def.ui_info_content.cart.position_top").show();
+                    }
+
+                    // 옴니츄어
+                    try {
+                        products_call(ordVar.strOmnitureAction, "scAdd");
+                    }catch(e){}
+
+                    // 에이메일
+                    try {
+                        _this.callBasket();
+                    } catch (e) {}
+
+                    return false;
+                }catch(e){}
+            });
+            
+            // 묶음 상품 장바구니 담기 콜백이벤트
+            _this.$win.on('goProcessOrder', function (e, data) {
+            	var obj = document.frmStdMain; 
+            	var obj2 = document.frmMain;
+            	var pathCd	= obj.bcktPathCd.value;
+            	
+            	if(pathCd == '01') {
+            		//alert('장바구니 : ' + data);
+            		$(window).trigger('callBackBckt');
+            	} else if (pathCd == '02') {
+            		//alert('즉시 구매' + data);
+            		obj.bcktNo.value = data;
+            		obj2.bcktNo.value = data;
+            		if (funcCheckIsLogin()) {
+    					_this.chkLoginOrder();
+    					_this.buyStatus = true;
+    				} else {
+    					_this.chkNonLoginOrder(obj2);
+    					/*if( jQuery("#syrupPayYn").val() == "Y" ) {
+    						openLogin(5, 'directNonLogin', null, null, null, null, null, 'Y');
+    					} else {
+    						openLogin(5, 'directNonLogin');
+    					}*/
+   						_this.buyStatus = true;
+    				}
+            	}
+            });
+
+            $("a[name=aGblDlvInfo]").on('click', function(){
+                window.open("/browsing/WorldDeliverySubAction.tmall?method=getWorldDeliveryInfo&viewFlag=info1","_blank");
+            });
+            $("a[name=aVisitDlvInfo]").on('click', function(){
+                _goVisitAddrPop(prdVar.prdNo.toString(),'','',''); return false;
+            });
+
+			//방문수령
+			$("#chkPrdVisitDlvYn").change(function() {
+				var obj = document.frmMain;
+				if (this.checked) {
+
+					if (!_this.chkVisitMulti() || !_this.chkVisitGbl()) {
+						$(this).attr("checked", false);
+						return;
+					}
+					if($("[name=dlvIssCupnNo]").length > 0){
+						alert("방문수령 선택시, 배송비쿠폰은\n사용 불가하므로 자동 해제됩니다.");
+						_this.removeParamInput("dlvIssCupnNo");
+					}
+					$(obj).find("[name=prdVisitDlvYn]").val("Y");
+					$(".gift_to").hide();
+					_this.setDlvCstArea("Y");
+					_this.$win.trigger("callGaEvent","0;12;방문수령");
+				} else {
+					$(obj).find("[name=prdVisitDlvYn]").val("N");
+					$(".gift_to").show();
+
+					_this.setDlvCstArea("N");
+				}
+			});
+
+			//복수배송
+			$("#chkDeliMultiAddrYn").change(function() {
+				if (this.checked) {
+
+					if(!_this.chkRecmPrd($(this))){
+						return;
+					}
+					if($("[name=dlvIssCupnNo]").length > 0){
+						alert("복수배송지 설정시, 배송비쿠폰은 \n사용 불가하므로 자동 해제됩니다.");
+						this.removeParamInput("dlvIssCupnNo");
+					}
+					if (!_this.chkMultiAddPrd() || !_this.chkMulinGbl() || !_this.chkVisitMulti()) {
+						$(this).attr("checked", false);
+						return;
+					}
+					ordVar.isDeliMultiAddr = "Y";
+					$(".gift_to").hide();
+					$(".btn_cart_wrap").hide();
+					_this.$win.trigger("callGaEvent","0;12;복수배송");
+				} else {
+					ordVar.isDeliMultiAddr = "N";
+					$(".gift_to").show();
+					$(".btn_cart_wrap").show();
+				}
+			});
+
+			//전세계배송
+			$("#chkGblDlvYn").change(function() {
+				var obj = document.frmMain;
+				if (this.checked) {
+
+					if(!_this.chkRecmPrd($(this))){
+						return;
+					}
+
+					if (!_this.chkMulinGbl() || !_this.chkVisitGbl()) {
+						$(this).attr("checked", false);
+						return;
+					}
+
+					if("02" == $(obj).find("[name=prdDlvCstStlTyp]").val()){
+						alert("배송비 착불 선택시, 전세계배송으로 주문이 불가합니다.");
+						$(this).attr("checked", false);
+						return;
+					}
+					$(".gift_to").hide();
+					$(".syup_pay").hide();
+					$(".pay11_wrap").hide();
+					$(".btn_11pay").hide();	// 하단 11페이 버튼
+					if($('#botDoubleBtnArea > button').length > 1) {// 버튼 두개일 경우 너비 조정
+                    	$('#botDoubleBtnArea').removeClass('btn_dubble').addClass('btn_full');
+                    }
+
+					$(obj).find("[name=gblDlvYn]").val("Y");
+					_this.bcktType = "02";
+					_this.$win.trigger("callGaEvent","0;12;전세계배송");
+				} else {
+					$(".gift_to").show();
+					$(".syup_pay").show();
+					$(".pay11_wrap").show();
+					$(".btn_11pay").show(); // 하단 11페이 버튼
+					if($('#botDoubleBtnArea > button').length > 1) {// 버튼 두개일 경우 너비 조정
+                    	$('#botDoubleBtnArea').addClass('btn_dubble').removeClass('btn_full');
+                    }
+					$(obj).find("[name=gblDlvYn]").val("N");
+					_this.bcktType = "";
+				}
+			});
+
+			$("div.coupon_apply").on('click', 'a', function () {
+				var $this = $(this);
+				if($this.hasClass("nw_h_ss")){
+					_this.callChgCupnPopup();
+					_this.$win.trigger("callGaEvent","0;"+ (_this.getBtnPosition($this) == "top" ? "12" : "20") +";쿠폰변경");
+                    return false;
+				}
+			});
+			
+			// 렌탈상품 연락처 동기화
+	        $(".option_case > input.it").on('blur', function(){ 
+	        	var $this = $(this);
+	        	var val = $this.val();
+	        	var $obj = $("input[name="+$this.attr('name')+"]");
+	        	$.each( $obj, function(i, e){ if($(e).val() != val) $(e).val(val); });
+	        });
+
+	        // 렌탈상품 개인정보 판매자 제공동의
+	        $("input[name=agree]").on('change', function(){ 
+	        	var $this = $(this);
+	        	var val = $this.is(':checked');
+	        	var $obj = $("input[name="+$this.attr('name')+"]");
+	        	$.each( $obj, function(i, e){ if($(e)!=$(this) ) $(e).prop('checked', val); });
+	        });
+		},
+
+		chkMultiAddPrd : function() {
+			if (optVar.orderAddPrdArr.length > 0) {
+				alert("추가구성 상품이 포함되어 있을 경우에는 복수배송지 주문을 선택할 수 없습니다.");
+				return false;
+			}
+			return true;
+		},
+
+		chkMulinGbl : function() {
+			if ($("#chkGblDlvYn").is(':checked') && $("#chkDeliMultiAddrYn").is(':checked')) {
+				alert("전세계배송과 복수배송지를 동시에 선택할 수 없습니다.");
+				return false;
+			}
+			return true;
+		},
+
+		chkRecmPrd : function($obj){
+			if(optVar.orderRecmPrdArr.length > 0){
+				if($obj.is(':checked') == true){
+					var text = $obj.data("text");
+					alert('추천상품 선택 시 '+text+' 주문이 불가합니다');
+					$obj.prop('checked', false);
+					return false;
+				}
+			}
+			return true;
+		},
+
+		chkVisitMulti : function() {
+			if ($("#chkPrdVisitDlvYn").is(':checked') && $("#chkDeliMultiAddrYn").is(':checked')) {
+				alert("방문수령과 복수배송지를 동시에 선택할 수 없습니다.");
+				return false;
+			}
+			return true;
+		},
+
+		chkVisitGbl : function() {
+			if ($("#chkGblDlvYn").is(':checked') && $("#chkPrdVisitDlvYn").is(':checked')) {
+				alert("전세계배송과 방문수령을 동시에 선택할 수 없습니다.");
+				return false;
+			}
+			return true;
+		},
+
+		setDlvCstArea : function (visitDlvYn) {
+			if ("Y" == visitDlvYn) {
+				$("[name=dlvCstInfoView]").each(function() {
+					$(this).hide();
+				});
+				$("#dlvCstInfoViewFree").show();
+				// $("#tdEzDlvInfo").html("무료");
+				// 하단 배송 영역 추가
+				//$('#botDeliArea').hide();		// 하단 배송비 영역 비노출
+				$('#botFreeDeliArea').show();	// 하단 무료 배송 영역 노출
+				$('#botOrginDeliArea').hide();	// 하단 선결제/착불영역 비노출
+			} else {
+				$("[name=dlvCstInfoView]").each(function() {
+					$(this).show();
+				});
+				$("#dlvCstInfoViewFree").hide();
+				// $("#tdEzDlvInfo").html(productPrice.ezDlvInfoTxt);
+				//$('#botDeliArea').show();		// 하단 배송비 영역 노출
+				$('#botFreeDeliArea').hide();	// 하단 무료 배송 영역 노출
+				$('#botOrginDeliArea').show();	// 하단 선결제/착불영역 노출
+			}
+		},
+
+		setTotalPrice : function(){
+
+			var _this = this;
+			// var $target = _this.$templateContent.find('li');
+
+			// 알뜰계산기 변경 여부 체크
+			this.isChangingCupn = false;
+
+			var totalAmount = 0;
+			var totalPrice = 0;
+			var totalAddOtherPrdPrc = 0;
+			var tmpAmount = 0;
+			var tmpAddPrc = 0;
+			var tmpPrice = 0;
+			var totalSavingPoint = 0;		// 렌탈상품 적립예상 포인트
+			
+			for(var i=0,size=optVar.orderOptArr.length; i < size; i++) {
+				tmpAmount = Number(optVar.orderOptArr[i].amount);
+				totalAmount = totalAmount + tmpAmount;
+		
+				if( prdVar.isRental ){
+					// 렌탈상품은 기본가 x
+					tmpAddPrc = Number(optVar.orderOptArr[i].rntlCst);
+					totalSavingPoint += Number(optVar.orderOptArr[i].rntlSavePoint);
+				}
+				else{
+					if(prdVar.isStandardPrd) {
+						// 일반상품 : 기본가+옵션추가금액
+						tmpAddPrc = Number(optVar.orderOptArr[i].addPrc) + Number(optVar.orderOptArr[i].dscPrc);
+					} else {
+						// 일반상품 : 기본가+옵션추가금액
+						tmpAddPrc = Number(optVar.orderOptArr[i].addPrc) + Number(prcVar.dscPrc);
+					}
+				}
+
+				// 계산형 옵션 추가 금액
+				if(myCupnInfo.isHasSizeOption(optVar.orderOptArr[i].calcOptObj) ){
+					tmpAddPrc += Number(optVar.orderOptArr[i].calcOptObj.addPrc);
+				}
+				tmpPrice = tmpAmount * tmpAddPrc;
+				totalPrice = tmpPrice + totalPrice;
+
+                _this.$templateContent.find('li[data-prdstckno=' + optVar.orderOptArr[i].prdStckNo + ']').find('strong').each(function() {
+                    $(this).html(myCupnInfo.commaFormat(tmpPrice));
+                });
+                _this.$templateContentBot.find('li[data-prdstckno=' + optVar.orderOptArr[i].prdStckNo + ']').find('strong').each(function() {
+                    $(this).html(myCupnInfo.commaFormat(tmpPrice));
+                });
+			}
+
+			//  추가상품
+			for(var i=0,size=optVar.orderAddPrdArr.length; i < size; i++) {
+				totalAmount = totalAmount + Number(optVar.orderAddPrdArr[i].amount);
+				totalAddOtherPrdPrc += Number(optVar.orderAddPrdArr[i].addPrc);
+
+                _this.$templateContent.find('li[data-prdstckno=' + optVar.orderAddPrdArr[i].prdStckNo + ']').find('strong').each(function() {
+                    $(this).html(myCupnInfo.commaFormat(Number(optVar.orderAddPrdArr[i].addPrc)));
+                });
+                _this.$templateContentBot.find('li[data-prdstckno=' + optVar.orderAddPrdArr[i].prdStckNo + ']').find('strong').each(function() {
+                	 $(this).html(myCupnInfo.commaFormat(Number(optVar.orderAddPrdArr[i].addPrc)));
+                });
+			}
+
+			// 추천상품 가격 추가
+			for(var i=0,size=optVar.orderRecmPrdArr.length; i < size; i++) {
+				totalAmount = totalAmount + Number(optVar.orderRecmPrdArr[i].amount);
+				totalAddOtherPrdPrc += Number(optVar.orderRecmPrdArr[i].addPrc);
+
+                _this.$templateContent.find('li[data-prdstckno=' + optVar.orderRecmPrdArr[i].prdStckNo + ']').find('strong').each(function() {
+                    $(this).html(myCupnInfo.commaFormat(Number(optVar.orderRecmPrdArr[i].addPrc)));
+                });
+                _this.$templateContentBot.find('li[data-prdstckno=' + optVar.orderRecmPrdArr[i].prdStckNo + ']').find('strong').each(function() {
+                    $(this).html(myCupnInfo.commaFormat(Number(optVar.orderRecmPrdArr[i].addPrc)));
+                });
+			}
+
+			totalPrice += totalAddOtherPrdPrc;
+
+			_this.$totalPrice.html(myCupnInfo.commaFormat(totalPrice));
+			_this.$totalCount.html(myCupnInfo.commaFormat(totalAmount));
+
+			// 렌탈인 경우 적립예상포인트
+			if( prdVar.isRental ){
+				// 메인
+				var $totalSavingPoint = $('.ui_total_price').next("em");
+				if($totalSavingPoint.length>0){
+					var totalSavingPointStr = ( totalSavingPoint > 0) ? "(적립예상 포인트 "+myCupnInfo.commaFormat(totalSavingPoint)+"P)" : "";
+					$totalSavingPoint.html(totalSavingPointStr);
+				}
+				
+				// 옵션서랍
+				//var $totalSavingPoint2 = $("div.total_price p.save_point");
+				var $totalSavingPoint2 = $("div.etc_case span.price");
+				if($totalSavingPoint2.length>0){//<span class="price"><strong class="num">0P</strong></span>
+					var totalSavingPointStr2 = ( totalSavingPoint > 0) ? "<strong class='num'>"+myCupnInfo.commaFormat(totalSavingPoint)+"P</strong>" : "";
+					$totalSavingPoint2.html(totalSavingPointStr2);
+					if( totalSavingPoint > 0) {
+						$("div.etc_case").show();
+					} else {
+						$("div.etc_case").hide();
+					}
+				}
+			}
+			
+			_this.displayTotalPrcArea(totalAmount);
+
+			// 선택된 아이템이 늘어나거나 줄어들면 앵커 및 옵션의 Fixed 위치가 변경되므로 재계산한다. - 관련 모듈 : product.layout.js
+			_this.$win.trigger('layoutUpdate');
+
+			myCupnInfo.getMyCupnInfo(false);
+		},
+
+		displayTotalPrcArea : function (totalAmount) {
+			if(totalAmount == 0){
+				$('[name=divPrdcTotalPrcArea]').hide();
+			}else{
+				$('[name=divPrdcTotalPrcArea]').show();
+			}
+		},
+
+		callChgCupnPopup : function(){
+			// 로그인체크
+			if (!funcCheckIsLogin()) {
+				if (confirm("로그인 후 이용해주세요.")) {
+					//top.openLogin(1);
+					openLogin(1);
+					return false;
+				} else {
+					return false;
+				}
+			}
+			
+			if(prdVar.isStandardPrd) {	// 표준상품 추가
+				this.callChgCupnPopupStd();
+				return false;
+			}
+
+			var frmCalc = document.frmCalc;
+			var obj = document.frmMain;
+
+
+			if (!(this.chkLimitOrder() && this.chkDelivery(obj))) {
+				return false;
+			}
+
+			if (!this.chkOrderStock("appliedCoupon")){
+				return false;
+			}
+
+			this.setCalcParamClear(frmCalc);
+			this.removeParamInput("visitDlvYn");
+
+			var totalAmount = 0;
+			var totalAddPrc = 0;
+			var tmpAddPrc = 0;
+			var tmpAmount = 0;
+
+			var tmpSelOptNm = "";
+
+			for(var i=0,size=optVar.orderOptArr.length; i < size; i++){
+				tmpAmount = Number(optVar.orderOptArr[i].amount);
+				totalAmount = totalAmount + tmpAmount;
+				tmpAddPrc = Number(optVar.orderOptArr[i].addPrc) + Number(prcVar.dscPrc);
+				totalAddPrc = (tmpAmount * tmpAddPrc) + totalAddPrc;
+
+				// 알뜰계산기 추가
+				if (optVar.selOptCnt > 0) {
+					for ( var j = 0, selOptsize = optVar.orderOptArr[i].selOptArr.length; j < selOptsize; j++) {
+						tmpSelOptNm = tmpSelOptNm + " / " + optVar.orderOptArr[i].selOptArr[j].optNm;
+					}
+					this.setFormParamData(frmCalc, "optionNm", tmpSelOptNm.substring(3));
+					tmpSelOptNm = "";
+				}
+			}
+
+			frmCalc.selPrc.value = "" + totalAddPrc;
+			frmCalc.prdSelCnt.value = "" + totalAmount;
+
+			for(var i=0,size=optVar.orderAddPrdArr.length; i < size; i++){
+				totalAmount = totalAmount + Number(optVar.orderAddPrdArr[i].amount);
+				totalAddPrc = totalAddPrc + Number(optVar.orderAddPrdArr[i].addPrc);
+			}
+
+			frmCalc.allSelPrc.value = "" + totalAddPrc;
+			frmCalc.allSelCnt.value = "" + totalAmount;
+
+			this.setPrdOrderParam(frmCalc);
+
+			this.setFormParamData(frmCalc, "dlvCstStlTyp", $("[name=prdDlvCstStlTyp]").val());
+			this.setFormParamData(frmCalc, "visitDlvYn", (true == $("#chkPrdVisitDlvYn").is(":checked")) ? "Y" : "N");
+			//this.setFormParamData(frmCalc, "isDeliMultiAddr", ordVar.isDeliMultiAddr);
+
+			frmCalc.action = "/product/SellerProductDetail.tmall";
+			frmCalc.method.value = "getSellerProductDetailCouponPop";
+			this.isChangingCupn = true;
+
+			window.open("", this.popupSerial, "top=10,left=20,width=860,height=630,scrollbars=yes,status=yes");
+
+			frmCalc.target = this.popupSerial;
+			frmCalc.submit();
+		},
+		
+		callChgCupnPopupStd : function(){
+
+			var frmCalc = document.frmCalc;
+			var obj = document.frmMain;
+
+
+			if (!(this.chkLimitOrderStd() && this.chkDeliveryStd(obj))) {
+				return false;
+			}
+
+			if (!this.chkOrderStockStd("appliedCoupon")){
+				return false;
+			}
+
+			var ordOptArray	= optVar.orderOptArr;
+			
+			if(ordOptArray != undefined && optVar.orderOptArr.length > 0) {
+				this.setCalcParamClearStd(frmCalc);
+				for(var i=0; i< optVar.orderOptArr.length; i++) {
+					var prdNo		= ordOptArray[i].optPrdNo;
+					var optionNm	= "";
+					var optionPrc	= 0;
+					var optionStock	= 0; //qty
+					var optionStckNo = 0;
+					var choiceCupnIssNo	= 0;
+					var bonusCupnIssNo = 0;
+					var dlvCstStlTyp	= "";
+					var visitDlvYn		= "";
+					var dlvIssCupnNo	= 0;
+					
+					var selCnt	= ordOptArray[i].selCnt;
+					if(selCnt > 0) {
+						for ( var j = 0; j < ordOptArray[i].selOptArr.length; j++) {
+							optionNm = optionNm + " / " + ordOptArray[i].selOptArr[j].optNm;
+						}
+						optionNm = optionNm.substring(3);
+					}
+					optionPrc	= ordOptArray[i].addPrc;
+					optionStock	= ordOptArray[i].amount;
+					optionStckNo	= ordOptArray[i].prdStckNo;
+					choiceCupnIssNo	= ordOptArray[i].choiceCupnIssNo;
+					bonusCupnIssNo	= ordOptArray[i].bonusCupnIssNo;
+					dlvCstStlTyp	= ordOptArray[i].prdDlvCstStlTyp;
+					visitDlvYn		= ordOptArray[i].prdVisitDlvYn;
+					dlvIssCupnNo	= ordOptArray[i].dlvIssCupnNo;
+					
+					this.setFormParamData(frmCalc, "prdNo", prdNo);
+					this.setFormParamData(frmCalc, "optionNm", optionNm);
+					this.setFormParamData(frmCalc, "optionPrc", optionPrc);
+					this.setFormParamData(frmCalc, "optionStock", optionStock);
+					this.setFormParamData(frmCalc, "optionStckNo", optionStckNo);
+					this.setFormParamData(frmCalc, "choiceCupnIssNo", choiceCupnIssNo);
+					this.setFormParamData(frmCalc, "bonusCupnIssNo", bonusCupnIssNo);
+					this.setFormParamData(frmCalc, "dlvCstStlTyp", dlvCstStlTyp);
+					this.setFormParamData(frmCalc, "visitDlvYn", visitDlvYn);
+					this.setFormParamData(frmCalc, "dlvIssCupnNo", dlvIssCupnNo);
+				}
+				
+				frmCalc.action = "/product/SellerProductDetail.tmall";
+				frmCalc.method.value = "getSellerProductDetailCouponPop";
+				this.isChangingCupn = true;
+
+				window.open("", this.popupSerial, "top=10,left=20,width=860,height=630,scrollbars=yes,status=yes");
+
+				frmCalc.target = this.popupSerial;
+				frmCalc.submit();
+			}
+		},
+
+		chkOptionChanged : function() {
+			return this.isChangingCupn;
+		},
+
+		setOrderCouponParam : function(data){
+			var main = document.frmMain;
+			var $optStckNo = $("[name=optionStckNo]"); // 재고 사항번호
+
+			if( typeof(in_isSyrup) != 'undefined' ) {
+				this.isSyrupAvailCupn = String(in_isSyrup) === 'true';
+			}
+
+			if (!this.chkOptionChanged()) {
+				alert("옵션정보가 변경되었습니다. 다시 쿠폰적용하세요.");
+				return;
+			}
+
+			if(!prdVar.isStandardPrd) {	// 표준상품 추가
+				//초기화
+				this.removeParamInput("ocbCoupNo");
+				this.removeParamInput("ocbPntSaveAmtPrd");
+				this.removeParamInput("isUseCoupon");
+	
+				this.removeParamInput("choiceCupnIssNo");
+				this.removeParamInput("bonusCupnIssNo");
+				this.removeParamInput("dlvIssCupnNo");
+	
+				for ( var i = 0; i < data.in_prdNo.length; i++) {
+					if (optVar.optCnt > 0) {
+						for ( var j = 0; j < $optStckNo.length; j++) {
+							if (data.in_stockNo[i] == $optStckNo[j].value && data.in_prdDscAmt[i] >= 0) {
+	
+								if (data.in_prdDscAmt[i] == 0) {
+									this.setFormParamData(main, "choiceCupnIssNo", "");
+									this.setFormParamData(main, "bonusCupnIssNo", "");
+								} else {
+									this.setFormParamData(main, "choiceCupnIssNo", data.in_choiceCupnIssNo[i]);
+									this.setFormParamData(main, "bonusCupnIssNo", data.in_bonusCupnIssNo[i]);
+								}
+	
+								if (data.in_ocbCoupNoArr2[i] == 0 || data.in_ocbCoupNoArr2[i] == "") {
+									this.setFormParamData(main, "ocbCoupNo", "0");
+								} else {
+									this.setFormParamData(main, "ocbCoupNo", data.in_ocbCoupNoArr2[i]);
+								}
+								if (data.in_ocbPntSaveAmt[i] == 0 || data.in_ocbPntSaveAmt[i] == "") {
+									this.setFormParamData(main, "ocbPntSaveAmtPrd", "0");
+								} else {
+									this.setFormParamData(main, "ocbPntSaveAmtPrd", data.in_ocbPntSaveAmt[i]);
+								}
+							}
+						}
+					} else {
+						var stockNo = $optStckNo[0].value;
+						if (data.in_prdDscAmt[i] > 0 && (data.in_stockNo[i] != stockNo)) {
+							alert('해당 상품에 사용할 수 없는 쿠폰입니다.');
+							return;
+						}
+	
+						if (data.in_prdDscAmt[i] >= 0) {
+							if (data.in_prdDscAmt[i] == 0) {
+								this.setFormParamData(main, "choiceCupnIssNo", "");
+								this.setFormParamData(main, "bonusCupnIssNo", "");
+							} else {
+								this.setFormParamData(main, "choiceCupnIssNo", data.in_choiceCupnIssNo[i]);
+								this.setFormParamData(main, "bonusCupnIssNo", data.in_bonusCupnIssNo[i]);
+							}
+						}
+	
+						if (data.in_ocbCoupNoArr2[i] == 0 || data.in_ocbCoupNoArr2[i] == "") {
+							this.setFormParamData(main, "ocbCoupNo", "0");
+						} else {
+							this.setFormParamData(main, "ocbCoupNo", data.in_ocbCoupNoArr2[i]);
+						}
+						if (data.in_ocbPntSaveAmt[i] == 0 || data.in_ocbPntSaveAmt[i] == "") {
+							this.setFormParamData(main, "ocbPntSaveAmtPrd", "0");
+						} else {
+							this.setFormParamData(main, "ocbPntSaveAmtPrd", data.in_ocbPntSaveAmt[i]);
+						}
+					}
+				}
+				this.setFormParamData(main, "isUseCoupon", "Y");
+				this.setFormParamData(main, "dlvIssCupnNo", data.in_dlvIssCupnNo);
+				this.setFormParamData(document.frmCalc, "dlvIssCupnNo", data.in_dlvIssCupnNo);
+				
+				this.calcCouponDsc(data.in_stockNo, data.in_prdDscAmt, data.in_choiceCupnIssNo, data.in_bonusCupnIssNo);
+			} else {
+				this.calcCouponDscStd(data.in_stockNo, data.in_prdDscAmt, data.in_choiceCupnIssNo, data.in_bonusCupnIssNo, data.in_dlvIssCupnNoArr);
+			}
+
+			if("N" != data.in_isForward) {
+				this.buyProduct("none", "N", "N");
+			}
+		},
+
+
+		calcCouponDsc : function(in_stockNo, in_prdDscAmt, in_choiceCupnIssNo, in_bonusCupnIssNo) {
+			//쿠폰 적용 할인 금액에 따른 UI금액 갱신 처리(배열)
+			for(var i=0,size=in_stockNo.length;i<size;i++){
+
+				if(optVar.orderOptArr[i].prdStckNo == in_stockNo[i]){
+					optVar.orderOptArr[i].sumDscPrc = in_prdDscAmt[i];
+					optVar.orderOptArr[i].choiceCupnIssNo = in_choiceCupnIssNo[i];
+					optVar.orderOptArr[i].bonusCupnIssNo = in_bonusCupnIssNo[i];
+				}
+			}
+			myCupnInfo.setDpCupnCalcPrc();
+		},
+		
+		calcCouponDscStd : function(in_stockNo, in_prdDscAmt, in_choiceCupnIssNo, in_bonusCupnIssNo, in_dlvIssCupnNoArr) {
+			//쿠폰 적용 할인 금액에 따른 UI금액 갱신 처리(배열)
+			for(var i=0,size=in_stockNo.length;i<size;i++){
+				for(j=0; j<optVar.orderOptArr.length; j++) {
+					if(optVar.orderOptArr[j].prdStckNo == in_stockNo[i]){
+						optVar.orderOptArr[j].sumDscPrc = in_prdDscAmt[i];
+						optVar.orderOptArr[j].choiceCupnIssNo = in_choiceCupnIssNo[i];
+						optVar.orderOptArr[j].bonusCupnIssNo = in_bonusCupnIssNo[i];
+						if(in_dlvIssCupnNoArr != undefined) {	// 배열로 오는 배송비 쿠폰 신규 추가
+							optVar.orderOptArr[j].dlvIssCupnNo = in_dlvIssCupnNoArr[i];
+						}
+					}
+				}
+			}
+			myCupnInfo.setDpCupnCalcPrc();
+		},
+
+        BuyPromotion : function(position){
+            var _this = this;
+            _this.position = position;
+
+            if(ordVar.isDealDp && "Y" != ordVar.dealBuyYn){
+                try{
+                    if(ordVar.dealDispBgnDy.length > 14){
+                        ordVar.dealDispBgnDy = ordVar.dealDispBgnDy.substring(12,14);
+                    }
+                }catch (e) {
+                    ordVar.dealDispBgnDy = "09";
+                }
+                alert("이 상품은 금일 "+ordVar.dealDispBgnDy+"시부터 쇼킹딜 판매됩니다.\r\n잠시만 기다려 주세요.");
+                return false;
+            }
+            // 구매수량  체크
+            if (!_this.chkPromotionOrder()) return;
+
+            //홍보용상품 다운로드 전, 재고 확인
+            var prdStockQty = _this.promotionPrdStockCheck();
+
+            if ( prdStockQty == 0 ){
+                alert("품절된 상품으로 현재 다운로드가 불가능합니다. ");
+                return;
+            }
+
+
+            var obj = document.frmMain;
+            var prdNo = obj.prdNo.value;
+            var shopNo = obj.shopNo.value;
+            var buyerNm = obj.buyerNm.value;
+            var memHandPhone = obj.memHandPhone.value;
+            var buyerIp = obj.buyerIp.value;
+            var townQty = 0;
+            if ( document.getElementById('townQty') ){ // 기존 타운일 경우
+                townQty = document.getElementById('townQty').value;
+            }else if ( document.getElementById('prdcAmount') ){ // 무형상품 추가..
+                townQty = document.getElementById('prdcAmount').value;
+            }
+            var optionStckNo = obj.optionStckNo.value;
+            var freeDownPossibleCnt = obj.freeDownPossibleCnt.value;
+
+            var chgPhoneNum = "";	//변경된 핸드폰 번호
+            if(0 < (memHandPhone.indexOf('-',0))){
+                var list = [];	//핸드폰 번호 뒷자리 XXXX
+                list = memHandPhone.split('-');
+
+                for ( var x = 0; x < list.length; x++) {
+                    if ((x+1) == list.length) {
+                        chgPhoneNum += "XXXX";
+                    } else {
+                        chgPhoneNum += (list[x] + "-");
+                    }
+                }
+            }else{
+                chgPhoneNum = memHandPhone.substring(0,memHandPhone.length-4);
+                chgPhoneNum += 'XXXX';
+            }
+
+            if(townQty > prdStockQty) {
+                alert("재고수량이 " + prdStockQty 	+ "개 존재 합니다. 재고수량 이하로 수량을 입력해주세요.");
+                return;
+            }
+            var url = "/pay/FrontBuyManager.tmall?method=setCertOrder";
+
+            var param = "prdNo=" + prdNo+"&shopNo="+shopNo+"&townQty="+townQty+"&optionStckNo="+optionStckNo;
+
+            var callBack = function(returnVal){
+                var jsonObj = eval(returnVal);
+                if(jsonObj.result == "FAIL") {
+                    if (jsonObj.contents == "FAIL") {
+                        alert("서비스 장애가 있습니다. 고객센터로 연락 주세요.");
+
+                    } else if (jsonObj.contents == "DownY") {
+                        alert("이미 다운로드 하셨습니다. 해당 상품은 " + freeDownPossibleCnt + "회만 다운로드 가능 합니다.");
+
+                    } else {
+                        alert(jsonObj.contents);
+
+                    }
+                } else if(jsonObj.result == "SUCCESS") {
+                    if (parseInt(jsonObj.contents.length) > 0) { // normal
+                        alert("다운로드가 완료 되었습니다. [나의 11번가] 무료다운상품에서 확인 가능하십니다.");
+                        document.location.reload();
+                    } else {
+                        alert("서비스 장애가 있습니다. 고객센터로 연락 주세요.");
+                    }
+                }
+            };
+
+            if(!funcCheckIsLogin()) {
+                openLogin(1);
+                return;
+            }
+            
+            if( prdVar.isSnsMember && _this.isSnsMemberOrderChk() == false) {	// sns 멤버의 경우 추가 체크
+				return false;
+			}
+
+            var townInfos = {
+                url   : '/product/SellerProductDetailAjax.tmall?method=townDownloadInfo',
+                type : 'POST',
+                async : false,
+                dataType : 'text',
+
+                success : function(result, state){
+                    var jsonObj = eval(result);
+                    buyerNm = jsonObj.buyerNm;
+                    memHandPhone = jsonObj.memHandPhone;
+                },
+                error : function(xhr, state, except){
+                    alert('다운로드에 일시적인 오류가 발생하였습니다. 잠시 후 다시 이용해주세요.');
+                }
+            };
+
+            if(buyerNm == "" || memHandPhone == ""){
+                $.ajax(townInfos);
+            }
+
+            if (confirm(buyerNm+"님의 휴대폰 번호는 ["+memHandPhone+"] 입니다.번호를 확인해 주세요. 수신번호를 변경하시려면 회원정보 > 휴대폰 번호를 변경해 주세요.")){
+                $.ajax({
+                    url : url,
+                    data : param,
+                    success : callBack
+                });
+            }
+
+        },
+
+		buyProduct : function(position, sendGiftYn, syrupPayYn) {
+			var _this = this;
+            _this.position = position;
+
+            if(prdVar.isStandardPrd) {
+            	_this.buyProductStd(position, syrupPayYn);
+            	return false;
+            }
+
+			if(ordVar.isDealDp && "Y" != ordVar.dealBuyYn){
+				try{
+				    if(ordVar.dealDispBgnDy.length > 14){
+                        ordVar.dealDispBgnDy = ordVar.dealDispBgnDy.substring(12,14);
+                    }
+				}catch (e) {
+					ordVar.dealDispBgnDy = "09";
+				}
+				alert("이 상품은 금일 "+ordVar.dealDispBgnDy+"시부터 쇼킹딜 판매됩니다.\r\n잠시만 기다려 주세요.");
+				return false;
+			}
+
+			var obj = document.frmMain;
+
+			if(this.isEvtPrdDirectOrd() || this.checkPrdDisplay()) {
+				this.buyStatus = true;
+				return false;
+			}
+
+			if(this.buyStatus){
+				this.buyStatus = false;
+			}else{
+
+				if("10" == obj.prdStatCd.value && "block" == $("#buyingLayer"+_this.position).css("display")){
+					alert("주문제작상품 주문동의 팝업을 확인해주세요.");
+				}
+				return false;
+			}
+
+			if (!(this.chkLimitOrder() && this.chkDelivery(obj))) {
+				this.buyStatus = true;
+				return false;
+			}
+
+			if ("Y" == ordVar.martYn) {
+				obj.incommingCode.value = "06";
+				if(!this.checkMartPrmt()) {
+					alert("프로모션 상품을 선택하세요.");
+					this.buyStatus = true;
+					return false;
+				}
+			}
+
+			if (!this.chkOrderStock("buy")) {
+				this.buyStatus = true;
+				return false;
+			}
+			
+			/*생활편의 바로구매시 최소구매금액 체크 - 카트 담기 메시지 노출*/
+            if (orderInfo.isLifePlus) {  
+            	//35번인경우 shopBranchNo 필수항목
+            	if(prdVar.prdTypCd == "35" && $.trim($("#shopBranchNo").val()) == '') {
+            		alert("매장을 선택해주세요.");
+            		this.buyStatus = true;
+            		return false;
+            	}    				
+            	var msgType = "buy";
+            	if($('#isBcktBtn').val() == 'true')
+            		msgType = "cart";
+            	var cData = this.checkMinPrice(msgType);
+                if (cData == 'error') {
+                	alert("에러입니다.");
+                	this.buyStatus = true;
+                    return false;
+                }
+                
+                if (cData.result == "FAIL") {
+            		alert(cData.msg);
+            		this.buyStatus = true;
+            		return false;
+            	}
+                
+                if (cData.result == "SUCCESS") {
+            		if (cData.msg != '') {
+            			if(confirm(cData.msg)) {            				
+							if (!this.setPrdOrderParam(obj)) {
+								alert("옵션이나 수량을 선택후 선택해주세요.");
+								this.buyStatus = true;
+								return false;
+							}
+
+							if (!this.setPrdCartParam(obj)) {
+								alert("옵션이나 수량을 선택후 선택해주세요.");
+								this.buyStatus = true;
+								return false;
+							}
+							
+							// 장바구니 버튼 클릭처리
+							if(position == "top") {
+								jQuery(".btn_dshop.cart.position_top").trigger("click");
+							} else {
+								jQuery(".btn_dshop.cart").eq(1).trigger("click");							
+							}
+							
+							this.buyStatus = true;
+							return false;
+						} else {
+							this.buyStatus = true;
+							return false;
+						}
+            		}
+            	}
+            }
+			
+
+			if(document.getElementById("chkDeliMultiAddrYn") && $("#chkDeliMultiAddrYn").is(":checked")){
+				if("05" == prdVar.dlvCstInstBasiCd && optVar.orderOptArr.length > 1){
+					alert("선택하신 상품은 옵션 2개 이상 선택된 경우 복수배송지 주문이 불가합니다.");
+					this.buyStatus = true;
+					return false;
+				}
+			}
+
+			this.setOrderParamClear(obj);
+
+			if (!this.setPrdOrderParam(obj)) {
+				alert("옵션이나 수량을 선택후 즉시구매를 선택해주세요.");
+				this.buyStatus = true;
+				return false;
+			}
+			
+			sendGiftYn = sendGiftYn == null || typeof(sendGiftYn) == "undefined" ? "N" : sendGiftYn;
+			syrupPayYn = syrupPayYn == null || typeof(syrupPayYn) == "undefined" ? "N" : syrupPayYn;
+
+			$("#sendGiftYn").val(sendGiftYn);
+			$("#syrupPayYn").val(syrupPayYn);
+
+
+			var doAnotherAction;
+			var doProcessAction = function(){
+
+				if (funcCheckIsLogin()) {
+					if( prdVar.isSnsMember && _this.isSnsMemberOrderChk() == false) {	// sns 멤버의 경우 추가 체크
+						_this.buyStatus = true;
+						return false;
+					}
+					if( prdVar.isRental == true ){		// 렌탈인 경우 렌탈프로세스.
+
+						if( _this.checkRentalForm() == false ){
+							_this.buyStatus = true;
+							return false;	// 렌탈상품인 경우 입력양식 확인.
+						}
+
+						_this.rentalOrderProcess(_this);
+						return;
+					} else if (orderInfo.isLifePlus) { // 생활편의 서비스
+						_this.lifePlusReserveProcess();
+						_this.buyStatus = true;
+						return;
+					}else{
+						_this.chkLoginOrder();
+						_this.buyStatus = true;
+					}
+				} else {
+					if( prdVar.isRental == true ){		// 렌탈인 경우 화면이동
+						location.href="https://login.11st.co.kr/login/Login.tmall?returnURL="+encodeURIComponent(location.href);
+					} else if (orderInfo.isLifePlus) { // 생활편의 서비스
+						_this.lifePlusReserveProcess();
+						_this.buyStatus = true;
+					} else {
+						_this.chkNonLoginOrder(obj);
+						_this.buyStatus = true;
+					}
+				}
+
+				if( $("#sendGiftYn").val() == "Y" ) {
+					// doCommonStat("PDP0809");
+					_this.$win.trigger("callGaEvent","0;"+ (_this.position == "top" ? "12" : "20") +";선물");
+				} else if( $("#syrupPayYn").val() == "Y" ) {
+					// doCommonStat("PDP0810");
+					_this.$win.trigger("callGaEvent","0;"+ (_this.position == "top" ? "12" : "20") +";Pay 원클릭 구매");
+				} else {
+					// doCommonStat("PDP0808");
+					_this.$win.trigger("callGaEvent","0;"+ (_this.position == "top" ? "12" : "20") +";구매하기");
+				}
+
+				// 구글애널리틱스 용 전자상거래 추적코드 추가
+				_this.GA_push('add');
+			};
+
+			//	주문제작상품일시 동의프로세스처리
+			if("10" == obj.prdStatCd.value){
+
+				doAnotherAction = function() {
+
+					if("10" == obj.prdStatCd.value && "none" == $("#buyingLayer"+_this.position).css("display")){
+						$("#buyingLayer"+_this.position).show();
+					}
+
+					document.getElementById("btnAgree"+_this.position).onclick = function(){
+						$("#buyingLayer"+_this.position).css("display", "none");
+						alert("주문제작상품 주문 동의가 완료되었습니다");
+						doProcessAction();
+					};
+					document.getElementById("btnAgreeCancel"+_this.position).onclick = function(){
+						$("#buyingLayer"+_this.position).css("display", "none");
+						_this.buyStatus = true;
+						return false;
+					};
+					document.getElementById("btnAgreeClose"+_this.position).onclick =  function(){
+						$("#buyingLayer"+_this.position).css("display", "none");
+						_this.buyStatus = true;
+						return false;
+					};
+				};
+
+
+			}else{
+				doAnotherAction = doProcessAction;
+			}
+
+			// doAnotherAction = doProcessAction;
+			
+			//Log2.0
+            try{
+            	if(syrupPayYn == "Y") {
+            		jQuery(".btn_dshop.pay11").attr('data-log-body', JSON.stringify(this.makeSelectOptionLogData('pay11')));
+                    // rakeLog.sendRakeLog(jQuery(".btn_dshop.pay11").get(0), 'click');
+            	} else {
+            		jQuery(".btn_dshop.buying").attr('data-log-body', JSON.stringify(this.makeSelectOptionLogData('buy')));
+                    // rakeLog.sendRakeLog(jQuery(".btn_dshop.buying").get(0), 'click');
+            	}
+            } catch(e){}
+
+			try{
+				// 광고전환통계개선({1206004)으로 수정
+				this.adStatistics(obj, 'order');
+				setTimeout(doAnotherAction, 100);
+			}
+			catch(ignore) {
+				doAnotherAction();
+			}
+		},
+		
+		buyProductStd : function(position, syrupPayYn) {
+			
+			var obj = document.frmStdMain;
+        	//02 즉시 구매용 장바구니, 01 장바구니
+        	obj.bcktPathCd.value = '02';
+        	this.setOrderParamClearStd(obj);
+        	
+        	if (!this.setPrdOrderParam(obj)) {
+				alert("상품 및 옵션을 선택 후 즉시구매를 선택해주세요.");
+				return false;
+			}
+        	
+        	if(this.buyStatus){
+				this.buyStatus = false;
+			}else{
+				return false;
+			}
+
+			if (!(this.chkLimitOrderStd() && this.chkDeliveryStd(obj))) {
+				this.buyStatus = true;
+				return false;
+			}
+			
+			if (!this.chkOrderStockStd("buy")) {
+				this.buyStatus = true;
+				return false;
+			}
+			
+			syrupPayYn = syrupPayYn == null || typeof(syrupPayYn) == "undefined" ? "N" : syrupPayYn;
+
+			$("#sendGiftYn").val('N');
+			$("#syrupPayYn").val(syrupPayYn);
+			
+			obj.action = "/cart/CartAction.tmall";
+			//obj.method.value = "getRegOptCartList";
+			obj.method.value = "getRegOptCartList";
+			obj.isPopup.value = "Y";
+			obj.target = "hiddenProcessId";
+			
+			obj.submit();
+			
+			//Log2.0
+            try{
+            	if(syrupPayYn == "Y") {
+            		jQuery(".btn_dshop.pay11").attr('data-log-body', JSON.stringify(this.makeSelectOptionStdLogData('pay11')));
+                    // rakeLog.sendRakeLog(jQuery(".btn_dshop.pay11").get(0), 'click');
+            	} else {
+            		jQuery(".btn_dshop.buying").attr('data-log-body', JSON.stringify(this.makeSelectOptionStdLogData('buy')));
+                    // rakeLog.sendRakeLog(jQuery(".btn_dshop.buying").get(0), 'click');
+            	}
+            } catch(e){}
+		}, 
+		
+		checkRentalForm : function(){
+			
+			if( prdVar.isRental != true ) return true;
+				
+			if($("#rentalTel2").val().trim() == "" || $("#rentalTel3").val().trim() == "") {	// 연락처 입력 체크
+				alert("연락처를 입력해 주세요.");
+				return false;
+			} else {
+				if($("#rentalTel2").val().trim().length >= 3 && $("#rentalTel3").val().trim().length == 4){
+				} else {
+					alert("연락처를 정확하게 입력해 주세요.");
+					return false;
+				}
+			}
+			if(!$("#agree").is(":checked")) {	//개인정보 체크
+				alert("개인정보 제공 동의해 주세요.");
+				return false;
+			}
+
+			// 확인창
+			var rentalOrderStr	= "11번가\n\n고객님! 입력해 주신 번호로\n전문 상담사가 전화드릴 예정입니다.\n번호를 확인해주세요!\n\n";
+			var rentalTelNumber	= "";
+			
+			rentalTelNumber = $("#rentalTel1").val() + "-" + $("#rentalTel2").val().trim() + "-" + $("#rentalTel3").val().trim();
+			rentalOrderStr += rentalTelNumber;
+			
+			return confirm(rentalOrderStr);			
+		},
+		rentalOrderProcess : function(obj){
+			
+			var url = _SSL_ORDER_URL_ + '/pay/rentalOrderProcess.tmall';        
+			var param = '&rntlOrdPrtblTel='+$("#rentalTel1").val() + "-" + $("#rentalTel2").val().trim() + "-" + $("#rentalTel3").val().trim();			
+			document.frmMain.method.value="rentalOrder";			
+			$("span.filter_dimmed").show();
+
+			$("input[name=optionName]").each(function(){ $(this).val(encodeURIComponent($(this).val())); } );
+			$("input[name=optionText]").each(function(){ $(this).val(encodeURIComponent($(this).val())); } );
+			
+			
+			$.ajax({
+	     		url: url,
+	     		cache: false,
+	     		type: 'POST',
+	     		dataType: 'jsonp',
+	     		jsonp: 'callback',
+	     		data: $("form[name=frmMain]").eq(0).serialize()+param,
+	     		scriptCharset: 'UTF-8'
+	     	})
+	     	.done(function(data) {
+	     		
+	     		if(data.rsCd=="SUCCESS"){
+     				location.href = data.returnURL;                //신청 완료 페이지로 이동
+	     		}else if(data.rsCd == "FAIL"){
+	     			if(data.hasRsMsg){
+	     				alert(data.rsMsg.replace(/\\n/g, '\n'));               
+	     			}else{
+	     				alert("신청중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");                
+                    }               
+	     		}else if(data.rsCd == "AUTHFAIL"){
+	     			//alert("회원 인증 필요 ");
+	     			location.href = data.returnURL;                //신청 완료 페이지로 이동
+	     		}
+	     		obj.buyStatus = true;
+	     		$("span.filter_dimmed").hide();
+	     	})
+	     	.fail(function(request, status, error) {
+	     		$("span.filter_dimmed").hide();
+	     		alert("통신중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+	     		obj.buyStatus = true;
+	     		$("span.filter_dimmed").hide();
+	     	});
+
+			$("input[name=optionName]").each(function(){ $(this).val(decodeURIComponent($(this).val())); } );
+			$("input[name=optionText]").each(function(){ $(this).val(decodeURIComponent($(this).val())); } );
+			
+		},
+		lifePlusReserveProcess : function() { // 생활편의 - 예약서 페이지 전환
+			var goReserve = function(prdNo, stckNo, prdQty, compPrdNo, compPrdQty, shopBranchNo, bcktSeq, optItemNm, optItemNo, ansCont) {
+				    var frm = document.createElement('form'),
+				    	frmNm = 'tmpRsvForm_' + Math.floor(new Date());
+				    frm.setAttribute('name', frmNm);
+				    frm.setAttribute('method', 'post');
+				    frm.setAttribute('action', _SSL_ACTION_CONTEXT_URL_ + '/lifeplus/LifePlusReserveAction.tmall');
+				     
+				    var params = {
+				        method: 'lifePlusRsrvForm',
+				        prdNo: prdNo,
+				        stckNo: stckNo,
+				        prdQty: prdQty,
+				        compPrdNo: compPrdNo,
+				        compPrdQty: compPrdQty,
+				        shopBranchNo: shopBranchNo,
+				        bcktSeq: bcktSeq,
+				        optItemNm: optItemNm,
+				        optItemNo: optItemNo,
+				        ansCont: ansCont,
+				        incommingCode: '01'
+				    };
+				    
+				    for (var name in params) {
+				        var filed = document.createElement('input');
+				        filed.setAttribute('type', 'hidden');
+				        filed.setAttribute('name', name);
+				        filed.setAttribute('value', params[name]);
+				        frm.appendChild(filed);
+				    }
+				    document.body.appendChild(frm);
+				    
+				    if (funcCheckIsLogin()) {
+				    	frm.submit();	
+				    } else {
+				    	openLogin(2, frmNm);
+				    }
+				},
+				stckNoArr = [],
+				prdQtyArr = [],
+				compPrdNoArr = [],
+				compPrdQtyArr = [],
+				optItemNmArr = [],
+				optItemNoArr = [],
+				ansContArr = [],
+				tmpOptArr = optVar.orderOptArr,
+				entOptCnt = optVar.entOptCnt;
+				
+			// 옵션선택
+			for (var i = 0, size = tmpOptArr.length; i < size; i++) {
+				stckNoArr.push(tmpOptArr[i].prdStckNo);
+				prdQtyArr.push(tmpOptArr[i].amount);
+				
+				// 입력형옵션
+				if (entOptCnt > 0) {
+					var tmpOptNmArr = [], tmpOptNoArr = [], tmpOptTxtArr = [];
+					for (var j = 0; j < entOptCnt; j++) {
+						tmpOptNmArr.push(encodeURIComponent(tmpOptArr[i].entOptArr[j].optNm));
+						tmpOptNoArr.push(tmpOptArr[i].entOptArr[j].optNo);
+						tmpOptTxtArr.push(encodeURIComponent(tmpOptArr[i].entOptArr[j].optTxt));
+					}
+					optItemNmArr.push(tmpOptNmArr.join('@=@'));
+					optItemNoArr.push(tmpOptNoArr.join('@=@'));
+					ansContArr.push(tmpOptTxtArr.join('@=@'));
+				}
+			}
+			
+			// 추가구성
+			tmpOptArr = optVar.orderAddPrdArr;
+			for (var i = 0, size = tmpOptArr.length; i < size; i++) {
+				compPrdNoArr.push(tmpOptArr[i].compPrdNo);
+				compPrdQtyArr.push(tmpOptArr[i].amount);
+			}
+
+			// 각 옵션값(배열)을 구분자(!=!)로 연결하여 문자열로 넘김
+			goReserve(prdVar.prdNo,
+					stckNoArr.join('!=!'),
+					prdQtyArr.join('!=!'),
+					compPrdNoArr.join('!=!'),
+					compPrdQtyArr.join('!=!'),
+					$.trim($("#shopBranchNo").val()),
+					'',
+					optItemNmArr.join('!=!'),
+					optItemNoArr.join('!=!'),
+					ansContArr.join('!=!'));
+		},
+		chkNonLoginOrder : function(obj) {
+			// 구매 대상 제한 상품 check
+			// 나이키 위런 일경우만
+			if ("Y" == ordVar.ordObjLimit && "01" == ordVar.limitTypCd) {
+				var cookie = TMCookieUtil.getSubCookie(0, "ENTRY_NO");
+				if ("" != cookie) {
+					this.ordLimitObjTimeCheckAjax(cookie);
+				} else {
+					alert("Nike We Run Seoul 참가 등록 확인 후 결제하실 수 있습니다.");
+					location.href('http://www.11st.co.kr/browsing/MallPlanDetail.tmall?method=getMallPlanDetail&planDisplayNumber=725717');
+				}
+			} else {
+
+				if (("Y" == ordVar.mobileYn && prdVar.selPrc == 1|| "26" == ordVar.prdTypCd)
+				|| ordVar.nonMemberBuyYn == "N"
+				|| optVar.orderRecmPrdArr.length > 0
+				|| jQuery("#syrupPayYn").val() == "Y"
+				) {
+					// 1원폰인 경우 비회원 구매 안됨
+					obj.isFast.value = "";
+					if(optVar.orderRecmPrdArr.length > 0){
+						alert("MD 추천상품을 함께 구매하는 경우 로그인이 필요합니다.");
+					}
+					
+					if( jQuery("#syrupPayYn").val() == "Y" ) {
+						openLogin(5, 'directNonLogin', null, null, null, null, null, 'Y');
+					} else {
+						openLogin(2, 'frmMain');
+					}
+				} else if ("Y" == ordVar.isDeliMultiAddr) {
+					// 비회원은 복수배송지 불가
+					obj.isFast.value = "";
+					openLogin(7, 'frmMain');
+				} else {
+					openLogin(5, "directNonLogin");
+				}
+			}
+		},
+
+		// 상품 주문 가능 여부 가능 시간 Check
+		ordLimitObjTimeCheckAjax : function(cookie) {
+			var _this = this;
+			$
+				.post(
+					"/product/SellerProductDetail.tmall?method=getPrdLimitObjTimeCheckAjax",
+					{
+						cookie : encodeURIComponent(cookie)
+					}, function(returnVal) {
+						if ("FAIL" == returnVal) {
+							alert("서비스 장애가 있습니다. 고객센터로 연락 주세요.");
+							return;
+						}
+						var data = eval("(" + returnVal + ")");
+						if (data.STAT != null) {
+							if ("Y" == data.STAT) {
+								// NetFunnel_goFunc(Config_3,ordLimitObjNetFunnel);
+								// 넷페널 제거 요청
+								_this.ordLimitObjNetFunnel();
+							} else if ("N" == data.STAT) {
+								alert("고객님은 " + data.ORD_APPLY_DT
+									+ " 부터 결제 가능합니다. 잠시 후 결제 부탁 드립니다");
+							} else {
+								alert("해당 상품은 이벤트 신청 완료한 고객만 구매가 가능합니다.");
+							}
+						} else {
+							alert("서비스 장애가 있습니다. 고객센터로 연락 주세요.");
+						}
+					});
+		},
+
+		/**
+		 * 상품 구매 대상 제한 NetFUNNEL
+		 */
+		ordLimitObjNetFunnel : function() {
+			var obj = document.frmMain;
+			obj.action = _SSL_ACTION_CONTEXT_URL_ + '/pay/OrderInfoAction.tmall';
+			obj.method.value = "getOrderInfo";
+			obj.target = "_top";
+			obj.isFast.value = "";
+			obj.submit();
+		},
+
+		setPrdOrderParam : function(obj) {
+
+			if(prdVar.isStandardPrd) {
+				if(optVar.orderOptArr == undefined || optVar.orderOptArr.length == 0) {
+					return false;
+				}
+				for ( var i = 0, size = optVar.orderOptArr.length; i < size; i++) {
+					var entOptCnt	= optVar.orderOptArr[i].entOptCnt;
+					var optionName 	= "";
+					var optionNo	= "";
+					var optionText	= "";
+					
+					this.setFormParamData(obj, "optionPrdNo",optVar.orderOptArr[i].optPrdNo);
+					this.setFormParamData(obj, "optionMixNo",optVar.orderOptArr[i].optMixNo);
+					this.setFormParamData(obj, "optionStckNo",optVar.orderOptArr[i].prdStckNo);
+					this.setFormParamData(obj, "optionStock", optVar.orderOptArr[i].amount);
+					this.setFormParamData(obj, "optionPrc",optVar.orderOptArr[i].addPrc);
+					this.setFormParamData(obj, "choiceCupnIssNo",optVar.orderOptArr[i].choiceCupnIssNo);
+					this.setFormParamData(obj, "bonusCupnIssNo",optVar.orderOptArr[i].bonusCupnIssNo);
+					//this.setFormParamData(obj, "isUseCoupon",optVar.orderOptArr[i].prdStckNo);
+					this.setFormParamData(obj, "dlvIssCupnNo",optVar.orderOptArr[i].dlvIssCupnNo);
+					this.setFormParamData(obj, "prdVisitDlvYn",optVar.orderOptArr[i].prdVisitDlvYn);
+					this.setFormParamData(obj, "prdDlvCstStlTyp",optVar.orderOptArr[i].prdDlvCstStlTyp);
+					//this.setFormParamData(obj, "martPrmtSeq",optVar.orderOptArr[i].prdStckNo);
+					
+					if(entOptCnt > 0) {
+						for ( var j = 0; j < entOptCnt; j++) {
+							if(j != 0) {
+								optionName 	+= "∏";
+								optionNo	+= "∏";
+								optionText	+= "∏";
+							}
+							optionName 	+= optVar.orderOptArr[i].entOptArr[j].optNm;
+							optionNo	+= optVar.orderOptArr[i].entOptArr[j].optNo;
+							optionText	+= optVar.orderOptArr[i].entOptArr[j].optTxt;
+						}
+					}
+					this.setFormParamData(obj, "optionName",optionName);
+					this.setFormParamData(obj, "optionNo",optionNo);
+					this.setFormParamData(obj, "optionText",optionText);
+				}
+			} else {
+				var addArrPrdNoString = "";
+				var addPrdAmtSum = 0;
+
+				for ( var i = 0, size = optVar.orderOptArr.length; i < size; i++) {
+
+					this.setFormParamData(obj, "optionStckNo",optVar.orderOptArr[i].prdStckNo);
+					this.setFormParamData(obj, "optionStock",optVar.orderOptArr[i].amount);
+					this.setFormParamData(obj, "optionPrc",optVar.orderOptArr[i].addPrc);
+					this.setFormParamData(obj, "choiceCupnIssNo",optVar.orderOptArr[i].choiceCupnIssNo);
+					this.setFormParamData(obj, "bonusCupnIssNo",optVar.orderOptArr[i].bonusCupnIssNo);
+
+					var optSel = optVar.orderOptArr[i].calcOptObj;
+					if(	 myCupnInfo.isHasSizeOption(optSel) ){
+						var optSumText = this.getCalcOptNm(optSel);
+						this.setFormParamData(obj, "calcOptionName",optSumText);
+						this.setFormParamData(obj, "calcOptionText","1:"+optSel.optionSize[0]+"|2:"+optSel.optionSize[1] );
+
+						this.setFormParamData(obj, "slctPrdCalcOptNm",optSumText);
+						this.setFormParamData(obj, "calcOptItemList","1:"+optSel.optionSize[0]+"|2:"+optSel.optionSize[1] );
+					}
+
+					if (optVar.entOptCnt > 0) {
+						for ( var j = 0; j < optVar.entOptCnt; j++) {
+							this.setFormParamData(obj, "optionName",optVar.orderOptArr[i].entOptArr[j].optNm);
+							this.setFormParamData(obj, "optionNo",optVar.orderOptArr[i].entOptArr[j].optNo);
+							this.setFormParamData(obj, "optionText",optVar.orderOptArr[i].entOptArr[j].optTxt);
+						}
+					}
+
+                    this.setFormParamData(obj, "isDeliMultiAddr", ordVar.isDeliMultiAddr);
+				}
+
+				for ( var i = 0, size = optVar.orderAddPrdArr.length; i < size; i++) {
+
+					addArrPrdNoString = addArrPrdNoString + optVar.orderAddPrdArr[i].addPrdMixNo + ":";
+					addArrPrdNoString = addArrPrdNoString + optVar.orderAddPrdArr[i].amount + ":";
+					addArrPrdNoString = addArrPrdNoString + optVar.orderAddPrdArr[i].compPrdStckNo + "∏";
+					addPrdAmtSum = addPrdAmtSum + Number(optVar.orderAddPrdArr[i].addPrc);
+				}
+
+				this.setFormParamData(obj, "addArrPrdNoString", addArrPrdNoString);
+				this.setFormParamData(obj, "addPrdAmtSum", addPrdAmtSum);
+
+				// 추천상품 관련
+				for ( var i = 0, size = optVar.orderRecmPrdArr.length; i < size; i++) {
+					var combPrd = optVar.orderRecmPrdArr[i];
+
+					this.setFormParamData(obj, "combPrdNo", combPrd.prdNo);
+					this.setFormParamData(obj, "combPrdAppmtDbDlvCd", '01'); // 배송지정일타입.일반배송
+					this.setFormParamData(obj, "combPrdDeliveryDate", '');	// 배송지정일
+					this.setFormParamData(obj, "combPrdDlvCstStlTyp", '01');// 배송비결제방법.선불
+					this.setFormParamData(obj, "combPrdVisitDlvYn", 'N');
+					this.setFormParamData(obj, "combGblDlvYn", 'N');
+					this.setFormParamData(obj, "combOptionStckNo", combPrd.prdStckNo);
+					this.setFormParamData(obj, "combOptionStock", combPrd.amount);
+					this.setFormParamData(obj, "combOptionPrc", combPrd.addPrc);
+				}
+
+			}
+
+			return true;
+		},
+
+		setFormParamData : function(obj, inputNm, values) {
+
+			if ("string" == (typeof values) || "String" == (typeof values)) {
+				$("<input type='hidden'/>").attr({
+					name : inputNm,
+					value : values
+				}).appendTo(obj);
+			} else if ("number" == (typeof values) || "Number" == (typeof values)) {
+				$("<input type='hidden'/>").attr({
+					name : inputNm,
+					value : values
+				}).appendTo(obj);
+			} else if ("object" == (typeof values) || "Object" == (typeof values)) {
+				for ( var i = 0, size = values.length; i < size; i++) {
+					$("<input type='hidden'/>").attr({
+						name : inputNm,
+						value : values[i]
+					}).appendTo(obj);
+				}
+			}
+
+		},
+
+		setCalcParamClear : function(obj) {
+			this.removeParamInput("optionStckNo");
+			this.removeParamInput("optionStock");
+			this.removeParamInput("optionPrc");
+			this.removeParamInput("optionName");
+			this.removeParamInput("optionNo");
+			this.removeParamInput("optionText");
+			this.removeParamInput("optionEntText");
+			this.removeParamInput("addArrPrdNoString");
+			this.removeParamInput("isDeliMultiAddr");
+			this.removeParamInput("optionNm");
+			this.removeParamInput("dlvCstStlTyp");
+			this.removeParamInput("choiceCupnIssNo");
+			this.removeParamInput("bonusCupnIssNo");
+			this.removeParamInput("addPrdAmtSum");
+			this.removeParamInput("calcOptionName");
+			this.removeParamInput("calcOptionText");
+			this.removeParamInput("slctPrdCalcOptNm");
+			this.removeParamInput("calcOptItemList");
+		},
+		setCalcParamClearStd : function(obj) {
+			this.removeParamInputNew("prdNo", obj);
+			this.removeParamInputNew("optionNm", obj);
+			this.removeParamInputNew("optionPrc", obj);
+			this.removeParamInputNew("optionStock", obj);
+			this.removeParamInputNew("optionStckNo", obj);
+			this.removeParamInputNew("choiceCupnIssNo", obj);
+			this.removeParamInputNew("bonusCupnIssNo", obj);
+			this.removeParamInputNew("dlvCstStlTyp", obj);
+			this.removeParamInputNew("visitDlvYn", obj);
+			this.removeParamInputNew("dlvIssCupnNo", obj);
+		},
+
+		setOrderParamClear : function(){
+			this.removeParamInput("optionStckNo");
+			this.removeParamInput("optionStock");
+			this.removeParamInput("optionPrc");
+			this.removeParamInput("optionName");
+			this.removeParamInput("optionNo");
+			this.removeParamInput("optionText");
+			this.removeParamInput("addArrPrdNoString");
+			this.removeParamInput("isDeliMultiAddr");
+			this.removeParamInput("choiceCupnIssNo");
+			this.removeParamInput("bonusCupnIssNo");
+			this.removeParamInput("addPrdAmtSum");
+			this.removeParamInput("calcOptionName");
+			this.removeParamInput("calcOptionText");
+			this.removeParamInput("slctPrdCalcOptNm");
+			this.removeParamInput("calcOptItemList");
+		},
+		
+		setOrderParamClearStd : function(obj){			
+			this.removeParamInputNew("optionPrdNo", obj);
+			this.removeParamInputNew("optionMixNo", obj);
+			this.removeParamInputNew("optionStock", obj);
+			this.removeParamInputNew("optionStckNo", obj);
+			this.removeParamInputNew("optionPrc", obj);
+			this.removeParamInputNew("isUseCoupon", obj);
+			this.removeParamInputNew("choiceCupnIssNo", obj);
+			this.removeParamInputNew("bonusCupnIssNo", obj);
+			this.removeParamInputNew("dlvIssCupnNo", obj);
+			this.removeParamInputNew("prdVisitDlvYn", obj);
+			this.removeParamInputNew("prdDlvCstStlTyp", obj);
+			this.removeParamInputNew("optionName", obj);
+			this.removeParamInputNew("optionNo", obj);
+			this.removeParamInputNew("optionText", obj);
+		},
+
+		getCalcOptNm : function(obj){
+
+			if( typeof obj != "object") return "";
+
+			var optionSize = (obj).optionSize;
+
+			return calcOptInfo[0].optItemNm + " "+ optionSize[0] + calcOptInfo[0].optUnitNm+" x "+ calcOptInfo[1].optItemNm + " "+ optionSize[1] + calcOptInfo[0].optUnitNm;
+		},
+
+		checkPrdDisplay : function(){	// 비전시상품시 구매 및 장바구기 액션 체크
+			var obj = document.frmMain;
+			if("Y" != ordVar.ordObjLimit && "N" == obj.displayYn.value && "Y" != obj.isDirectVisit.value){
+				alert("해당 상품은 11번가에 바로가기로 접속했을 때만 주문이 가능합니다.");
+				return true;
+			}
+
+			return false;
+		},
+
+		isEvtPrdDirectOrd : function() {
+			if ("Y" == ordVar.ordObjLimit && "07" == ordVar.limitTypCd) {
+				var cookie = TMCookieUtil.getSubCookie(0, "EVT_PRD");
+				if(("" == cookie) || (optVar.prdNo != cookie)) {
+					alert("기획전을 통하지 않은 직접적인 호출은 불가합니다.");
+					if(("" == ordVar.ordLimitRedirectURL)
+					|| ("null" == ordVar.ordLimitRedirectURL)
+					|| (undefined == ordVar.ordLimitRedirectURL)){
+						ordVar.ordLimitRedirectURL = "http://www.11st.co.kr";
+					}
+					location.href = ordVar.ordLimitRedirectURL;
+					return true;
+				}
+			}
+		},
+
+		getOptTotQty : function() {
+			var amount = 0;
+			for (var i=0,size=optVar.orderOptArr.length; i < size; i++) {
+				amount = amount + Number(optVar.orderOptArr[i].amount);
+			}
+			return amount;
+		},
+		
+		getOptTotQtyStd : function(prdNo) {
+			var amount = 0;
+			for (var i=0,size=optVar.orderOptArr.length; i < size; i++) {
+				if(prdNo == optVar.orderOptArr[i].optPrdNo) {
+					amount = amount + Number(optVar.orderOptArr[i].amount);
+				}
+			}
+			return amount;
+		},
+
+		chkDelivery : function(obj) {
+
+			if ("Y" == ordVar.visitDlvYn) {
+				if (obj.prdVisitDlvYn != null && "" == obj.prdVisitDlvYn.value) {
+					alert("배송방법을 선택해주세요.");
+					return false;
+				}
+			}
+			// 배송비 결제여부 체크 ======================
+			if (obj.prdVisitDlvYn != null) {
+				if ("Y" != ordVar.dlvCstFreeYn && "" == obj.prdDlvCstStlTyp.value && "Y" != obj.prdVisitDlvYn.value) {
+					alert("배송비 결제여부를 선택해주세요.");
+					return false;
+				}
+			} else {
+				if ("Y" != ordVar.dlvCstFreeYn && "" == obj.prdDlvCstStlTyp.value) {
+					alert("배송비 결제여부를 선택해주세요.");
+					return false;
+				}
+			}
+
+			return true;
+		},
+		
+		chkDeliveryStd : function(obj) {	//배송 관련 체크 로직 보류
+
+			/*if ("Y" == ordVar.visitDlvYn) {
+				if (obj.prdVisitDlvYn != null && "" == obj.prdVisitDlvYn.value) {
+					alert("배송방법을 선택해주세요.");
+					return false;
+				}
+			}
+			// 배송비 결제여부 체크 ======================
+			if (obj.prdVisitDlvYn != null) {
+				if ("Y" != ordVar.dlvCstFreeYn && "" == obj.prdDlvCstStlTyp.value && "Y" != obj.prdVisitDlvYn.value) {
+					alert("배송비 결제여부를 선택해주세요.");
+					return false;
+				}
+			} else {
+				if ("Y" != ordVar.dlvCstFreeYn && "" == obj.prdDlvCstStlTyp.value) {
+					alert("배송비 결제여부를 선택해주세요.");
+					return false;
+				}
+			}*/
+
+			return true;
+		},
+
+		chkLimitOrder : function() {
+
+			var optTotQty = this.getOptTotQty();// 토탈 주문 수량
+
+			if ("01" == ordVar.selLimitTypCd) {
+				if (optTotQty > ordVar.selLimitQty) {
+					alert("해당 상품의 최대구매 가능 수량(" + ordVar.selLimitQty + "개)을 초과하셨습니다.");
+					return false;
+				}
+			} else if (ordVar.selLimitTypCd == "02") {
+				if ("Y" == ordVar.ordObjLimit && "01" == ordVar.limitTypCd) {
+					if ((parseInt(optTotQty) + parseInt(ordVar.selLimitPrdBuyCnt)) > ordVar.selLimitQty) {
+						alert("해당 상품은 1인당 1개만 구매가 가능합니다.");
+						return false;
+					}
+				} else {
+
+					if ((parseInt(optTotQty) + parseInt(ordVar.selLimitPrdBuyCnt)) > ordVar.selLimitQty) {
+						if( parseInt(ordVar.selLimitPrdBuyCnt) == 0 ) {
+							alert("해당 상품의 최대구매 가능 수량(" + ordVar.selLimitQty + "개)을 초과하셨습니다.");		
+						} else if( parseInt(ordVar.selLimitPrdBuyCnt) >= ordVar.selLimitQty ) {
+							alert("해당 상품의 최대구매 가능 수량(" + ordVar.selLimitQty + "개)을 초과하셨습니다."
+									+ "\n상품의 재구매는 " + ordVar.repurchaseDy + "일부터 가능합니다.");
+						} else {
+							alert("해당 상품의 최대구매 가능 수량(" + ordVar.selLimitQty
+                                    + "개)을 초과하셨습니다.\n"+ordVar.selLimitQty+"개 중 "+(ordVar.selLimitQty - parseInt(ordVar.selLimitPrdBuyCnt))+"개만 구매 가능합니다."
+                                    + "\n나머지 상품의 재구매는 " + ordVar.repurchaseDy + "일부터 가능합니다.");
+						}
+						return false;
+					}
+				}
+			}
+
+			if ("01" == ordVar.selMinLimitTypCd) {
+				if (optTotQty < ordVar.selMinLimitQty) {
+					alert("해당 상품의 최소구매 가능 수량은 " + ordVar.selMinLimitQty + "개입니다.");
+					return false;
+				}
+			}
+			
+			if (ordVar.buyUntQty > 1 && optTotQty % Number(ordVar.buyUntQty) != 0) {
+				alert("선택하신 상품은 묶음 구매 상품으로 " + ordVar.buyUntQty + "개의 배수로만 주문이 가능합니다. 수량을 변경해 주세요.");
+				return false;
+			}
+
+			return true;
+		},
+		
+		chkLimitOrderStd : function() {
+
+			for(var i=0,size=optVar.orderOptArr.length; i < size; i++){
+				var optTotQty = this.getOptTotQtyStd(optVar.orderOptArr[i].optPrdNo);// 토탈 주문 수량
+				var optSelLimitCd	= optVar.orderOptArr[i].selLimitTypCd;
+				var optSelLimitQty	= optVar.orderOptArr[i].selLimitQty;
+				var optOrdObjLimit	= optVar.orderOptArr[i].ordObjLimit;
+				var optLimitTypCd	= optVar.orderOptArr[i].limitTypCd;
+				var selLimitPrdBuyCnt	= optVar.orderOptArr[i].selLimitPrdBuyCnt;
+				var townSelLmtDy		= optVar.orderOptArr[i].townSelLmtDy;
+				var isSelMinLimit		= optVar.orderOptArr[i].isSelMinLimit;
+				var selMinLimitQty		= optVar.orderOptArr[i].selMinLimitQty;
+				var repurchaseDy		= optVar.orderOptArr[i].repurchaseDy;
+				var optPrdNm		= optVar.orderOptArr[i].optPrdNm;
+				if(optPrdNm.length > 25 ) {
+					optPrdNm = optPrdNm.substring(0, 25) + "...";
+				}
+				if( "01" == optSelLimitCd && parseInt(optTotQty) >  parseInt(optSelLimitQty)) {
+					alert(optPrdNm +" 상품의 최대구매 가능 수량(" + optSelLimitQty + "개)을 초과하셨습니다.");
+					return false;
+				} else if ("02" == optSelLimitCd ) {
+					if ("Y" == optOrdObjLimit && "01" == optLimitTypCd ) {
+						if ((parseInt(optTotQty) + parseInt(selLimitPrdBuyCnt)) > parseInt(optSelLimitQty)) {
+							alert(optPrdNm + " 상품은 1인당 1개만 구매가 가능합니다.");
+							return false;
+						}
+					} else {
+						if ((parseInt(optTotQty) + parseInt(selLimitPrdBuyCnt)) > optSelLimitQty) {
+							if( parseInt(selLimitPrdBuyCnt) == 0 ) {
+								alert(optPrdNm + " 상품의 최대구매 가능 수량(" + optSelLimitQty + "개)을 초과하셨습니다.");
+							} else if( parseInt(selLimitPrdBuyCnt) >= optSelLimitQty ) {
+								alert(optPrdNm + " 상품의 최대구매 가능 수량(" + optSelLimitQty + "개)을 초과하셨습니다."
+										+ "\n상품의 재구매는 " + repurchaseDy + "일부터 가능합니다.");
+							} else {
+								alert(optPrdNm + " 상품의 최대구매 가능 수량(" + optSelLimitQty
+	                                    + "개)을 초과하셨습니다.\n"+optSelLimitQty+"개 중 "+(optSelLimitQty - parseInt(selLimitPrdBuyCnt))+"개만 구매 가능합니다."
+	                                    + "\n나머지 상품의 재구매는 " + repurchaseDy + "일부터 가능합니다.");
+							}
+							return false;
+						}
+					}
+				}
+				
+				if (isSelMinLimit == true && optTotQty < selMinLimitQty) {
+					alert(optPrdNm + " 상품의 최소구매 가능 수량은 " + selMinLimitQty + "개입니다.");
+					return false;
+				}
+			}
+
+			return true;
+		},
+
+		checkMartPrmt : function(){
+			var martPrmtCd  = $("#martPrmtCd").val();
+			var martPrmtSeq = $("#martPrmtSeq").val();
+			var martPrmtNm  = $("#martPrmtNm").val();
+			if(martPrmtCd == "01" || martPrmtCd == "02" || martPrmtCd == "03"  || martPrmtCd == "04") {
+				if(martPrmtSeq != "" && martPrmtNm != "") {
+					return true;
+				} else {
+					return false;
+				}
+			}else{
+				return true;
+			}
+		},
+        promotionPrdStockCheck : function(){
+
+            var stockExistYn;
+            var prdStockQty;
+            var obj = document.frmMain;
+            var optionStckNo = obj.optionStckNo.value;
+            var options = {
+                url   : '/town/TownProductDetailAjax.tmall?method=townPrdStockCheck',
+                type : 'POST',
+                data : 'optionStckNo='+optionStckNo,
+                async : false,
+                dataType : 'text',
+
+                success : function(result, state){
+                    var jsonObj = eval(result);
+                    stockExistYn = jsonObj.stockExistYn;
+                    prdStockQty = jsonObj.prdStockQty;
+                },
+                error : function(xhr, state, except){
+                    alert('에러입니다.');
+                }
+            };
+            $.ajax(options);
+
+            return prdStockQty;
+        },
+
+        chkPromotionOrder : function(){
+
+            var qty = 0;
+
+            if ( document.getElementById('townQty') ){ // 기존 타운일 경우
+                qty = document.getElementById('townQty').value;
+            }else if ( document.getElementById('prdcAmount') ){ // 무형상품 추가..
+                qty = document.getElementById('prdcAmount').value;
+            }
+
+            if(qty <= 0) {
+                alert("최소수량은 1입니다.");
+                return false;
+            }
+
+            if ("01" == ordVar.selLimitTypCd) {
+                if (parseInt(qty) > parseInt(ordVar.selLimitQty)) {
+                    alert("해당 상품의 최대구매 가능 수량(" + ordVar.selLimitQty + "개)을 초과하셨습니다.");
+                    return false;
+                }
+            } else if ("02" == ordVar.selLimitTypCd) {
+                if ((parseInt(qty) + parseInt(ordVar.selLimitPrdBuyCnt)) > ordVar.selLimitQty) {
+                    if( parseInt(ordVar.selLimitPrdBuyCnt) == 0 ) {
+                        alert("해당 상품의 최대구매 가능 수량을 초과하셨습니다.");
+                    } else if( parseInt(ordVar.selLimitPrdBuyCnt) >= _selLimitQty ) {
+                        alert("이 상품은 1인 최대구매수량이 " + ordVar.townSelLmtDy + "일당 "+ ordVar.selLimitQty +"개로 제한되는 상품입니다.\n이미 "+parseInt(ordVar.selLimitPrdBuyCnt)+"개 상품을 주문하셨습니다. 수량을 확인해주십시오.");
+                    } else {
+                        alert("이 상품은 1인 최대구매수량이 " + ordVar.townSelLmtDy + "일당 "+ ordVar.selLimitQty +"개로 제한되는 상품입니다.\n이미 "+parseInt(ordVar.selLimitPrdBuyCnt)+"개 상품을 주문하셨습니다. 수량을 확인해주십시오.");
+                    }
+                    return false;
+                }
+            }
+
+            if(qty > 10) {
+                alert("최대 10개까지만 가능합니다.");
+                return false;
+            }
+
+            if (ordVar.selMinLimitTypCd == "01") {
+                if (qty < ordVar.selMinLimitQty) {
+                    alert("해당 상품의 최소구매 가능 수량은 " + ordVar.selMinLimitQty + "개입니다.");
+                    return false;
+                }
+            }
+            return true;
+        },
+
+		chkOrderStock : function(clickType) {
+
+			var clickTypeName = "";
+			if(prdVar.isRental) clickTypeName = "신청하기";
+			else if(clickType == "buy") clickTypeName = "구매하기";
+			else if(clickType == "cart") clickTypeName = "장바구니";
+
+			var tmpSelOptArr = [];
+			var tmpEntOptArr = [];
+
+			var orderOptArrSize = optVar.orderOptArr.length;
+
+            if (orderOptArrSize < 1) {
+                if(clickType == "appliedCoupon") alert("적용가능쿠폰은 상품쿠폰 적용 및 받기가 가능합니다. 옵션을 선택 또는 입력후 적용가능쿠폰을 선택해 주세요.");
+                else if(clickType != "" && clickType != undefined) alert("옵션을 선택 또는 입력후 "+clickTypeName+"를 선택해 주세요.");
+                else alert("옵션을 선택 또는 입력후 진행해 주세요.");
+                return false;
+            }          
+            
+			if (!optVar.isNotSelOptPrd){
+				if ("OK" != optVar.optCheckStatus) {
+					alert("선택하신 옵션의 재고를 확인 중 입니다.");
+					return false;
+				}
+
+				for ( var i = 0; i < orderOptArrSize; i++) {
+
+					tmpSelOptArr = optVar.orderOptArr[i].selOptArr;
+					tmpEntOptArr = optVar.orderOptArr[i].entOptArr;
+
+					// 재고수량 미 입력 옵션 제거
+					if (optVar.orderOptArr[i].amount < 1) {
+						if(clickType == "appliedCoupon") alert("적용가능쿠폰은 상품쿠폰 적용 및 받기가 가능합니다. 옵션을 선택 또는 입력후 적용가능쿠폰을 선택해 주세요.");
+						else if(clickType != "" && clickType != undefined) alert("옵션을 선택 또는 입력후 "+clickTypeName+"를 선택해 주세요.");
+						else alert("옵션을 선택 또는 입력후 진행해 주세요.");
+						return false;
+					}
+					// 재고수량 비교
+					if(!this.checkStckQty('option',optVar.orderOptArr[i].prdStckNo, optVar.orderOptArr[i].amount)){
+						return false;
+					}
+					if (optVar.entOptCnt != tmpEntOptArr.length) {
+						alert("입력형 옵션을 입력하세요.");
+						return false;
+					}
+
+					for ( var j = 0, size = tmpEntOptArr.length; j < size; j++) {
+						if (tmpEntOptArr[j].optTxt.trim() == "") {
+							alert("입력형 옵션을 입력하세요.");
+							return false;
+						}
+
+                        if( this.isResidentRegistrationCode(tmpEntOptArr[j].optTxt.trim().split(" ").join("")) || this.isPersonalCustomsCode(tmpEntOptArr[j].optTxt.trim().split(" ").join(""))) {
+                            alert("입력한 옵션에 개인정보가 포함되어 있어 주문이 불가합니다." +
+								"\n입력한 옵션이 개인정보가 아닌 경우 고객센터 1599-0110으로 문의주세요.");
+							return false;
+						}
+					}
+				}
+
+			} else {
+
+				var prdStckQty = optVar.totStockQty;
+				var nonOptAmount = 0;
+
+				var tmpOptMixNo = "";
+				var idx = -1;
+				if (orderOptArrSize > 0) {
+					for ( var i = 0; i < orderOptArrSize; i++) {
+						tmpOptMixNo = optVar.orderOptArr[i].optMixNo;
+						if ("nonSelOpt" == tmpOptMixNo) {
+							idx = i;
+							break;
+						}
+					}
+				}
+
+				nonOptAmount = optVar.orderOptArr[idx].amount;
+
+				if ("" == prdStckQty || "0" == prdStckQty) {
+					alert("재고가 없는 상품입니다.");
+					return false;
+				}
+
+				if (nonOptAmount > Number(prdStckQty)) {
+					alert("재고수량이 " + prdStckQty
+						+ "개 존재 합니다. 재고수량 이하로 구입 수량을 입력해주세요.");
+					return false;
+				}
+
+				// 작성형 모두 작성했는지 체크
+				tmpEntOptArr = optVar.orderOptArr[i].entOptArr;
+                if(tmpEntOptArr.length != optVar.entOptCnt){
+                    alert("입력형 옵션을 입력하세요.");
+                    return false;
+                }
+
+				for ( var j = 0, size = tmpEntOptArr.length; j < size; j++) {
+					if (tmpEntOptArr[j].optTxt.trim() == "") {
+						alert("입력형 옵션을 입력하세요.");
+						return false;
+					}
+
+					if( this.isResidentRegistrationCode(tmpEntOptArr[j].optTxt.trim().split(" ").join("")) || this.isPersonalCustomsCode(tmpEntOptArr[j].optTxt.trim().split(" ").join(""))) {
+						alert("입력한 옵션에 개인정보가 포함되어 있어 주문이 불가합니다." +
+							"\n입력한 옵션이 개인정보가 아닌 경우 고객센터 1599-0110으로 문의주세요.");
+						return false;
+					}
+				}
+			}
+
+			var orderAddPrdSize = optVar.orderAddPrdArr.length;
+
+			for ( var i = 0; i < orderAddPrdSize; i++) {
+
+				if ("" == optVar.orderAddPrdArr[i].amount || optVar.orderAddPrdArr[i].amount < 1) {
+					alert("수량을 입력하지 않은 추가구성상품은 삭제를 해주세요.");
+					return false;
+				}
+
+				if (optVar.orderAddPrdArr[i].amount > optVar.orderAddPrdArr[i].stckQty) {
+					alert("추가구성상품(" + optVar.orderAddPrdArr[i].selAddPrdNm
+						+ ")의 재고수량이 " + optVar.orderAddPrdArr[i].stckQty
+						+ "개 존재 합니다. 재고수량 이하로 구입 수량을 입력해주세요.");
+					return false;
+				}
+			}
+
+			return true;
+		},
+		
+		chkOrderStockStd : function(clickType) {
+
+			var clickTypeName = "";
+			if(prdVar.isRental) clickTypeName = "신청하기";
+			else if(clickType == "buy") clickTypeName = "구매하기";
+			else if(clickType == "cart") clickTypeName = "장바구니";
+
+			var tmpSelOptArr = [];
+			var tmpEntOptArr = [];
+
+			var orderOptArrSize = optVar.orderOptArr.length;
+
+            if (orderOptArrSize < 1) {
+                if(clickType == "appliedCoupon") alert("적용가능쿠폰은 상품쿠폰 적용 및 받기가 가능합니다. 옵션을 선택 또는 입력후 적용가능쿠폰을 선택해 주세요.");
+                else if(clickType != "" && clickType != undefined) alert("옵션을 선택 또는 입력후 "+clickTypeName+"를 선택해 주세요.");
+                else alert("옵션을 선택 또는 입력후 진행해 주세요.");
+                return false;
+            }
+            
+            for ( var i = 0; i < orderOptArrSize; i++) {
+            	tmpSelOptArr = optVar.orderOptArr[i].selOptArr;
+				tmpEntOptArr = optVar.orderOptArr[i].entOptArr;
+				var optCnt	= optVar.orderOptArr[i].optCnt;
+				
+				if(optCnt > 0 && "OK" != optVar.optCheckStatus) {
+					alert("선택하신 옵션의 재고를 확인 중 입니다.");
+					return false;
+				}
+
+				// 재고수량 미 입력 옵션 제거
+				if (optVar.orderOptArr[i].amount < 1) {
+					if(clickType == "appliedCoupon") alert("적용가능쿠폰은 상품쿠폰 적용 및 받기가 가능합니다. 옵션을 선택 또는 입력후 적용가능쿠폰을 선택해 주세요.");
+					else if(clickType != "" && clickType != undefined) alert("옵션을 선택 또는 입력후 "+clickTypeName+"를 선택해 주세요.");
+					else alert("옵션을 선택 또는 입력후 진행해 주세요.");
+					return false;
+				}
+				
+				// 재고수량 비교
+				if(!this.checkStckQty('option',optVar.orderOptArr[i].prdStckNo, optVar.orderOptArr[i].amount)){
+					return false;
+				}
+				if(optVar.orderOptArr[i].entOptCnt > 0) {
+					if (optVar.orderOptArr[i].entOptCnt != tmpEntOptArr.length) {
+						alert("입력형 옵션을 입력하세요.");
+						return false;
+					}
+
+					for ( var j = 0, size = tmpEntOptArr.length; j < size; j++) {
+						if (tmpEntOptArr[j].optTxt.trim() == "") {
+							alert("입력형 옵션을 입력하세요.");
+							return false;
+						}
+
+                        if( this.isResidentRegistrationCode(tmpEntOptArr[j].optTxt.trim().split(" ").join("")) || this.isPersonalCustomsCode(tmpEntOptArr[j].optTxt.trim().split(" ").join(""))) {
+							alert("입력한 옵션에 개인정보가 포함되어 있어 주문이 불가합니다." +
+								"\n입력한 옵션이 개인정보가 아닌 경우 고객센터 1599-0110으로 문의주세요.");
+							return false;
+						}
+					}
+				}
+            }
+
+			return true;
+		},
+
+		/*생활편의 구매시 최소구매금액 체크 */
+		checkMinPrice : function(clickType) {
+			if(prdVar.prdTypCd == "35")
+				return "";
+	    	var totalPrc = $('.total_pr').find('strong').text().split(',').join(''); //총금액	    	
+	    	var result = "";
+            var options = {
+                url   : '/lifeplus/LifePlusAjax.tmall?method=chkMinPriceJSON',
+                type : 'POST',
+                data : {
+    				'sellerMemNo': prdVar.selMnbdNo,
+    				'totalPrice': totalPrc,
+    				'prdTypCd': prdVar.prdTypCd,
+    				'clickType': clickType,
+    				'sellerId': prdVar.sellerId
+    			},    			
+                async : false,
+                dataType : 'json',
+
+                success : function(data){
+                	result = data;                    
+                },
+                error : function(xhr, state, except){    
+                	result = "error";
+                }
+            };
+            $.ajax(options);
+
+            return result;
+		},
+
+        residentRegistrationCodeRex: /([^\d]|\b)[0-9]{2}(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])[-_]?[1-4][0-9]{6}([^\d]|\b)/,
+        /* 입력형 옵션 주민번호 체크 */
+		isResidentRegistrationCode : function(str) {
+			return this.residentRegistrationCodeRex.test(str);
+
+		},
+
+        personalCustomsCodeRex: /p\d{12}/i,
+        // 통관고유번호 체크
+		isPersonalCustomsCode : function(str) {
+            return this.personalCustomsCodeRex.test(str);
+
+        },
+
+		removeParamInput : function(name) {
+			$("[name=" + name + "]").each(function() {
+				$(this).remove();
+			});
+		},
+		
+		removeParamInputNew : function(name, targetFrm) {
+			$("[name=" + name + "]", targetFrm).each(function() {
+				$(this).remove();
+			});
+		},
+
+		chkLoginOrder : function() {
+			var obj = document.frmMain;
+			/*if(prdVar.isStandardPrd) {
+				obj	= document.frmStdMain;
+			}*/
+			obj.target = "_top";
+			obj.isFast.value = "";
+
+			var orderURL = _SSL_ORDER_URL_;
+			var orderClf = false;
+
+			if ("Y" == ordVar.ordObjLimit && "Y" == ordVar.eventDomainYN) {
+				orderClf = true;
+			}
+
+			if ("Y" == $("#syrupPayYn").val()){
+				obj.action = orderURL + "/pay/syrupPayOneClickOrder.tmall";
+				obj.method.value = "getOneClickOrderInfo";
+			}else if ("Y" == ordVar.isDeliMultiAddr) {
+				obj.action = orderURL + "/pay/multiDelvStep.tmall";
+				if (ordVar.dlvCstFreeYn == "Y") {
+					obj.prdDlvCstStlTyp.value = "03";
+				}
+				obj.method.value = "multiDelvStep";
+			} else {
+				obj.action = orderURL + "/pay/OrderInfoAction.tmall";
+				obj.method.value = "getOrderInfo";
+			}
+
+			try {
+				if (orderClf) { //이벤트 상품
+					var actionId = ("Y" == $("#syrupPayYn").val()) ? 'act_2' : 'act_3';
+					NetFunnel_Action({service_id: "service_2", action_id: actionId}, function () {
+						obj.submit();
+					});
+				} else { //일반상품
+                    var actionId = ("Y" == $("#syrupPayYn").val()) ? '11act_3' : '11act_2';
+					NetFunnel_Action({service_id: "service_1", action_id: actionId}, function () {
+						obj.submit();
+					});
+				}
+			} catch (e) {
+				obj.submit();
+			}
+		},
+
+		syrupPay : function(position) {
+			// doCommonStat("PDP0812");
+			if( !this.isSyrupAvailCupn ) {
+                alert("결제수단 제한 쿠폰이 적용되어 11Pay 원클릭을 이용 할 수 없습니다.");
+				return;
+			}
+
+			this.buyProduct(position, 'N', 'Y');
+		},
+
+		cartProduct : function(position) {
+
+            this.position = position;
+
+            if(prdVar.isStandardPrd) {
+            	
+            	if(!this.checkNonMemberBuy()){
+    				return;
+    			}
+            	
+            	if( prdVar.isSnsMember && this.isSnsMemberOrderChk() == false) {	// sns 멤버의 경우 추가 체크
+    				return false;
+    			}
+            	
+            	if (!(this.chkLimitOrderStd() && this.chkDeliveryStd(obj))) {
+    				return false;
+    			}
+            	
+            	var obj = document.frmStdMain;
+            	//02 즉시 구매용 장바구니, 01 장바구니
+            	obj.bcktPathCd.value = '01';
+
+                if (!this.chkOrderStock("cart")) {
+                    return false;
+                }
+
+            	this.setOrderParamClearStd(obj);
+            	
+            	if (!this.setPrdOrderParam(obj)) {
+    				alert("상품 및 옵션을 선택 후 장바구니를 선택해주세요.");
+    				return false;
+    			}
+            	
+            	//doCommonStat("PDP0909");
+    			this.$win.trigger("callGaEvent","0;"+ (position == "top" ? "12" : "20") +";장바구니");
+    			obj.action = "/cart/CartAction.tmall";
+    			//obj.method.value = "getRegOptCartList";
+    			obj.method.value = "getRegOptCartList";
+    			obj.isPopup.value = "Y";
+    			obj.target = "hiddenProcessId";
+            } else {
+    			if(optVar.orderRecmPrdArr.length > 0){
+    				alert('MD추천상품이 포함된 경우 장바구니를 통해 구매하실 수 없습니다. 구매하기 버튼을 통해 즉시구매 해 주시기 바랍니다.');
+    				return;
+    			}
+
+    			//장바구니 제외 여부를 판단 - 레이어에서 장바구니에 담는 경우, 장바구니 버튼은 노출한 채 alert으로 차단
+    			if("Y" == $("#isCartUnusableSellerYN").val()){
+    				alert("즉시 구매만 가능합니다.");
+    				return;
+    			}
+
+    			if(!this.checkNonMemberBuy()){
+    				return;
+    			}
+
+    			var obj = document.frmMain;
+			if( prdVar.isSnsMember && this.isSnsMemberOrderChk() == false) {	// sns 멤버의 경우 추가 체크
+				return false;
+			}
+
+    			if ("Y" == ordVar.martYn) {
+    				obj.incommingCode.value = "06";
+    				if(!this.checkMartPrmt()) {
+    					alert("프로모션 상품을 선택하세요.");
+    					return false;
+    				}
+    			}
+
+    			if (!(this.chkLimitOrder() && this.chkDelivery(obj)) || this.checkPrdDisplay()) {
+    				return false;
+    			}
+
+    			if (!this.chkOrderStock("cart")) {
+    				return false;
+    			}
+
+    			this.setOrderParamClear(obj);
+
+    			if (!this.setPrdOrderParam(obj)) {
+    				alert("옵션이나 수량을 선택후 장바구니를 선택해주세요.");
+    				return false;
+    			}
+
+    			if (!this.setPrdCartParam(obj)) {
+    				alert("옵션이나 수량을 선택후 장바구니를 선택해주세요.");
+    				return false;
+    			}
+    			
+    			/*생활편의 - 카트 담기 메시지 노출*/
+                if (orderInfo.isLifePlus) {  
+                	//35번인경우 shopBranchNo 필수항목
+                	if(prdVar.prdTypCd == "35" && $.trim($("#shopBranchNo").val()) == '') {
+                		alert("매장을 선택해주세요.");            		
+                		return false;
+                	}
+                	obj.lifePlusShopBranchNo.value = $.trim($("#shopBranchNo").val());
+                }
+
+    			obj.prdDlvCstStlTyp.value = $("[name=prdDlvCstStlTyp]").val();
+    			
+    			//doCommonStat("PDP0909");
+    			this.$win.trigger("callGaEvent","0;"+ (position == "top" ? "12" : "20") +";장바구니");
+    			obj.action = "/cart/CartAction.tmall";
+    			obj.method.value = "getRegOptCart";
+    			obj.isPopup.value = "Y";
+    			obj.target = "hiddenProcessId";
+            }
+
+
+
+			// 광고 통계
+			this.adStatistics(obj, 'basket');
+
+			//HOT클릭 외부확장 플랫폼 전시영역 cart
+			try{
+				HeaderComm.callHotClick('set','cart',obj.prdNo.value, obj.sdispCtgrNo.value);//카테고리정보 있는경우(소카테고리)
+			} catch(e) {
+
+			}
+
+			//RecoPick
+			try{
+				callRecopick('basket', this.getOptTotQty(), this.makeRecopickBasketData());
+			} catch(e){
+				//스위치로 RecoPick 사용하지 않을 경우 skip
+			}
+
+            //Log2.0
+            try{
+            	if(prdVar.isStandardPrd) {
+            		jQuery(".btn_dshop.cart").attr('data-log-body', JSON.stringify(this.makeSelectOptionStdLogData('cart')));
+            	} else {
+            		jQuery(".btn_dshop.cart").attr('data-log-body', JSON.stringify(this.makeSelectOptionLogData('cart')));
+            	}
+                // rakeLog.sendRakeLog(jQuery(".btn_dshop.cart").get(0), 'click');
+            } catch(e){}
+
+			try{
+				// 구글애널리틱스 용 전자상거래 추적코드 추가
+				this.GA_push('add');
+			} catch (e) {}
+
+			try {
+				callCommonAd('cart', 'http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=' + prdNo, JSON.stringify(this.makeSyrupData()));
+			} catch(e){
+			}
+
+			//장바구니 넷퍼넬 적용
+            var orderClf = false;
+            if ("Y" == ordVar.ordObjLimit && "Y" == ordVar.eventDomainYN) {
+                orderClf = true;
+            }
+            try {
+                if (orderClf) {
+                    NetFunnel_Action({service_id: "service_2", action_id: "act_15"}, function () {
+                        obj.submit();
+                    });
+                } else {
+                    NetFunnel_Action({service_id: "service_1", action_id: "11act_7"}, function () {
+                        obj.submit();
+                    });
+                }
+            } catch (e) {
+                obj.submit();
+            }
+			
+			try {// 날개 배너 쿠키 삭제
+				removeCookieWB();
+			} catch (ex) {
+			}
+
+		},
+
+		sendGift : function(position) {
+
+            this.position = position;
+			//옵션갯수 체크(1개)
+			if(optVar.orderOptArr.length > 1){
+				alert("선물하기는 한가지의 옵션만 선택가능합니다.");
+				return false;
+			}
+
+			var orderLimitAmout = 20;
+
+			if($("#isGiftQuantityLimitSellerYN").val() == "Y") {
+				orderLimitAmout = 1;
+			}
+
+			//수량갯수 체크(max 1개)
+			if(this.getOptTotQty() > orderLimitAmout){
+				alert("선물하기는 수량을 1개까지만 지정할 수 있습니다.");
+				return false;
+			}
+
+			//추가구성상품불가
+			if (optVar.orderAddPrdArr.length > 0) {
+				alert("선물하기는 추가구성상품을 선택할 수 없습니다.");
+				return false;
+			}
+
+			//복수배송예외셀러는 1개만 가능
+			if("N" == ordVar.deliMultiSellerYn){
+				//수량이 한개만 가능
+				if(this.getOptTotQty() > 1){
+					alert("이 판매자의 상품은 수량을 1개까지만 지정할 수 있습니다.");
+					return false;
+				}
+			}
+			this.buyProduct(position, 'Y', 'N');
+		},
+
+		checkNonMemberBuy : function() {
+			if(!funcCheckIsLogin() && "N" == ordVar.nonMemberBuyYn){
+				openLogin(2, 'frmMain');
+				return false;
+			}
+			return true;
+		},
+
+		setPrdCartParam : function(obj) {
+
+			var optString = "";
+			var optQtyString = "";
+			var optPrcString = "";
+			var addArrPrdNoString = "";
+
+			var tmpOrderOptObj = {};
+
+			for ( var i = 0, size = optVar.orderOptArr.length; i < size; i++) {
+				tmpOrderOptObj = optVar.orderOptArr[i];
+				optQtyString = optQtyString + tmpOrderOptObj.amount + "∏";
+				optPrcString = optPrcString + tmpOrderOptObj.addPrc + "∏";
+
+				for ( var j = 0; j < optVar.selOptCnt; j++) {
+					optString = optString + "0†";
+					optString = optString + tmpOrderOptObj.selOptArr[j].optItemNo
+						+ "¶" + tmpOrderOptObj.selOptArr[j].optValueNo + "† ‡";
+
+				}
+				if (optVar.entOptCnt > 0) {
+					for ( var j = 0; j < optVar.entOptCnt; j++) {
+						if ("" == tmpOrderOptObj.entOptArr[j].optTxt) {
+							optString = optString + "1†"
+								+ tmpOrderOptObj.entOptArr[j].optNo + "† ‡";
+						} else {
+							optString = optString + "1†"
+								+ tmpOrderOptObj.entOptArr[j].optNo + "†"
+								+ tmpOrderOptObj.entOptArr[j].optTxt + "‡";
+						}
+					}
+				}
+
+				if( optVar.isOptCalc && tmpOrderOptObj.calcOptObj ){
+					// 계산형 옵션이 있는 경우
+					var optSel = tmpOrderOptObj.calcOptObj;
+					var optionSize = optSel.optionSize;
+
+					var optSumText = "";
+					if( myCupnInfo.isHasSizeOption(optSel) ){
+						optSumText  = this.getCalcOptNm(optSel)
+							+ "⊥"
+							+ "1:"+optionSize[0]+"|2:"+optionSize[1];
+					}
+
+					optString += "2††"+optSumText+"‡";
+				}
+
+				optString = optString + "∏";
+			}
+
+			for ( var i = 0, size = optVar.orderAddPrdArr.length; i < size; i++) {
+
+				addArrPrdNoString = addArrPrdNoString
+					+ optVar.orderAddPrdArr[i].addPrdMixNo + ":";
+				addArrPrdNoString = addArrPrdNoString
+					+ optVar.orderAddPrdArr[i].amount + ":";
+				addArrPrdNoString = addArrPrdNoString
+					+ optVar.orderAddPrdArr[i].compPrdStckNo + "∏";
+			}
+
+			this.removeParamInput("optString");
+			this.removeParamInput("optQtyString");
+			this.removeParamInput("optPrcString");
+			this.removeParamInput("addArrPrdNoString");
+
+			if (optVar.optCnt > 0 || optVar.isOptCalc ) {
+				this.setFormParamData(obj, "optString", optString);
+			}
+
+			this.setFormParamData(obj, "optQtyString", optQtyString);
+			this.setFormParamData(obj, "optPrcString", optPrcString);
+			this.setFormParamData(obj, "addArrPrdNoString", addArrPrdNoString);
+
+			if ("" == optQtyString) {
+				return false;
+			} else {
+				return true;
+			}
+
+		},
+
+		getStckQty : function (clsf, prdStckNo){
+			var index = 0;
+			if(prdStckNo > 0){
+				index = this.getOrderArrIndex(clsf, prdStckNo);
+			}
+			if("option" == clsf){
+				return optVar.orderOptArr[index].stckQty;
+			}else if("addPrd" == clsf){
+				return optVar.orderAddPrdArr[index].stckQty;
+			}else if("recmPrd" == clsf){
+				return optVar.orderRecmPrdArr[index].stckQty;
+			}
+		},
+
+		checkStckQty : function (clsf, prdStckNo, amount){
+			var stckQty = this.getStckQty(clsf, prdStckNo);
+			if(stckQty < amount){
+				alert("재고수량이 "+stckQty+"개 존재 합니다. 재고수량 이하로 구입 수량을 입력해주세요.");
+				return false;
+			}
+			return true;
+		},
+
+		setOrderArrAmount : function (clsf, prdStckNo, amount){
+		    var index = 0;
+		    if(prdStckNo > 0){
+                index = this.getOrderArrIndex(clsf, prdStckNo);
+            }
+			if("option" == clsf){
+				optVar.orderOptArr[index].amount = amount;
+			}else if("addPrd" == clsf){
+				optVar.orderAddPrdArr[index].amount = amount;
+				optVar.orderAddPrdArr[index].addPrc = Number(amount) * Number(optVar.orderAddPrdArr[index].addCompPrc);
+			}else if("recmPrd" == clsf){
+				optVar.orderRecmPrdArr[index].amount = amount;
+				optVar.orderRecmPrdArr[index].addPrc = Number(amount) * Number(optVar.orderRecmPrdArr[index].finalDscPrc);
+			}
+			if(prdVar.isStandardPrd) {	//  표준상품은 자동쿠폰 적용이 없으므로 쿠폰 초기화 과정이 필요함.
+				this.setOrderCupnInit();
+			}
+		},
+
+        getBeforeAmount : function(clsf, prdStckNo){
+            var index = 0, amount = 1;
+            if(prdStckNo > 0){
+                index = this.getOrderArrIndex(clsf, prdStckNo);
+            }
+            if("option" == clsf){
+                amount = optVar.orderOptArr[index].amount;
+            }else if("addPrd" == clsf){
+                amount = optVar.orderAddPrdArr[index].amount;
+            }else if("recmPrd" == clsf){
+                amount = optVar.orderRecmPrdArr[index].amount;
+            }
+            return amount;
+        },
+
+		delOrderArr : function (clsf, prdStckNo){
+			var index = this.getOrderArrIndex(clsf, prdStckNo);
+			if("option" == clsf){
+				optVar.orderOptArr.splice(index, 1);
+			}else if("addPrd" == clsf){
+				optVar.orderAddPrdArr.splice(index, 1);
+			}else if("recmPrd" == clsf){
+				optVar.orderRecmPrdArr.splice(index, 1);
+				this.$mdRecmContent.find($('[data-prdstckno=' + prdStckNo + ']')).find($('input[name=togetherItem]')).prop('checked', false);
+				if(optVar.orderRecmPrdArr.length == 0){
+                    if(!$("#chkGblDlvYn").is(":checked")){
+                        $(".syup_pay").show();
+                        $(".pay11_wrap").show();
+                        $(".btn_11pay").show();	//bottom
+                        if($('#botDoubleBtnArea > button').length > 1) {// 버튼 두개일 경우 너비 조정
+                        	$('#botDoubleBtnArea').addClass('btn_dubble').removeClass('btn_full');
+                        }
+                    }
+                    if(!$("#chkGblDlvYn").is(":checked") && !$("#chkDeliMultiAddrYn").is(":checked") && !$("#chkPrdVisitDlvYn").is(":checked")){
+                        $(".gift_to").show();
+                    }
+				}
+			}
+			if(prdVar.isStandardPrd) {	//  표준상품은 자동쿠폰 적용이 없으므로 쿠폰 초기화 과정이 필요함.
+				this.setOrderCupnInit();
+			}
+		},
+
+		getOrderArrIndex : function(clsf, prdStckNo){
+			var index = -1;
+			var targetArr = [];
+
+			if("option" == clsf){
+				targetArr = optVar.orderOptArr;
+			}else if("addPrd" == clsf){
+				targetArr = optVar.orderAddPrdArr;
+			}else if("recmPrd" == clsf){
+				targetArr = optVar.orderRecmPrdArr;
+			}
+			for(var i=0,size=targetArr.length;i<size;i++){
+				if(targetArr[i].prdStckNo == prdStckNo){
+					return i;
+				}
+			}
+
+			return index;
+		},
+		setOrderCupnInit : function () {	// 적용된 쿠폰 초기화
+			var targetArr = optVar.orderOptArr;
+			if(targetArr != undefined && targetArr.length > 0) {
+				for(var i=0,size=targetArr.length;i<size;i++){
+					var dispTotAmt	= Number(targetArr[i].discAmt) * Number(targetArr[i].amount);
+					targetArr[i].sumDscPrc	= dispTotAmt;
+					targetArr[i].choiceCupnIssNo	= 0;
+					targetArr[i].bonusCupnIssNo	= 0;
+				}
+			}
+		}, 
+
+        redirectCartPage : function() {
+            var url = ordVar.cartUrl + "&bcktType=" + this.bcktType;
+            location.href = url;
+        },
+
+		getBtnPosition : function ($obj) {
+			if($obj.hasClass("position_top")){
+				return "top";
+			}else{
+				return "bottom";
+			}
+		},
+
+		adStatistics : function(obj, strClf) {
+			try {
+				ad_headerCommonJs.util.instance.ConversionCookieQueue.requestToServer(obj.prdNo.value, strClf);
+			} catch (ignore) {
+			}
+		},
+
+        callBasket : function() {
+            try {
+                if (TMCookieUtil.getSubCookie(0, "EMSMailYN") == '1') {
+                    var size = optVar.orderOptArr.length;
+                    var totStock = 0;
+                    var tmpStock = 0;
+                    for ( var i = 0; i < size; i++) {
+                        if ((optVar.orderOptArr[i].amount).trim() != "") {
+                            tmpStock = parseInt(optVar.orderOptArr[i].amount);
+                            totStock += tmpStock;
+                        }
+                    }
+                    var URL = 'http://mailing6.11st.co.kr/Amail_tracking_basket.html?item_code='
+                        + optVar.prdNo
+                        + '&item_num='
+                        + totStock
+                        + '&item_price=' + productPrice.selPrc;
+                    callWebServer(URL);
+                }
+            }catch(e){}
+        },
+
+		//DSR-4259 :  광고 관련 Api 공통화 작업
+		makeSyrupData : function() {
+
+			var headSel_1 = $('#headSel_1').text();
+			var headSel_2 = $('#headSel_2').text();
+			var headSel_3 = $('#headSel_3').text();
+			var headSel_4 = $('#headSel_4').text();
+
+			var prdNm = prdVar.prdNm.trim();
+
+			var dataObj = {
+				'prdNo': prdVar.prdNo,// 상품번호
+				'prdNm': prdNm,// 상품명
+				'lCtgrNo': prdVar.ldispCtgrNo,// 대카테고리번호
+				'lCtgrNm': headSel_1.trim(),// 대카테고리명 (가능여부 판단)
+				'mCtgrNo': prdVar.mdispCtgrNo,// 중카테고리번호
+				'mCtgrNm': headSel_2.trim(),// 중카테고리명 (가능여부 판단)
+				'sCtgrNo': prdVar.sdispCtgrNo,// 소카테고리번호
+				'sCtgrNm': headSel_3.trim(),// 소카테고리명 (가능여부 판단)
+                'dCtgrNo': headSel_4.trim() != "" ? prdVar.dispCtgrNo : "",// 세카테고리번호
+                'dCtgrNm': headSel_4.trim(),// 세카테고리명 (가능여부 판단)
+				'selPrc': productPrcInfo.dscPrc,// 판매가
+				'imgUrl': prdVar.imgUrl,// 상품이미지 URL
+				'selStatCd': prdVar.selStatCd, // 상품판매상태
+				'dsid' : productPrcInfo.dealDpYn == "true" ? "77" : "63"
+			};
+
+			return dataObj;
+		},
+
+		// 구글애널리틱스 용 전자상거래 추적코드 추가
+		GA_push : function(s) {
+
+		    try{
+
+                var headSel_1 = $('#headSel_1').text();
+                var headSel_2 = $('#headSel_2').text();
+                var headSel_3 = $('#headSel_3').text();
+                var headSel_4 = $('#headSel_4').text();
+
+                if(prdVar.isSohoPrd) {
+                    headSel_1 = $($('#catestep0').children().find('a')[0]).text();
+                    headSel_2 = $($('#catestep1').children().find('a')[0]).text();
+                    headSel_3 = $($('#catestep2').children().find('a')[0]).text();
+                    headSel_4 = $($('#catestep3').children().find('a')[0]).text();
+                }
+                if("Y" == prdVar.dealDpYn) {
+                    headSel_1 = $('#dealLctgrSel').text();
+                    headSel_2 = $('#dealMctgrSel').text();
+                    headSel_3 = $('#dealSctgrSel').text();
+                }
+
+                var ctgrNm = headSel_1.trim();
+                if(headSel_2 != '' && headSel_2 != null) {
+                    ctgrNm += '>' + headSel_2.trim();
+                }
+                if(headSel_3 != '' && headSel_3 != null) {
+                    ctgrNm += '>' + headSel_3.trim();
+                }
+                if(headSel_4 != '' && headSel_4 != null) {
+                    ctgrNm += '>' + headSel_4.trim();
+                }
+
+                var prdNm = prdVar.prdNm.trim();
+                var products = [];
+
+                if('detail' == s) {
+                    products.push({
+                        'name': 		prdNm, // 상품명
+                        'id': 			prdVar.prdNo, // 상품코드
+                        'price': 		prcVar.dscPrc, // 가격
+                        'brand':		prdVar.brandNm,	// 브랜드
+                        'category':		ctgrNm,	// 카테고리
+                        'dimension11': 	prdVar.selMnbdNo	// 셀러번호
+                    });
+
+                    GA_dataLayer.push({
+                        'event':'detail',
+                        'ecommerce':{
+                            'detail':{
+                                'products':products
+                            }
+                        }
+                    });
+                } else if('add' == s) {
+                    if(optVar.orderOptArr.length > 0) {
+                        if(optVar.orderOptArr[0].selOptArr.length > 0) {
+                            // 옵션
+                            for(var i=0; optVar.orderOptArr.length > i; i++){
+                                // console.log($('[data-prdstckno=' + optVar.orderOptArr[i].prdStckNo + ']').find('em').text());
+                                products.push({
+                                    'name': 		prdNm, // 상품명
+                                    'id': 			prdVar.prdNo, // 상품코드
+                                    'price': 		prcVar.dscPrc + optVar.orderOptArr[i].addPrc,
+                                    'brand':		prdVar.brandNm,	// 브랜드
+                                    'category':		ctgrNm,	// 카테고리
+                                    'dimension11': 	prdVar.selMnbdNo,	// 셀러번호
+                                    'variant': 		$('[data-prdstckno=' + optVar.orderOptArr[i].prdStckNo + ']').find('em').text(), // 옵션명
+                                    'quantity': 	optVar.orderOptArr[i].amount	// 옵션 수량
+                                });
+                            }
+                        } else {	// 옵션이 없을 경우
+                            products.push({
+                                'name': 		prdNm, // 상품명
+                                'id': 			prdVar.prdNo, // 상품코드
+                                'price': 		prcVar.dscPrc,
+                                'brand':		prdVar.brandNm,	// 브랜드
+                                'category':		ctgrNm,	// 카테고리
+                                'dimension11': 	prdVar.selMnbdNo,	// 셀러번호
+                                'variant': 		"",	// 추가상품명
+                                'quantity': 	optVar.orderOptArr[0].amount		// 상품 수량
+                            });
+                        }
+                    } else {
+
+                    }
+
+                    GA_dataLayer.push({
+                        'event':'addToCart',
+                        'ecommerce':{
+                            'add':{
+                                'products':products
+                            }
+                        }
+                    });
+                }
+
+            }catch(e){}
+		},
+
+        makeRecopickBasketData : function() {
+            var selectOptData = [];
+            if(optVar.orderOptArr.length > 0 && !optVar.isNotOptPrd) {
+                for(var i=0; optVar.orderOptArr.length > i; i++){
+                    selectOptData.push({
+						'stck_no' : optVar.orderOptArr[i].prdStckNo,
+						'opt_no'  : optVar.orderOptArr[i].optMixNo,
+						'name'    : optVar.orderOptArr[i].dispNm,
+						'qty'     : optVar.orderOptArr[i].amount
+					});
+                }
+            }
+
+            return selectOptData;
+        },
+
+        makeSelectOptionLogData : function(btnNm) {
+            var prdLogInfo 	  = [];	//로그정보
+
+            if(optVar.orderOptArr.length > 0) {
+                var selectOptData = [];
+                for(var i=0; optVar.orderOptArr.length > i; i++){
+                	if(!optVar.isNotOptPrd) {
+						selectOptData.push({
+							'stock_no' 		  : optVar.orderOptArr[i].prdStckNo,
+							'option_no'       : optVar.orderOptArr[i].optMixNo,
+							'option_name'     : optVar.orderOptArr[i].dispNm,
+							'option_quantity' : optVar.orderOptArr[i].amount
+						});
+                    } else {
+                        selectOptData.push({
+                            'stock_no' 		  : optVar.orderOptArr[i].prdStckNo,
+                            'option_quantity' : optVar.orderOptArr[i].amount
+                        });
+					}
+                }
+
+                if(selectOptData.length > 0) {
+                	prdVar.productLogInfo.options = selectOptData;
+				}
+            }
+
+            if(optVar.orderAddPrdArr.length > 0) {
+				for(var i=0; i < optVar.orderAddPrdArr.length; i++) {
+					var addPrdInfo = {};
+                    addPrdInfo.product_no   	= typeof optVar.orderAddPrdArr[0].compPrdNo    !== "undefined" ? optVar.orderAddPrdArr[0].compPrdNo    : "";
+                    addPrdInfo.product_name  	= typeof optVar.orderAddPrdArr[0].addPrdCompNm !== "undefined" ? optVar.orderAddPrdArr[0].addPrdCompNm : "";
+                    addPrdInfo.product_price 	= typeof optVar.orderAddPrdArr[0].addCompPrc   !== "undefined" ? optVar.orderAddPrdArr[0].addCompPrc   : "";
+                    addPrdInfo.product_quantity = typeof optVar.orderAddPrdArr[0].amount 	   !== "undefined" ? optVar.orderAddPrdArr[0].amount 	   : "";
+                    addPrdInfo.add_product_no   = typeof optVar.orderAddPrdArr[0].prdCompNo    !== "undefined" ? optVar.orderAddPrdArr[0].prdCompNo    : "";
+                    addPrdInfo.main_product_no  = prdVar.prdNo;
+                    addPrdInfo.add_product_yn   = "Y";
+
+                    prdLogInfo.push(addPrdInfo);
+                }
+			}
+
+            prdLogInfo.push(this.setLogInfo(prdVar.productLogInfo)); //상품기본정보
+            var prdLogObj = {};
+            prdLogObj.product_object = prdLogInfo;
+            
+            var cartLogObj = {};
+            cartLogObj.current_product_no = prdVar.prdNo;
+            cartLogObj.group_product_no = logVar.groupProductNo;
+            cartLogObj.group_product_firstview_no = logVar.groupFirstViewPrdNo;
+            cartLogObj.group_product_category_no = logVar.groupProductCategoryNo;
+            cartLogObj.product_price	= prdVar.selPrc;
+            cartLogObj.last_discount_price	= prcVar.dscPrc;
+            if(btnNm == "cart") {
+            	cartLogObj.trace_meta_category_no	= document.frmMain.trCtgrNo;
+            	cartLogObj.cart_draw_info = prdLogObj;
+            } else if (btnNm == "pay11") {
+            	cartLogObj.eleven_pay_draw_info = prdLogObj;
+            } else {
+            	cartLogObj.buynow_draw_info = prdLogObj;
+            }
+
+			return cartLogObj;
+        },
+        
+        makeSelectOptionStdLogData : function(btnNm) {
+            var prdLogInfo 	  = [];	//로그정보
+
+            if(optVar.orderOptArr.length > 0) {
+                for(var i=0; optVar.orderOptArr.length > i; i++){
+                	var prdLogInfoObj = {};
+                	var selectOptData = [];
+                	prdLogInfoObj.product_no 		= optVar.orderOptArr[i].optPrdNo;
+                	prdLogInfoObj.product_name 		= optVar.orderOptArr[i].optPrdNm;
+                	prdLogInfoObj.product_image_url = optVar.orderOptArr[i].prdImgUrl;
+                	prdLogInfoObj.product_price 	= optVar.orderOptArr[i].selPrc;
+                	prdLogInfoObj.last_discount_price = optVar.orderOptArr[i].dscPrc;
+                	prdLogInfoObj.seller_name 		= optVar.orderOptArr[i].sellerNm;
+                	prdLogInfoObj.large_category_name = optVar.orderOptArr[i].lctgrNm;
+                	prdLogInfoObj.middle_category_name = optVar.orderOptArr[i].mctgrNm;
+                	prdLogInfoObj.small_category_name = optVar.orderOptArr[i].sctgrNm;
+                	prdLogInfoObj.detail_category_name = optVar.orderOptArr[i].dsipCtgrNm;
+                	prdLogInfoObj.large_category_no = optVar.orderOptArr[i].lctgrNo;
+                	prdLogInfoObj.middle_category_no = optVar.orderOptArr[i].mctgrNo;
+                	prdLogInfoObj.small_category_no = optVar.orderOptArr[i].sctgrNo;
+                	prdLogInfoObj.detail_category_no = optVar.orderOptArr[i].dispCtgrNo;
+                	prdLogInfoObj.colloseo_brand_add_display_category_no = optVar.orderOptArr[i].brandAddCtgrNo;
+                	prdLogInfoObj.colloseo_brand_code = optVar.orderOptArr[i].brandCd;
+                	prdLogInfoObj.catalog_no 		= optVar.orderOptArr[i].catalogNo;
+                	prdLogInfoObj.is_now_delivery 	= optVar.orderOptArr[i].isNowDlv;
+                	prdLogInfoObj.is_adult_product 	= optVar.orderOptArr[i].isAdultPrd;
+                	prdLogInfoObj.is_sale 			= optVar.orderOptArr[i].isSale;
+                	prdLogInfoObj.add_product_yn	= "N";
+                	
+                	if(optVar.orderOptArr[i].optCnt > 0) {
+                		selectOptData.push({
+							'stock_no' 		  : optVar.orderOptArr[i].prdStckNo,
+							'option_no'       : optVar.orderOptArr[i].optMixNo,
+							'option_name'     : optVar.orderOptArr[i].dispNm,
+							'option_quantity' : optVar.orderOptArr[i].amount
+						});
+                	} else {
+                		selectOptData.push({
+                            'stock_no' 		  : optVar.orderOptArr[i].prdStckNo,
+                            'option_quantity' : optVar.orderOptArr[i].amount
+                        });
+                	}
+                	if(selectOptData.length > 0) {
+                		prdLogInfoObj.options = selectOptData;
+    				}
+                	prdLogInfo.push(prdLogInfoObj);
+                }
+            }
+
+            var prdLogObj = {};
+            prdLogObj.product_object = prdLogInfo;
+            
+            var cartLogObj = {};
+            cartLogObj.current_product_no = prdVar.prdNo;
+            cartLogObj.group_product_no = logVar.groupProductNo;
+            cartLogObj.group_product_firstview_no = logVar.groupFirstViewPrdNo;
+            cartLogObj.group_product_category_no = logVar.groupProductCategoryNo;
+            cartLogObj.product_price	= prdVar.selPrc;
+            cartLogObj.last_discount_price	= prcVar.dscPrc;
+            if(btnNm == "cart") {
+            	cartLogObj.trace_meta_category_no	= document.frmMain.trCtgrNo;
+            	cartLogObj.cart_draw_info = prdLogObj;
+            } else if (btnNm == "pay11") {
+            	cartLogObj.eleven_pay_draw_info = prdLogObj;
+            } else {
+            	cartLogObj.buynow_draw_info = prdLogObj;
+            }
+
+			return cartLogObj;
+        },
+        
+        isSnsMemberOrderChk : function() {	// sns 회원 체크 로직
+        	var alertStr	= '비회원은 구매가 불가능한 상품입니다.\n11번가 ID/PW로 로그인 후 구매 가능합니다.';
+            if(!prdVar.isSnsMemberBuy) {	// 주문 가능 상품인지 체크
+            	alert(alertStr);
+            	return false;
+            }
+            if($('.ui_mdPickSelWrapper > ul > li').length > 0) {	// MD추천 상품이 여부 체크
+            	alert(alertStr);
+            	return false;
+            }
+            if($('#chkGblDlvYn').is(':checked')) {	// 전세계 배송 체크 여부 확인
+            	alert(alertStr);
+            	return false;
+            }
+            /*if(orderInfo.isLifePlus) {	// 홈&카서비스
+            	alert(alertStr);
+            	return false;
+            }*/
+            if ("Y" == ordVar.isDeliMultiAddr) {	// 복수배송지
+            	alert(alertStr);
+            	return false;
+            }
+            
+            var totalPrc = Number($('.total_pr').find('strong').text().split(',').join('')); //총금액
+            if(totalPrc >= 500000) {
+            	alert('비회원은 50만원 이상 구매가 불가능합니다.');
+            	return false;
+            }
+            
+            return true;
+        },
+
+        setLogInfo : function(prdInfoJson) { //Log2.0 상품정보에 맞게 불필요한 항목 delete
+            var prdJson = prdInfoJson;
+
+            delete prdJson.page_id;
+            delete prdJson.seller_no;
+            delete prdJson.trace_meta_category_no;
+            delete prdJson.product_type;
+            delete prdJson.colloseo_id;
+
+            return prdJson;
+        }
+	};
+
+	return orderInfo;
+}));

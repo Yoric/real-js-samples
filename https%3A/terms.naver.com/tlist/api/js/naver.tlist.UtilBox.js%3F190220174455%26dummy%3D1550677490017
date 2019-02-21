@@ -1,0 +1,191 @@
+/**
+* @(#)naver.tlist.layer.UtilBox.js
+*@since 2014. 7. 30.
+*
+* Copyright NAVER Corp. All rights Reserved.
+* NAVER PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
+*/
+
+/**
+* @author tod2
+* @since 2014. 8. 5.
+* @description
+* 
+* 지식리스트 GNB 영역 내 유틸리티 박스 레이어 및 기능
+* 
+*/
+
+window.naver.tlist = window.naver.tlist || {};
+
+window.naver.tlist.UtilBox = tljindo.$Class({
+	init : function(option, messageOption) {
+		this.option(option);
+		this.option(messageOption);
+		this._initVar(this.option);
+		this._setTemplate();
+		this._setWrapperElement();
+		if (this._htWElement["base"]) {
+			this._makeLayer();		
+			this._setWrapperLayerElement();
+		}
+		this._setAPIUrl();
+		this._attachEvent();
+		this._setServiceCode();
+		this._putCount();
+	},
+	// 인스턴스 변수 초기화
+	_initVar : function(el) {
+		this._htWElement = {};
+		this._htEvent = {};
+		this._htAPIUrl = {};
+		this._oTemplate = {};
+		this._sServiceCode = "";
+	},
+	// 템플릿 매핑
+	_setTemplate : function() {
+	},
+	// 기본 객체 매핑
+	_setWrapperElement : function() {
+		this._htWElement["base"] = tljindo.$Element(this.option("utilBoxId"));
+	},
+	// 생성 완료 UI에 사용되는 Layer 생성
+	_makeLayer : function() {
+	},
+	// 레이어 관련 객체 매핑
+	_setWrapperLayerElement : function() {
+		this._htWElement["hitsoryCnt"] = this._htWElement["base"].query(".__HISTORY_CNT");	// 보고있는 리스트 개수
+		this._htWElement["myCnt"] = this._htWElement["base"].query(".__MY_CNT");	// 내가 만든 리스트 개수
+		this._htWElement["tempCnt"] = this._htWElement["base"].query(".__TEMP_CNT");	// 임시 보관함 내 콘텐츠 개수
+		this._htWElement["likeCnt"] = this._htWElement["base"].query(".__LIKE_CNT");	// 임시 보관함 내 콘텐츠 개수
+		this._htWElement["joinCnt"] = this._htWElement["base"].query(".__JOIN_CNT");	// 임시 보관함 내 콘텐츠 개수
+	},
+	// API Url 설정
+	_setAPIUrl : function() {
+		this._htAPIUrl["domain"] = this.option("domain");
+		this._htAPIUrl["count"] = this.option("apiUrl")["count"];
+	},
+	// 기본 이벤트 binding
+	_attachEvent : function() {
+	},
+	// 기본 이벤트 unbinding
+	_detachEvent : function() {
+		for (p in this._htEvent) {
+			var ht = this._htEvent[p];
+			ht.fn.detach(ht.el, p.substring(p.lastIndexOf("_")));
+		}
+	},
+	// 지식리스트 객체 제거. 중복 init 시 기존의 객체를 제거할 때 등 사용 
+	_destory : function() {
+		if (this._htWElement["base"]) {
+			this._detachEvent();
+			this._htWElement = this._htEvent = this._oTemplate = this._sServiceCode = null;
+		}
+	},
+	// 서비스 코드 세팅
+	_setServiceCode : function(oEvent) {
+		if (this._htWElement["base"]) {
+			this._sServiceCode = this._htWElement["base"].data("servicecode");
+		} else {
+			this._sServiceCode = "TERMS";
+		}
+	},
+	// 보고있는/내가만든 리스트 개수 기록
+	_fillCount : function(nHistoryCnt, nMyCnt, nTempCnt, nLikeCnt, nJoinCnt) {
+		if (this._htWElement["hitsoryCnt"]) {
+			this._htWElement["hitsoryCnt"].text(nHistoryCnt);
+		}
+		
+		if (this._htWElement["myCnt"]) {
+			this._htWElement["myCnt"].text(nMyCnt);
+		}
+		
+		if (this._htWElement["tempCnt"]) {
+			this._htWElement["tempCnt"].text(nTempCnt);
+		}
+		
+		if (this._htWElement["likeCnt"]) {
+			this._htWElement["likeCnt"].text(nLikeCnt);
+		}
+		
+		if (this._htWElement["joinCnt"]) {
+			this._htWElement["joinCnt"].text(nJoinCnt);
+		}
+	},
+	_hasFillTarget: function() {
+        return !!this._htWElement["hitsoryCnt"] || !!this._htWElement["myCnt"] || !!this._htWElement["tempCnt"] ||
+			!!this._htWElement["likeCnt"] || !!this._htWElement["joinCnt"];
+
+	},
+	// 보고있는/내가만든 리스트 영역 제거
+	_removeCountArea : function(nHistoryCnt, nMyCnt, nTempCnt, nLikeCnt, nJoinCnt) {
+		if (this._htWElement["hitsoryCnt"]) {
+			this._htWElement["hitsoryCnt"].leave();
+		}
+		
+		if (this._htWElement["myCnt"]) {
+			this._htWElement["myCnt"].leave();
+		}
+		
+		if (this._htWElement["tempCnt"]) {
+			this._htWElement["tempCnt"].leave();
+		}
+		
+		if (this._htWElement["likeCnt"]) {
+			this._htWElement["likeCnt"].leave();
+		}
+		
+		if (this._htWElement["joinCnt"]) {
+			this._htWElement["joinCnt"].leave();
+		}
+	},
+	// 보고있는/내가만든 리스트 개수 획득
+	_putCount : function() {
+		htParam = {};
+		
+		var url = this._htAPIUrl["domain"] + this._htAPIUrl["count"] + "&serviceCode=" + this._sServiceCode;
+		var fnFillCount = tljindo.$Fn(this._fillCount, this).bind();
+		var fnRemoveCountArea = tljindo.$Fn(this._removeCountArea, this).bind();
+
+		if (this._hasFillTarget()) {
+            window.naver.tlist.ajaxRequest(url, {
+                sReqType: "jsonp",
+                method: "get",
+                fnSuccess: function (oRes) {
+                    var htData = oRes.json().message.result;
+                    // 상태 체크
+                    var sStatus = htData.status.code;
+
+                    var nHistory = htData.history;
+                    var nMy = htData.my;
+                    var nTemp = htData.temp;
+                    var nLike = htData.like;
+                    var nJoin = htData.join;
+
+                    if (window.naver.tlist.isLoginError(sStatus)) {
+                        fnRemoveCountArea();
+                    } else {
+                        window.naver.tlist.isLogin = true;
+                    }
+
+                    if (window.naver.tlist.isAPIError(sStatus)) {
+                        //alert("오류가 발생했습니다. 다시 시도해 주세요");
+                        return false;
+                    }
+
+                    fnFillCount(nHistory, nMy, nTemp, nLike, nJoin);
+                },
+                fnError: function (oRes) {
+                },
+                fnTimeout: function (oRes) {
+                }
+            }, htParam);
+        }
+        if (entryData.isLogin) {
+            window.naver.tlist.isLogin = true;
+        }
+	},
+	// Util Box 영역 내 Count 수 업데이트
+	update : function() {
+		this._putCount();
+	}
+}).extend(tljindo.UIComponent || tljindo.m.UIComponent);
