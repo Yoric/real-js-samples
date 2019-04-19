@@ -1,0 +1,1 @@
+(function(){0===window.location.pathname.indexOf("/settings/")?window.history.replaceState({},"",window.location.pathname.replace("/settings/","/psettings/")):"/settings"===window.location.pathname.toString()&&window.history.replaceState({},"",window.location.pathname.replace("/settings","/psettings/"))})();

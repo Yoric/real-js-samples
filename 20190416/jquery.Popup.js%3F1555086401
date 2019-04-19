@@ -1,0 +1,378 @@
+/**
+ * @require 'lib/basic.js'
+ * @require 'tools/tools.Callbacks.js'
+ * @require 'tools/jquery/jquery.compElems.js'
+ * @require 'tools/jquery/jquery.compTools.js'
+ */
+(function ($, window, oNS) {
+	var fGetNs = window.getNameSpace;
+	var oBasic = fGetNs('Basic', oNS);
+	var typeOf = oBasic.typeOf;
+	var oJqComp = oNS.Comp.jQuery;
+	var oJqElems = oJqComp.Elems;
+
+	var Popup = oBasic.getConstructor((function () {
+		var oModuleOpts = oBasic.moduleOpts;
+		var oJqTools = oJqComp.Tools;
+		var fGetElements = oJqTools.getElements;
+		var fInitCallbacks = oNS.Comp.Methods.initCallbacks;
+		var jWindow = oJqElems.jWindow;
+		//XXX: ololo, это здесь до переезда на инфраструктуру модулей
+		var sPpElemsProp = '_popupElems';
+		var sInstanceProp = '_popupObj';
+		var sModuleName = 'Popup';
+		/**
+		 * Набор опций инициализации по-умолчанию
+		 * @memberof Popup#
+		 * @type {object}
+		 */
+		var oDefOpts = {
+			cssSels: {
+				Main: {
+					blocksCont: '.js-popup_blocks',
+					bannerCont: '.js-pbanner_cntr',
+					bannerPrnt: '.js-pbanner',
+					setSzs: '.js-box_cont',
+					Loader: '.js-popup_loader'
+				},
+				Close: '.js-popup_close',
+				Popup: '.js-popup'
+			},
+			showBanner: false,
+			Banner: {
+				slotUrl: null,
+				Width: 240,
+				Height: 400,
+				hitTmOut: 5e3
+			},
+			cssClss: {
+				ppShwn: 'html-g-pbox',
+				ppMdfr: null
+			},
+			beforeShow: null,
+			onShow: null,
+			onHide: null
+		};
+		var oCrntPopup = null, oBnnrCtrl;
+
+		/**
+		 *  Добавление обработчиков событий
+		 */
+		var fAttachHandlers = function () {
+			var oSels = this._Opts.cssSels;
+			var oElems = this._Elems;
+			var sCloseSel = oSels.Close;
+			var sBlockContSel = oSels.Main.blocksCont;
+
+			// клик по popup
+			oElems.jPopup.delegate(sCloseSel, 'click', function (e) {
+				var jTarget = $(e.target);
+				var jCurTarget = $(e.currentTarget);
+				//Проверяем что событие не всплыло до оборачивающего элемента из блока
+				if (jTarget.parents(sBlockContSel).length && !jCurTarget.parents(sBlockContSel).length) {
+					return;
+				}
+				e.preventDefault();
+				fTogglePp.call(oCrntPopup, false);
+			});
+
+			// следим за ресайзом окна браузера
+			oJqTools.winHndlrs.attach(function (oScroll, oWin, sType) {
+				var jSetSizes = oElems.jSetSzs;
+				if (sType == 'resize' && jSetSizes && jSetSizes.length) {
+					jSetSizes.height(Math.max(oElems.jBlock.height(), oWin.height));
+				}
+			});
+		};
+		var fGetPopupElems = function () {
+			var oElems = this._Elems;
+			var jPopup = oElems.jPopup;
+			var oSels = this._Opts.cssSels;
+			var oPopupElems = jPopup.data(sPpElemsProp);
+			if (!typeOf(oPopupElems, 'object')) {
+				oPopupElems = fGetElements(oSels.Main, jPopup);
+				jPopup.data(sPpElemsProp, oPopupElems);
+				fAttachHandlers.call(this);
+			}
+			$.extend(oElems, oPopupElems);
+		};
+		var fGetBnnrId = function () {
+			var oBnnrOpts = this._Opts.Banner;
+			var bnnrId = this._bnnrId;
+			var sBnnrUrl;
+			if (bnnrId === null) {
+				if (oBnnrOpts && (sBnnrUrl = oBnnrOpts.slotUrl) && oBnnrCtrl) {
+					this._bnnrId = bnnrId = oBnnrCtrl.add(sBnnrUrl, true);
+				}
+			}
+			return bnnrId;
+		};
+		var fShowBanner = function (oBnnrSzs, bnnrId) {
+			var sBnnrCntnts = oBnnrCtrl.reload(bnnrId);
+			var jNewBanner = $('<iframe src="about:blank">').hide().attr('scrolling', 'no');
+			if (oBnnrSzs) {
+				jNewBanner.css(oBnnrSzs);
+			}
+			this._Elems.jBannerPrnt.html(jNewBanner);
+			jNewBanner.show().contents().get(0).write(sBnnrCntnts);
+		};
+		/**
+		 * В случае, если установлено минимальное время между сменой баннеров проверяет истекло ли оно
+		 * @param {mixed} iHitTimeout минимальное время в миллисекундах или NaN
+		 * @returns {boolean} время истекло, либо не установлено
+		 */
+		var fCheckHitTimeout = (function () {
+			var sBannerHitTimer = 'bannerHit';
+			var fCleartimer = function () {
+				this[sBannerHitTimer] = null;
+			};
+			return function (iHitTimeout) {
+				var oTimers = this._Timers;
+				if (!isNaN(iHitTimeout)) {
+					if (oTimers[sBannerHitTimer]) {
+						return false;
+					} else {
+						oTimers[sBannerHitTimer] = setTimeout(fCleartimer.bind(oTimers), iHitTimeout);
+						return true;
+					}
+				} else {
+					return true;
+				}
+			};
+		})();
+		var fTryToShowBanner = function () {
+			var oOpts = this._Opts;
+			var oElems = this._Elems;
+			var oBnnrOpts = oOpts.Banner;
+			var iHitTimeout = oBnnrOpts.hitTmOut;
+			var oBnnrSzs, bnnrId;
+			if (fCheckHitTimeout.call(this, iHitTimeout) === false) {
+				return this._bannerShown;
+			}
+			oElems.jBannerPrnt.empty();
+			oBnnrSzs = {
+				width: oBnnrOpts.Width,
+				height: oBnnrOpts.Height
+			};
+			var bShowBanner = (
+				(jWindow.width() - oElems.jBlock.width() - (oBnnrSzs.width || 0) > 120) && //баннер умещается в окне
+				(bnnrId = fGetBnnrId.call(this)) != null && //есть соотв. баннер в контролере
+				oBnnrCtrl.check(bnnrId) //есть содержимое
+			);
+			if (bShowBanner) {
+				fShowBanner.call(this, oBnnrSzs, bnnrId);
+			}
+			return (this._bannerShown = bShowBanner);
+		};
+		function togglePreload(bShow) {
+			var oElems = this._Elems;
+			var jBlocksCont = oElems.jBlocksCont;
+			this._preload = bShow;
+			oElems.jLoader.toggle(bShow);
+			jBlocksCont.toggle(!bShow);
+			if (bShow) {
+				jBlocksCont.children().hide();
+			} else {
+				oElems.jBlock.show();
+			}
+		}
+		var hOnPrepare = function (oCurOpts) {
+			var oElems = this._Elems;
+			var jBlock = oElems.jBlock;
+			var jSetSizes = oElems.jSetSzs;
+			var bShowBanner = oCurOpts && typeOf((bShowBanner = oCurOpts.showBanner), 'boolean') ? bShowBanner : this._Opts.showBanner === true;
+			var fOnCurShow = oCurOpts && oCurOpts.onShow;
+			togglePreload.call(this, false);
+			if (jSetSizes && jSetSizes.length) {
+				jSetSizes.height(Math.max(jBlock.height(), jWindow.height()));
+			}
+			if (bShowBanner) {
+				this.showBanner();
+			}
+			if (typeOf(fOnCurShow, 'function')) {
+				fOnCurShow.call(this);
+			}
+			this._fire('show');
+		};
+		var hPrepareFail = function (oCurOpts) {
+			fTogglePp.call(this, false, oCurOpts);
+		};
+		var fAddShowPrevent = (function () {
+			var fPreventShow = function (oDfrrd) {
+				if (oDfrrd && oDfrrd.reject) {
+					oDfrrd.reject();
+				}
+			};
+			return function (oDfrrd) {
+				this._preventShow = fPreventShow.bind(null, oDfrrd);
+			};
+		})();
+		/**
+		 * @param {boolean} [bToggle] Флаг "показывать / не показывать" popup
+		 * @param {object} [oCurOpts] опции для текущего действия
+		 * @param {function} [oCurOpts.beforeShow] выполняется до отображения попапа, может отложить его вернув promise
+		 * @param {function} [oCurOpts.onHide] обработчик следующего скрытия попапа
+		 * @param {boolean} [oCurOpts.preventClose] запрет на закрытие попапа
+		 */
+		var fTogglePp = function (bToggle, oCurOpts) {
+			var oElems = this._Elems;
+			var jPopup = oElems.jPopup;
+			var jSetSizes = oElems.jSetSzs;
+			var oOpts = this._Opts;
+			var sCurMdfr = oOpts.cssClss.ppMdfr;
+			var fBeforeShow, fCurBefore, bPreventClose, oOnPrepare, fOnCurHide;
+			//oCurOpts = oCurOpts || {};
+			bToggle = typeOf(bToggle, 'boolean') ? bToggle : !jPopup.is(':visible');
+			if (bToggle === this._visible || (!bToggle && this._preventClose)) {
+				return;
+			} else {
+				this._visible = bToggle;
+			}
+			if (sCurMdfr) {
+				jPopup.toggleClass(sCurMdfr, bToggle);
+			}
+			if (bToggle && !(oCrntPopup === null || oCrntPopup === this)) {
+				oCrntPopup.Hide();
+			}
+			jPopup.toggle(bToggle);
+			if (bToggle) {
+				fBeforeShow = oOpts.beforeShow;
+				if (oCurOpts) {
+					fCurBefore = oCurOpts.beforeShow;
+					bPreventClose = oCurOpts.preventClose;
+					fOnCurHide = oCurOpts.onHide;
+				}
+				if (typeOf(fOnCurHide, 'function')) {
+					this.once('hide', fOnCurHide);
+				}
+				this._preventClose = bPreventClose = typeOf(bPreventClose, 'boolean') ? bPreventClose : oOpts.preventClose === true;
+				oElems.jBlock.find(oOpts.cssSels.Close).css('display', bPreventClose ? 'none' : '');
+				togglePreload.call(this, true);
+				oCrntPopup = this;
+				oOnPrepare = $.when(
+					(typeOf(fBeforeShow, 'function') ? fBeforeShow.call(this) : true),
+					(typeOf(fCurBefore, 'function') ? fCurBefore.call(this) : true)
+				).done(hOnPrepare.bind(this, oCurOpts)).fail(hPrepareFail.bind(this, oCurOpts));
+				fAddShowPrevent.call(this, oOnPrepare);
+			} else {
+				this._preventShow();
+				if (jSetSizes && jSetSizes.length) {
+					jSetSizes.height('');
+				}
+				//oElems.jBannerPrnt.empty();
+				oCrntPopup = null;
+				this._fire('hide');
+			}
+			$('html').toggleClass(oOpts.cssClss.ppShwn, bToggle);
+		};
+		oJqElems.jDoc.on('keydown', function (e) {
+			if (e.keyCode == 27 && oCrntPopup !== null) {
+				oCrntPopup.Hide();
+			}
+		});
+		/** @lends Popup.prototype */
+		return {
+			/**
+			* Создает объект попапа для блока
+			* @constructor
+			* @param {jQuery} jBlock блок, для которого инициализируется попап
+			* @param {object} oOptions набор опций инициализации
+			* @see {Popup#oDefOpts}
+			*/
+			_Init: function (jBlock, oOptions) {
+				var oOpts, jPopup, oSels, oInstance;
+				if ((oInstance = jBlock.data(sInstanceProp)) instanceof Popup) {
+					return oInstance;
+				}
+				this._Opts = oOpts = $.extend(true, {}, oDefOpts, oModuleOpts.get(sModuleName), oOptions);
+				oSels = oOpts.cssSels;
+				jPopup = jBlock.parents(oSels.Popup);
+				if (!jPopup.length || jBlock.parents(oSels.Main.blocksCont).length) {
+					jPopup = $(oSels.Popup).eq(0);
+					if (jPopup.length) {
+						jPopup.find(oSels.Main.blocksCont).append(jBlock);
+					} else {
+						return {}; //TODO уметь создавать обертку из шаблона? (MV + parentElement)
+					}
+					//throw new Error('No popup for this block (' + oOpts.cssSels.Popup + ')');
+				}
+				jBlock.data(sInstanceProp, this);
+				this._Elems = {
+					jPopup: jPopup,
+					jBlock: jBlock,
+					jSetSzs: jBlock.find(oOpts.cssSels.Main.setSzs)
+				};
+				this._bnnrId = null;
+				this._bannerShown = false;
+				this._Timers = {};
+				if (oOpts.showBanner && !oBnnrCtrl) {
+					oBnnrCtrl = oNS.Instances.bnnrCtrl;
+				}
+				fGetPopupElems.call(this);
+				fInitCallbacks.call(this, {Types: {
+					'show': oOpts.onShow,
+					'hide': oOpts.onHide
+				}});
+			},
+			Show: function (oCurOpts) {
+				fTogglePp.call(this, true, oCurOpts);
+			},
+			Hide: function (oCurOpts) {
+				fTogglePp.call(this, false, oCurOpts);
+			},
+			Toggle: function () {
+				fTogglePp.apply(this, arguments);
+			},
+			togglePreload: function (bShow) {
+				if (!typeOf(bShow, 'boolean')) {
+					bShow = !this._preload;
+				}
+				togglePreload.call(this, bShow);
+			},
+			showBanner: function () {
+				var jBannerCont = this._Elems.jBannerCont;
+				if (jBannerCont && jBannerCont.length) {
+					jBannerCont.toggle(fTryToShowBanner.call(this));
+				}
+			},
+			hideBanner: function () {
+				var jBannerCont = this._Elems.jBannerCont;
+				if (jBannerCont && jBannerCont.length) {
+					jBannerCont.hide();
+				}
+			}
+		};
+	})());
+	
+	$.fn.Popup = function (oOpts, sActn, oActnOpts) {
+		var oPopup = Popup(this, oOpts);
+		if (typeOf(sActn, 'string') && typeOf(oPopup[sActn], 'function')) {
+			oPopup[sActn](oActnOpts);
+		}
+		return this;
+	};
+	
+	$(function () {
+		oJqElems.jBody.on('click', '.js-shw_pp_block', function (e) {
+			var jLink = $(this);
+			/*
+			 * Строка вида "{id блока}, [имя data-свойства элемента с опциями для отображения], [имя data-свойства элемента с опциями для инициализации]"
+			 */
+			var sPrms = jLink.attr('data-prms');
+			var aPrms, jBlock, mCurOpts, mInitOpts;
+			if (sPrms) {
+				aPrms = sPrms.split(/,\s?/);
+				if (aPrms[0] && (jBlock = $('#' + aPrms[0])).length) {
+					if (aPrms[1]) {
+						mCurOpts = jBlock.data(aPrms[1]);
+					}
+					if (aPrms[2]) {
+						mInitOpts = jBlock.data(aPrms[2]);
+					}
+					jBlock.Popup(mInitOpts, 'Show', mCurOpts);
+				}
+				e.preventDefault();
+			}
+		});
+	});
+})(this.jQuery, this, this.ru.mail.cpf);

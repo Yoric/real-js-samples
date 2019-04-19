@@ -1,0 +1,42 @@
+this.__PortalRegions = {
+		effRegion: {
+			levels: 2,
+
+			currentLevel: 1,
+
+			level1: 47,
+			level2: null,
+			level3: null,
+			level1Name: "Париж",
+			level2Name: "",
+			level3Name: "",
+
+			id: 47,
+			parentId: null,
+			grandId: null,
+
+			name: "Париж",
+			parentName: "null",
+			grandName: "null"	
+		},
+		ipRegion: {
+			levels: 2,
+
+			currentLevel: 1,
+
+			level1: 47,
+			level2: null,
+			level3: null,
+			level1Name: "Париж",
+			level2Name: "",
+			level3Name: "",
+
+			id: 47,
+			parentId: null,
+			grandId: null,
+
+			name: "Париж",
+			parentName: "null",
+			grandName: ""	
+		}
+	};

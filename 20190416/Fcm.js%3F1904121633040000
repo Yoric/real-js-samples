@@ -1,0 +1,177 @@
+const FCM_TYPE = 19;
+
+class Fcm extends PushService {
+
+    constructor() {
+        super(FCM_TYPE);
+
+        this.permissionGranted = false;
+
+        if (!window.firebase) {
+            throw new Error('firebase not found');
+        }
+
+        if (!FcmOnMessageHandler) {
+            throw new Error('FcmOnMessageHandler not found');
+        }
+
+        firebase.initializeApp({
+            messagingSenderId: '635839491665'
+        });
+
+        this.messaging = firebase.messaging();
+    }
+
+    initWorker() {
+        return new Promise((resolve, reject) => {
+            navigator.serviceWorker.register('/firebase-messaging-sw.js').then(registration => {
+                this.messaging.useServiceWorker(registration);
+                new FcmOnMessageHandler(this.messaging);
+                this.messaging.getToken().then(() => { //getSubscription правильно отрабатывает только если сначала запросить токен
+                    registration.pushManager.getSubscription().then(subscription => {
+                        this.permissionGranted = !!subscription;
+                        resolve();
+                    }).catch(e => {
+                        reject(e);
+                    })
+                }).catch(e => {
+                    reject(e);
+                })
+            });
+        });
+    }
+
+    checkSubscription() {
+        return new Promise((resolve, reject) => {
+            this.initWorker().then(res => {
+                this.messaging.getToken().then(token => {
+                    if (token) {
+                        console.log('fcm token found: ' + token);
+                        this.checkSavedSubscription(token).then(exists => {
+                            if (exists) {
+                                resolve(true);
+                            } else {
+                                this.fixMissingServerSubscriptionRecord(token).then(res => {
+                                    resolve(true);
+                                }, e => {
+                                    reject(e);
+                                })
+                            }
+                        }).catch(e => {
+                            console.error('Saved subscription check failed!');
+                            reject(e);
+                        });
+                    } else {
+                        if (this.permissionGranted) {
+                            console.log('GRANTED!');
+                            this.subscribe().then(res => {
+                                resolve(true);
+                            }).catch( e => {
+                                reject(e);
+                            });
+                        } else {
+                            resolve(false);
+                        }
+                    }
+                }).catch(e => {
+                    console.error(e.message);
+                    if (e.code && e.code === "messaging/notifications-blocked") {
+                        reject('denied');
+                    } else {
+                        reject(e);
+                    }
+                });
+            }).catch(e => {
+                reject(e);
+            })
+        });
+    }
+
+    //по невыясненным причинам некоторые токены могут не сохраниться на сервере. Эта функция дозаписывает токен
+    fixMissingServerSubscriptionRecord(token) {
+        console.warn('fcm token missing on server, fixing...');
+        return new Promise((resolve, reject) => {
+            this.sendTokenToServer(token).then(res => {
+                console.warn('token fixed: ' + token);
+                resolve(true);
+            }).catch(e => {
+                console.error('fcm token fix failed!');
+                reject(e);
+            })
+        });
+    }
+
+    getToken() { //todo использовать этот метод для проверки токена после наполнения базы переподписавшимися
+        return new Promise((resolve, reject) => {
+            this.messaging.getToken().then(token => {
+                if (!token) {
+                    resolve();
+                } else {
+                    const lastToken = localStorage.getItem('last_fcm_token');
+                    if (lastToken) {
+                        if (lastToken !== token) {
+                            this.fixMissingServerSubscriptionRecord(token).then(() => {
+                                resolve(token);
+                            }).catch(e => {
+                                reject(e);
+                            })
+                        } else {
+                            resolve(lastToken);
+                        }
+                    } else {
+                        resolve();
+                    }
+                }
+            }).catch(e => {
+                reject(e);
+            })
+        });
+    }
+
+    sendTokenToServer(token) {
+        return new Promise((resolve, reject) => {
+            super.sendTokenToServer(token).then(result => {
+                localStorage.setItem('last_fcm_token', token);
+                resolve(result);
+            }).catch(e => {
+                reject(e);
+            })
+        });
+    }
+
+    subscribe() {
+        return new Promise((resolve, reject) => {
+            this.messaging.requestPermission().then(() => {
+                this.messaging.getToken().then(token => {
+                    this.sendTokenToServer(token).then(res => {
+                        console.log('SUBSCRIBED: ' + token);
+                        resolve(true);
+                    }).catch(e => {
+                        reject(e);
+                    })
+                }).catch(e => {
+                    reject(e);
+                })
+            }).catch(() => {
+                resolve(false);
+            });
+        });
+    }
+
+    unsubscribe() {
+        return new Promise((resolve, reject) => {
+            this.messaging.getToken().then(token => {
+                this.messaging.deleteToken(token).then(() => {
+                    localStorage.removeItem('last_fcm_token');
+                    this.deleteTokenFromServer(token).then(res => {
+                        resolve(true);
+                    }).catch(e => {
+                        reject(e);
+                    })
+                }).catch(e => {
+                    reject(e);
+                })
+            })
+        });
+    }
+}

@@ -1,0 +1,233 @@
+'live.banner'.sReg(function() {
+    String.prototype.toHttps || (String.prototype.toHttps = function(){return this.replace(/^http:\/\//,'//')});
+    return function() {
+        SFF.jsLoader(SFF.urls.jq, function() {
+            var $ = jQuery;
+            var PROTOCOL = location.protocol;
+            var BASE_URI = 'http://live.finance.sina.com.cn';
+            var PATH_TEACHER_LIVE = BASE_URI + '/bozhu';
+            var BASE_API = PROTOCOL + '//app.finance.sina.com.cn/course/index.php';
+            /**
+             * 工具函数
+             * @type {{template: u.template}}
+             */
+            var u = {
+                /**
+                 * 模板替换,只支持一维，二三维数据需要在formatter中自行处理成一维
+                 * @param tmpl {String} 需要替换的属性名前后用@@包裹，例如@@name@@
+                 * @param data {Object|Array} 数据对象
+                 * @param formatter [{Function}] 可选。处理器函数。类似于filter
+                 * @return {String} 拼接好的字符串
+                 */
+                template: function(tmpl, data, formatter) {
+                    var dataType = Object.prototype.toString.call(data);
+                    var _html;
+                    var i;
+
+                    if (dataType === '[object Array]') {
+                        _html = [];
+                        for (i = 0; i < data.length; i++) {
+                            _html.push(
+                                _replace(data[i], i)
+                            );
+                        }
+                        _html = _html.join('');
+                    } else if (dataType === '[object Object]') {
+                        _html = _replace(data, 0);
+                    }
+
+                    return _html;
+
+                    function _replace(oData, index) {
+                        var formatted = formatter ? formatter(oData, index) : oData;
+
+                        return tmpl.replace(/@@(\w+)@@/g, function(m, p1) {
+                            var val = formatted[p1];
+                            return typeof val === 'undefined' ? m : val.toHttps();
+                        });
+                    }
+                },
+                forEach: function(arr, handler) {
+                    for (var i = 0; i < arr.length; i++) {
+                        handler(arr[i], i, arr);
+                    }
+                },
+                isType: function(type, instance) {
+                    return Object.prototype.toString.call(instance) === '[object ' + type + ']';
+                },
+                jsonp: function(cfg) {
+                    var jsonpCallback = cfg.jsonpCallback || ('jsonp_' + Date.now() + Math.round(Math.random() * 1000));
+                    $.ajax(cfg.url, {
+                        dataType: 'jsonp',
+                        scriptCharset: 'utf-8',
+                        jsonpCallback: jsonpCallback,
+                        xhrFields: {
+                            withCredentials: true
+                        },
+                        data: cfg.data,
+                        success: function(d) {
+                            var r = d.result;
+                            var s = r.status;
+                            if (s.code === 0) {
+                                cfg.success(r);
+                            } else {
+                                console.log(cfg.name + ' ' + s.msg);
+                            }
+                        },
+                        error: function(jqXHR, textStatus, errorThrown) {
+                            console.log('【' + cfg.name + '】获取失败！' + errorThrown);
+                            cfg.error && cfg.error();
+                        }
+                    });
+                }
+            };
+            /**
+             * 数据格式化
+             * @type {{program: f.program}}
+             */
+            var f = {
+                /**
+                 * 秒数格式化 YYYY-MM-DD HH:MM:SS
+                 * 当天的年月日格式化为“今天”
+                 * @param sec {Number|String}
+                 * @return {String}
+                 */
+                second2Locale: function(sec) {
+                    if (isNaN(sec)) {
+                        return '';
+                    }
+                    var locale = 'zh-Hans-CN',
+                        opt = {
+                            hour12: false,
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        };
+                    var today = new Date().toLocaleString(locale, opt)
+                        .replace(/\/|年|月/g, '-')
+                        .replace(/日/g, '')
+                        .split(' ')[0];
+                    return new Date(sec * 1000)
+                        .toLocaleString(locale, opt)
+                        .replace(/\/|年|月/g, '-')
+                        .replace(/日/g, '')
+                        .replace(today, '今天');
+                },
+                program: function(o) {
+                    //直播状态
+                    o.status = o.extraInfo.live_status.toString();
+                    switch (o.status) {
+                        case '1':
+                            o.status_text = '即将开始';
+                            break;
+                        case '2':
+                            o.status_text = '直播中';
+                            break;
+                        default:
+                            o.status_text = '回顾';
+                    }
+                    //节目类型
+                    o.type = o.program_type.toString();
+                    switch (o.type) {
+                        case '1':
+                            o.type_text = '直播';
+                            break;
+                        case '2':
+                            o.type_text = '图文';
+                            break;
+                        default:
+                            o.type_text = '其他';
+                    }
+                    switch (o.pay_type) {
+                        case '2':
+                            o.pay_type_text = '付费';
+                            break;
+                        default:
+                            o.pay_type_text = '免费';
+                    }
+                    //开始时间
+                    o.start_time = this.second2Locale(o.stime);
+                    o.teacher_url = PATH_TEACHER_LIVE + '/' + o.uid;
+                    o.program_url = o.teacher_url + '/' + o.id;
+                    //o.share_qr = u.getQrImg(o.share_url);
+                    return o;
+                }
+            };
+            /**
+             * 请求数据
+             * @type {{feature: request.feature}}
+             */
+            var request = {
+                feature: function(cfg) {
+                    window.liveBanner = function(d) {
+                        if (d.result.status.code === 0) {
+                            cfg.success(d.result.data)
+                        }
+                    };
+                    $.getScript('//finance.sina.com.cn/live/js/doc_recommend.js');
+                }
+            };
+            /**
+             * 渲染轮播
+             * @param arr
+             */
+            var banner = function(arr) {
+                var sliderWrapId = 'live_hero_slider';
+                var sliderWrap = document.getElementById(sliderWrapId);
+                var sliderDotId = 'live_hero_slider_dot';
+                var cardTmpl = sliderWrap.innerHTML.replace(/data-src/g, 'src');
+                var buffer = [];
+                if (!arr.length) {
+                    sliderWrap.parentNode.style.display = 'none';
+                } else if (arr.length > 1) {
+                    u.forEach(arr, function(item, i) {
+                        f.program(item);
+                        buffer.push(u.template(cardTmpl, item));
+                    });
+                    sliderWrap.innerHTML = buffer.join('');
+                    SFF.jsLoader(SFF.urls.slider,function(){
+                        SFF.common.slider({
+                            id: sliderWrapId,
+                            itemClass: 'slider-card',
+                            autoPlay: true,
+                            isVertical: true,
+                            dotId: sliderDotId
+                        })
+                    })
+                } else {
+                    sliderWrap.innerHTML = u.template(cardTmpl, item);
+                }
+            };
+            /**
+             * 渲染轮播右侧
+             * @param arr
+             */
+            var bannerRight = function(arr) {
+                var WRAP = $('#live_hero_items');
+                var itemTmpl = WRAP.html();
+                var buffer = [];
+                if (!arr.length) {
+                    WRAP.hide();
+                } else {
+                    u.forEach(arr, function(item, i) {
+                        f.program(item);
+                        item.live_status = item.extraInfo.live_status;
+                        item.teacher_name = item.teacher.name;
+                        buffer.push(u.template(itemTmpl, item));
+                    });
+                    WRAP.html(buffer.join(''));
+                }
+
+            };
+            request.feature({
+                success: function(data) {
+                    banner(data.banner);
+                    bannerRight(data.banner_right);
+                    document.getElementById('live_finance_banner').style.display = 'block';
+                }
+            });
+        })
+    }
+})

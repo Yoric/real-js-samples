@@ -1,0 +1,3 @@
+if (self.CavalryLogger) { CavalryLogger.start_js(["E2Gxq"]); }
+
+__d("ExclamationStarsActions.react",["ExclamationStarsDispatcher.react"],(function(a,b,c,d,e,f){"use strict";a={exclamationStarsDetected:function(a){b("ExclamationStarsDispatcher.react").dispatch({actionType:"EXCLAMATION_STARS_DETECTED",spendingUnits:a})},exclamationStarsUndetected:function(){b("ExclamationStarsDispatcher.react").dispatch({actionType:"EXCLAMATION_STARS_UNDETECTED"})},loadExclamationStarsMetadata:function(a,c){b("ExclamationStarsDispatcher.react").dispatch({actionType:"LOAD_EXCLAMATION_STARS_METADATA",starsMetadata:a,minimumTip:c})},handleTransactionError:function(){b("ExclamationStarsDispatcher.react").dispatch({actionType:"HANDLE_TRANSACTION_ERROR"})}};e.exports=a}),null);

@@ -1,0 +1,1 @@
+define(["modules/sharer"],function(n){"use strict";function e(){new n,window.sharer.bindEventsSticky()}return e});

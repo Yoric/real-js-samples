@@ -1,0 +1,144 @@
+// import from '../lib/polyfills/raf'
+// import {extend, debounce, getView} from '../lib/basic'
+// import {multi} from '../tools/tools.funcTools'
+
+;(function (window, $, cpf) {
+	'use strict';
+
+	var getView = cpf.Basic.Constructors.getView;
+	var MODULE_NAME = 'SpringsItem';
+
+	/**
+	 * TODO: заполнить описание опций
+	 * @property {boolean} lazy - флаг, что элемент "ленивый"
+	 * @property {boolean} required - флаг, что элемент нужно выводить всегда
+	 */
+	var defaultOptions = {
+		cssClss: {
+			active: 'springs__item_active'
+		},
+		lazy: false,
+		required: false,
+		position: 0
+	};
+
+	var ITEM_STATE = {
+		STATIC: 1,
+		FIXED: 2,
+		ABSOLUTE: 3
+	};
+
+	/**
+	 * Вьюшка отдельного элемента в группе
+	 */
+	var SpringsItem = getView((function () {
+		function fixedEl (el, coords) {
+			var css = {
+				position: 'fixed',
+				top: coords.top
+			};
+			return el.css(css);
+		}
+
+		function staticEl (el) {
+			var css = {
+				position: 'static'
+			};
+			return el.css(css);
+		}
+
+		function absoluteEl (el, coords) {
+			var css = {
+				position: 'absolute',
+				top: coords.top
+			};
+			return el.css(css);
+		}
+
+		function wasChanged (prevState, nextState) {
+			if (!prevState) {
+				return true;
+			}
+			return (
+				prevState.position !== nextState.position ||
+				prevState.coords.top !== nextState.coords.top
+			);
+		}
+
+		return {
+			_Events: ['toggle'],
+			_Init: function () {
+				this.resetState();
+			},
+
+			getRect: function () {
+				return this._elems.parent.get(0).getBoundingClientRect();
+			},
+
+			resetState: function () {
+				this._state = {
+					position: ITEM_STATE.STATIC,
+					rect: this.getRect(),
+					active: null,
+					coords: {
+						top: 0
+					}
+				};
+				return this;
+			},
+
+			heightHadBeenChanged: function () {
+				var height = this.getRect().height;
+
+				if (height !== this._state.rect.height) {
+					this._state.rect = this.getRect();
+					return true;
+				} else {
+					return false;
+				}
+			},
+
+			toggle: function (flag) {
+				flag = !!flag;
+				if (this._state.active !== flag) {
+					this._state.active = flag;
+					this._elems.parent.toggleClass(this._Opts.cssClss.active, flag);
+					this._trigger('toggle', flag);
+				}
+				return this;
+			},
+
+			destroy: function () {
+				return this;
+			},
+
+			setState: function (state) {
+				if (!wasChanged(this._state, state)) {
+					return;
+				}
+
+				switch (state.position) {
+					case ITEM_STATE.STATIC:
+						staticEl(this._elems.parent);
+					break;
+
+					case ITEM_STATE.FIXED:
+						fixedEl(this._elems.parent, state.coords);
+					break;
+
+					case ITEM_STATE.ABSOLUTE:
+						absoluteEl(this._elems.parent, state.coords);
+					break;
+
+					default:
+					break;
+				}
+				this._state = state;
+				this._state.rect = this.getRect();
+				return this;
+			}
+		};
+	}()), defaultOptions, null, MODULE_NAME);
+
+	window.getNameSpace('Modules', cpf)[MODULE_NAME] = SpringsItem;
+}(this, this.jQuery || this.$, this.ru.mail.cpf));

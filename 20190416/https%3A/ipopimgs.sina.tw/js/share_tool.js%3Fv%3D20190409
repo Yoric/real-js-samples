@@ -1,0 +1,82 @@
+var shareInfo = {
+	title:$('meta[name="title"]').attr('content'),//分享标题
+	desc:$('meta[name="description"]').attr('content'),//分享正文
+	url:$('meta[property="og:url"]').attr('content'),//分享URL
+	imgurl:$('meta[property="og:image"]').attr('content')//分享圖片
+}
+
+var shareimages = $("#share_images").val().split(",");
+var tmp_pics = [];
+var base_url = window.location.protocol + '//' + window.location.host;
+var new_share_image = '';
+
+for (var i = 0; i < shareimages.length; i++) {
+	if(shareimages[i]){
+		// 若image指定為預設圖，則抓取文章後台上傳四張圖第一張被抓取到的圖為分享圖片，若抓不到一樣發佈預設圖片。
+		if(shareInfo['imgurl'] && shareInfo['imgurl'].match('popweibo_logo.jpg')){
+			if(!new_share_image){
+				shareInfo['imgurl'] = new_share_image = base_url + shareimages[i];
+			}
+		}
+		tmp_pics.push(encodeURIComponent( base_url + shareimages[i]));
+	}
+};
+
+if(tmp_pics.length > 0){
+	renrenpics = qqzonepics = tmp_pics.join('|');
+	weibopics = tmp_pics.join('||');
+}
+
+function addtoweibo(title){// 新浪微博
+	var _uri = "http://service.weibo.com/share/share.php?appkey=2667332353&content=utf-8&url=" + encodeURIComponent(shareInfo.url) + "&title=" + encodeURIComponent("【" + title + "】" + shareInfo.desc) + "&pic=" + weibopics;
+	window.open(_uri,'newwindow');
+}
+
+function addtofacebook(){// Facebook
+	var _uri = 'http://www.facebook.com/sharer.php?u=' + encodeURIComponent(shareInfo.url);
+	window.open(_uri,'newwindow');
+}
+
+function checkfacebookauth(){// Facebook
+	checkLoginState();
+}
+
+function addtotwitter(text){// Twitter
+	var _uri = 'http://twitter.com/share?url=' + encodeURIComponent(shareInfo.url) + '&text=' + encodeURIComponent(text);
+	window.open(_uri,'newwindow');
+}
+
+function addtopinterest(description){// pinterest
+	var _uri = 'http://pinterest.com/pin/create/button/?url=' + encodeURIComponent(shareInfo.url) + '&media=' + encodeURIComponent(shareInfo.imgurl) + '&description=' + encodeURIComponent(description) + encodeURIComponent(shareInfo.url);
+	window.open(_uri,'newwindow');
+}
+
+function addtogoogleplus(){// google+
+	var _uri = 'https://plus.google.com/share?url=' + encodeURIComponent(shareInfo.url);
+	window.open(_uri,'newwindow');
+}
+
+function addtoqzone(title){// QQ空間
+	var _uri = "http://sns.qzone.qq.com/cgi-bin/qzshare/cgi_qzshare_onekey?url=" + encodeURIComponent(shareInfo.url) + "&title=" + encodeURIComponent(title) + "&summary=" + encodeURIComponent(shareInfo.desc) + "&pics=" + qqzonepics + "&site=POP！微博";
+	window.open(_uri,'newwindow');
+}
+
+function addtoqq(title){// QQ好友
+	var _uri = "http://connect.qq.com/widget/shareqq/index.html?url=" + encodeURIComponent(shareInfo.url) + "&title=" + encodeURIComponent(title) + "&pics=" + encodeURIComponent(shareInfo.imgurl) + "&summary=" + encodeURIComponent(shareInfo.desc)+ "&site=POP！微博";
+	window.open(_uri,'newwindow');
+}
+
+function addtorenren(title){// 人人
+	var _uri = 'http://widget.renren.com/dialog/share?resourceUrl=' + encodeURIComponent(shareInfo.url) + '&srcUrl=' + encodeURIComponent(shareInfo.url) + '&title=' + encodeURIComponent(title) + '&images=' + renrenpics + '&description=' + encodeURIComponent(shareInfo.desc);
+	window.open(_uri,'newwindow');
+}
+
+function addtodouban(title){// 豆瓣
+	var _uri = 'http://www.douban.com/recommend/?url=' + encodeURIComponent(shareInfo.url) + '&title=' + encodeURIComponent(title);
+	window.open(_uri,'newwindow');
+}
+
+function addtoline(text,id){
+	location.href='line://msg/text/' + text + '  ★  POP！微博 ' + base_url + '/posts/' + id;
+
+}

@@ -1,0 +1,215 @@
+(function(window, console, crosstab, $, undefined) {
+
+    if (!console || !$.isFunction(console.log)) {
+        console = {
+            log: function(){},
+            error: function(){}
+        };
+    }
+
+    var MAX_EVENTS = 30;
+
+    var Notifications = {
+        _uid: undefined,
+        _sig: undefined,
+        _connected: false,
+        _socket: undefined,
+        _subscriptions: [],
+        _connectHandlers: [],
+        _events: [],
+        _guest: false,
+        _httpUrl: undefined,
+
+        init: function(uid, socketServer, signature) {
+            this._uid = uid;
+            this._sig = signature;
+            this._socketServer = socketServer;
+
+            if (crosstab.supported) {
+                initCrosstab();
+            } else {
+                connectSocket();
+            }
+        },
+
+        initGuest: function(httpUrl) {
+            this._guest = true;
+            this._httpUrl = httpUrl;
+        },
+
+        connected: function() {
+            return this._guest || !!this._socket && this._connected;
+        },
+
+        subscribe: function(type, callback) {
+            this._subscriptions.push({
+                type: type,
+                callback: callback
+            });
+        },
+
+        onConnect: function(id, callback) {
+            if (this.connected() || !isMasterTab()) {
+                callback();
+            } else {
+                this._connectHandlers[id] = callback;
+            }
+        },
+
+        checkOnlineStatus: function(ids) {
+            if (Notifications._guest) {
+                $.ajax({
+                    type: "POST",
+                    url: Notifications._httpUrl + '/isOnline',
+                    data: JSON.stringify({ ids: ids }),
+                    contentType: "application/json; charset=utf-8",
+                    dataType: "json",
+                    success: function(response) {
+                        Notifications.broadcast({
+                            type: 'ONLINE_STATUS_NEW',
+                            payload: response
+                        });
+                    }
+                });
+            } else if (crosstab.supported) {
+                crosstab.broadcast('online_status', ids);
+            } else {
+                Notifications._requestOnlineStatus(ids);
+            }
+        },
+
+        broadcast: function(msg) {
+            console.log('Notification message', msg);
+
+            if (!Notifications._isDuplicate(msg)) {
+                var subs = Notifications._subscriptions;
+
+                for (var i = 0; i < subs.length; i++) {
+                    var sub = subs[i];
+                    if (msg.type === sub.type) {
+                        sub.callback(msg.payload);
+                    }
+                }
+            }
+        },
+
+        _onConnect: function() {
+            var subs = Notifications._connectHandlers;
+
+            for (var id in subs) {
+                if (subs.hasOwnProperty(id)) {
+                    subs[id]();
+                }
+            }
+
+            Notifications._connectHandlers = [];
+        },
+
+        _isDuplicate: function(msg) {
+            var events = Notifications._events;
+
+            if (events.indexOf(msg.uuid) >= 0) {
+                console.log("Duplicate!");
+                return true;
+            }
+
+            events.unshift(msg.uuid);
+
+            if (events.length > MAX_EVENTS) {
+                events.pop();
+            }
+
+            return false;
+        },
+
+        _requestOnlineStatus: function (ids) {
+            this._socket.send(JSON.stringify({
+                cmd: "user_online",
+                ids: ids
+            }));
+        }
+    };
+
+    function connectSocket() {
+        if (Notifications.connected()) {
+            console.log('Already connected');
+            return;
+        }
+
+        console.log('Connecting to socket...');
+
+        var ws = Notifications._socket = new WebSocketClient({
+            alwaysReconnect: true
+        });
+
+        ws.onmessage = function(event) {
+            if (event.data === 'X') return;
+
+            var message = JSON.parse(event.data);
+
+            if (message.connected) {
+                Notifications._onConnect();
+            } else if (message.type) {
+                if (crosstab.supported) {
+                    crosstab.broadcast('notify', message);
+                } else {
+                    Notifications.broadcast(message);
+                }
+            }
+        };
+
+        ws.onopen = function() {
+            Notifications._connected = true;
+            console.log('Connected! Tab id is ' + crosstab.id);
+            this.send(JSON.stringify({
+                cmd: "login",
+                uid: Notifications._uid,
+                signature: Notifications._sig,
+                types: [
+                    'GOLD_PURCHASE',
+                    'ONLINE_STATUS_NEW'
+                ]
+            }));
+        };
+
+        ws.open(Notifications._socketServer);
+    }
+
+    function initCrosstab() {
+        console.log('Initializing crosstab');
+
+        crosstab.on("socket.open", function(e) {
+            if (isMasterTab()) {
+                connectSocket();
+            } else {
+                Notifications._onConnect();
+            }
+        });
+
+        crosstab.on('notify', function(event) {
+            Notifications.broadcast(event.data);
+        });
+
+        crosstab.on('online_status', function (event) {
+            if (isMasterTab()) {
+                Notifications._requestOnlineStatus(event.data);
+            }
+        });
+
+        crosstab.on(crosstab.util.eventTypes.becomeMaster, function() {
+            console.log('Becoming master tab');
+            connectSocket();
+        });
+
+        crosstab.broadcast("socket.open");
+    }
+
+    function isMasterTab() {
+        if (!crosstab.supported) return true;
+        var masterTab = crosstab.util.tabs[crosstab.util.keys.MASTER_TAB];
+        return masterTab && masterTab.id === crosstab.id;
+    }
+
+    window.Notifications = Notifications;
+
+})(window, window.console, window.crosstab, jQuery);

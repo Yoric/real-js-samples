@@ -1,0 +1,13 @@
+/* */YAHOO.JP.srch.slink.get({
+  "Experiments": {
+    "Experiment": [
+      {
+        "Status": 400,
+        "Code": 101,
+        "Message": "bad request parameter",
+        "Detail": "experimentid not found",
+        "ExperimentId": "mf_1649"
+      }
+    ]
+  }
+})

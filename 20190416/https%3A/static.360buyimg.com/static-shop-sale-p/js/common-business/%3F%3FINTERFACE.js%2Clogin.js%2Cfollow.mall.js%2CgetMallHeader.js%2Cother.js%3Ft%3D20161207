@@ -1,0 +1,1626 @@
+/**
+ * @function：二级域名列表列表、接口
+ * @description：
+ * @author：cdwanchuan@jd.com 2015-12-02
+ */
+
+var SLD = {
+    c: '//c0.3.cn', //大家电分区
+    //followSoa: '//follow-soa.jd.com', //关注
+    followSoa: '//f-mall.jd.com', //关注 https://cf.jd.com/pages/viewpage.action?pageId=159774682
+    p: '//p.3.cn', //京东价
+    pyhd: '//pyhd.3.cn', // 1号店价
+    pm: '//pm.3.cn', //手机价
+    jprice: '//jprice.jd.com', //ept
+    ipi360buy: '//ipi.360buy.jd.com', //newEpt
+    vsp: '//vsp.jd.com', //大客户
+    ipr360buy: '//ipr.360buy.jd.com', //新EPT获取商品折扣及促销广告词
+    ad: '//ad.3.cn', //商品促销标签
+    cart: '//cart.jd.com', //购物车
+    creadE: '//cread.e.jd.com', //电子书
+    activity: '//activity.jd.com', //投票
+    soaYushou: '//soa.yushou.jd.com', //预售老接口
+    yushou: '//yushou.jd.com', //预售新接口
+    diviner: '//diviner.jd.com', //商品智能推荐接口 //商品浏览历史记录
+    rankM: '//rank.m.jd.com', //调用二级分类类目的地址及商品列表地址（热门排行榜） 20151202星期三还未支持https
+    lsActivity: '//ls-activity.jd.com', //中奖信息
+    l: '//l-activity.jd.com', //抽奖及次数
+    paimai: '//paimai.jd.com', //拍卖
+    group: '//group.jd.com', //圈子
+    passport: '//passport.jd.com', // 登录
+    chat1: '//chat1.jd.com', //店铺客服状态
+    chat: '//chat.jd.com', //客服咨询
+    jimi: '//jimi.jd.com', //JIMI
+    gate: '//gate.jd.com', //添加到购物车地址
+    item: '//item.jd.com', //商品详情页
+    actJshop: '//act-jshop.jd.com', //JSHOP提供的act接口
+    mall: '//mall.jd.com', //店铺二级域名
+    qiang: '//qiangsite.jd.com', //分类限时抢购
+    qingchun: '//qingchun.jd.com',
+    voteData: '//votedata.360buy.com',
+    yao: '//yao.jd.com', //京东医药B2B平台
+    ss: '//ss.jd.com', //库存
+    club: '//club.jd.com', // 京东
+    module: '//module-jshop.jd.com',
+    // fMall: '//diviner.jd.com'
+    fMall: '//f-mall.jd.com', // 商品推荐/搜索
+    zuzu: '//zuzuapi.jd.com',
+    channelYhd: '////channel.m.yhd.com', // 一号店频道域名
+    zhongtai: '//zt-jshop.jd.com', //jshop中台
+    jshop2013: '//jshop2013.jd.com', // jshop后台系统，临时使用
+    wq: '//wq.jd.com',
+    taishan: '//taishan.jd.com', // 泰山系统
+    songshan: '//songshan.jd.com' // 嵩山系统
+};
+
+/** 接口 20151010 cdwanchuan@jd.com */
+var INTERFACE = {
+    taishan: {
+        renderBIModule: SLD.taishan + '/view/module/renderBIModule', // 渲染浏览页面上的BI模块
+        renderModule: SLD.taishan + '/view/module/renderModule' // 渲染浏览页面上的模块
+    },
+    songshan: {
+        renderBIModule: SLD.songshan + '/view/module/renderBIModule', // 渲染浏览页面上的BI模块
+        renderModule: SLD.songshan + '/pre/module/getModuleHtml' // 渲染浏览页面上的模块
+    },
+    activityFollw: {
+        follow: SLD.followSoa + '/rpc/activity/follow', //关注活动
+        unfollow: SLD.followSoa + '/rpc/activity/unfollow', //取消关注活动
+        isFollow: SLD.followSoa + '/rpc/activity/isFollow', //查询用户是否关注某活动
+        queryForPage: SLD.followSoa + '/rpc/activity/queryForPage', //查询用户关注活动列表
+        queryForCount: SLD.followSoa + '/rpc/activity/queryForCount', //查询用户关注活动数量
+        isFollowBrand: SLD.followSoa + '/rpc/activity/isFollowBrand' //查询活动是否被关注 （20151009吴劲平 根据代码遗留情况看，有一部分活动变成了现在的品牌，应该是遗留问题 ）
+    },
+    venderFollow: {
+        follow: SLD.followSoa + '/rpc/vender/follow', //关注店铺
+        queryForCount: SLD.followSoa + '/rpc/vender/queryForCount', //查询用户关注店铺数量
+        queryForCountByVid: SLD.followSoa + '/rpc/vender/queryForCountByVid', //通过venderId查询关注数量(待验证)
+        queryTagForListByCount: SLD.followSoa + '/rpc/vender/queryTagForListByCount', //新接口已经移除
+        editTag: SLD.followSoa + '/rpc/vender/editTag', //新接口已经移除
+        batchIsFollow: SLD.followSoa + '/rpc/vender/batchIsFollow', //批量查询是否已关注店铺
+        queryForPage: SLD.followSoa + '/rpc/vender/queryForPage' //查询用户关注店铺列表
+    },
+    brandFollow: {
+        follow: SLD.followSoa + '/rpc/brand/follow', //单个品牌关注
+        unfollow: SLD.followSoa + '/rpc/brand/unfollow', //单个取消关注品牌
+        queryForCountByPin: SLD.followSoa + '/rpc/brand/queryForCountByPin', //查询用户关注品牌数量
+        batchfollow: SLD.followSoa + '/rpc/brand/batchfollow', //批量品牌关注
+        followBrand: SLD.followSoa + '/rest/brand/follow', // 关注单个品牌
+        batchIsFollow: SLD.followSoa + '/rpc/brand/batchIsFollow', //批量查询是否已关注品牌
+        batchUnfollow: SLD.followSoa + '/rpc/brand/batchUnfollow' //批量取消关注品牌
+    },
+    productFollow: {
+        follow: SLD.followSoa + '/rpc/product/follow', //关注商品
+        queryForCountByPid: SLD.followSoa + '/rpc/product/queryForCountByPid', //商品关注人数
+        queryForPage: SLD.followSoa + '/rpc/product/queryForPage' //查询用户关注商品列表
+    },
+    price: {
+        jd: SLD.p + '/prices/mgets', //获取商品促销后的商品价格（主站）
+        yhd: SLD.pyhd + '/prices/mgets', // 一号店商品价格
+        jdMobile: SLD.pm + '/prices/mgets', //查询商品促销价格（手机）
+        jdMobileBatch: SLD.pm + '/prices/pcpmgets', //批量查询商品促销价格（手机）"
+        eptprice: SLD.jprice + '/eptprice', //ept
+        getPriceRange: SLD.ipi360buy + '/getPriceRange.html', // newEpt
+        vsp: SLD.vsp + '/jshop/batchPrice', //vsp
+        replaceGoods: SLD.module + '/recModule/autoRepGoods.html', // 自动补货逻辑
+        leasePrice: SLD.zuzu + '/pcClient/selfSale/price/getBatchLeastLeasePrice', // 分期用价格批量查询http接口, jiangwang3@jd.com， http://cf.jd.com/pages/viewpage.action?pageId=97628911
+        pgPrice: SLD.wq + '/pingou_api/BatGetPingouInfo' // 拼购价商品查询接口，http://legos.wq.jd.com/legos4.php/api/detail?id=26634
+    },
+    getBatchPrdPromo: SLD.ipr360buy + '/getBatchPrdPromo.html', //新EPT获取商品折扣及促销广告词
+    promoTag: SLD.ad + '/flags/mgets', //商品促销标签
+    reBuyForOrderCenter: SLD.cart + '/cart/dynamic/reBuyForOrderCenter.action', //主站购物车
+    miniCartServiceNew: SLD.cart + '/cart/miniCartServiceNew.action', //迷你购物车
+    presale: SLD.cart + '/cart/dynamic/presale.action', //购物车跳转结算页（待验证）
+    sevencard_insert: SLD.creadE + '/sevencard/sevencard_insert.action', //电子书频道下领取畅读卡
+    sevencard_gettoken: SLD.creadE + 'sevencard/sevencard_gettoken.action',
+    jindou: SLD.jprice + '/skuprice', //京豆
+    vote: {
+        vote: SLD.activity + '/vote/vote.action', //传入投票id、投票项id，用户pin，回传状态，提示内容，得票数
+        optHistory: SLD.activity + '/vote/optHistory.action', //传入投票id，获取当前用户投票记录
+        getCount: SLD.activity + '/vote/getCount.action', //入投票项id串，批量获取投票数
+        voteInfo: SLD.activity + '/vote/voteInfo.action' //传入投票id，回传投票所有信息"
+    },
+    soaYushou: SLD.soaYushou + '/youshouinfo.action', //预售老接口
+    yushou: SLD.yushou + '/youshouinfo.action', //预售新接口
+    youshouinfoList: SLD.yushou + '/youshouinfoList.action', //预约批量查询接口 陈佼（chenjiao1@jd.com；15313932859）接口文档和上面单个的一样
+    diviner: SLD.diviner + '/diviner', //商品智能推荐接口 //商品浏览历史记录
+    rankData: SLD.rankM + '/rankData', //调用二级分类类目的地址及商品列表地址（热门排行榜）
+    lottery: {
+        getWinnerList: SLD.lsActivity + '/lotteryApi/getWinnerList.action', //中奖信息查询
+        getLotteryInfo: SLD.lsActivity + '/lotteryApi/getLotteryInfo.action', //抽奖基本信息查询
+        lottery_start: SLD.lActivity + '/lottery/lottery_start.action', //抽奖（web端）
+        lottery_chance: SLD.lActivity + '/lottery/lottery_chance.action' //剩余抽奖次数查询（web端）"
+    },
+    paimai: {
+        currentList: SLD.paimai + '/services/currentList.action', //根据拍卖ID批量获取拍品的实时数据
+        queryCurAlbumInfo: SLD.paimai + '/json/current/queryCurAlbumInfo' //获取专场实时信息
+    },
+    group: {
+        addGroupCircle: SLD.group + '/jshop/addGroupCircle.htm', //加入圈子接口
+        isJoinQuanZi: SLD.group + '/relation/isJoinQuanZi.htm', //是否加入圈子
+        collect: SLD.group + '/jshop/collect.htm', //收藏主题帖接口
+        saveGroupPost: SLD.group + '/jshop/saveGroupPost.htm' // 发表回复帖接口
+    },
+    passport: {
+        helloService: SLD.passport + '/new/helloService.ashx', // 判断是否登录
+        login: SLD.passport + '/new/login.aspx',
+        jdfLogin: SLD.passport + '/loginservice.aspx' //jdf使用的判断是否登录的接口，20171026，cdhewu，从活动搬过来的
+    },
+    checkChat: SLD.chat1 + '/api/checkChat', //店铺客服状态
+    chat: {
+        queryGroupById: SLD.chat + '/venderApi/queryGroupById.action',
+        queryGroupByIdList: SLD.chat + '/venderApi/queryGroupByIdList.action',
+        queryWaiterByIdList: SLD.chat + '/venderApi/queryWaiterByIdList.action',
+        chat: SLD.chat + '/pop/chat' //客服咨询
+    },
+    linkJimi: SLD.jimi + '/index.action', //JIMI缩小版
+    linkCart: SLD.cart + '/gate.action', //添加到购物车地址
+    linkPresale: SLD.cart + '/cart/dynamic/presale.action', //预售购物车列表
+    linkGoods: SLD.item + '', //商品详情页
+    actJshop: {
+        adv: SLD.actJshop + '/adv.html', //店铺获取广告位（待验证，可能是老接口）
+        ad: SLD.actJshop + '/ad.html', //获取广告位
+        recommend: SLD.actJshop + '/recommend.html', //获取商品评论相关信息
+        serverTime: SLD.actJshop + '/serverTime.html', //获取服务器时间
+        couponSend: SLD.actJshop + '/couponSend.html', //获取优惠券信息
+        couponState: SLD.actJshop + '/couponBatchState.html', //获取优惠券状态信息 胡德鹏（cdhudepeng@jd.com；18980008628） http://cf.jd.com/pages/viewpage.action?pageId=73074885
+        couponExchange: SLD.actJshop + '/couponExchange.html', //返回京豆换券是否成功
+        fs: SLD.actJshop + '/fs.html', //新限时抢购
+        multi: SLD.actJshop + '/multi.html', //多个促销推荐
+        single: SLD.actJshop + '/single.html', //单个促销推荐
+        ms: SLD.actJshop + '/ms.html', //促销推荐
+        promo: SLD.actJshop + '/promo.html', //促销接龙
+        userExd: SLD.actJshop + '/userExd.html', //用户信息
+        getOrderInfo: SLD.actJshop + '/getOrderInfo.html', //订单信息
+        getOrderTrack: SLD.actJshop + '/getOrderTrack.html', //订单跟踪
+        couponInfo: SLD.actJshop + '/couponInfo.html', // 京东优惠券
+        getShopCoupon: SLD.actJshop + '/getShopCoupon.html', //店铺优惠券
+        goodsInfo: SLD.actJshop + '/goodsInfo.html', //商品信息
+        getPopShopInfo: SLD.actJshop + '/getPopShopInfo.html', //店铺优惠券信息
+        balance: SLD.actJshop + '/balance.html', //账户余额
+        jbn: SLD.actJshop + '/jbn.html', // 用户京豆数量
+        attentionCount: SLD.actJshop + '/attentionCount.html', //商品关注数
+        getSkuByArea: SLD.actJshop + '/getSkuByArea.html', //获取山姆分区SKUID; 刘世杰（liushijie@jd.com）//cf.jd.com/pages/viewpage.action?pageId=79010150
+        goodsCoupon: SLD.actJshop + '/goodsCouponInfo.html', // 根据商品sku获取该商品的优惠券
+        getSkuByCoupon: SLD.actJshop + '/getSkuByCoupon.html', // 获取当前优惠券可使用的商品
+        promoSectionPrice: SLD.actJshop + '/promoUnitQuery.html', //获取促销推荐阶梯价格接口 尹雅丽（cdyinyali@jd.com） http://cf.jd.com/pages/viewpage.action?pageId=75948252  接口方(http://cf.jd.com/pages/viewpage.action?pageId=65177161) http://cf.jd.com/pages/viewpage.action?pageId=73650758
+        skuReplace: SLD.actJshop + '/skuReplace.html' //区域无货sku补货  http://act-jshop.jd.com/skuReplace.html?skuIds=25353092016
+    },
+    zhongtai: {
+        service: SLD.zhongtai + '/service.html' //获取中台模块配置数据，的商品数据，比如预售、促销、拼购等等 http://cf.jd.com/pages/viewpage.action?pageId=102152279
+    },
+    coupon: {
+        yhdCouponState: SLD.channelYhd + '/api/findStatusActiveCoupon.do', // 获取1号店优惠券状态，董青松，//cf.jd.com/pages/viewpage.action?pageId=98359869
+        getYhdCoupon: SLD.channelYhd + '/api/generateCoupon.do' // 领取1号店优惠券，董青松，//cf.jd.com/pages/viewpage.action?pageId=98359869
+    },
+    moduleJshop: {
+        getYaoGoodsInfo: SLD.module + '/module/getYaoGoodsInfo.html' //获取医药城商品信息  龚小冬（cdgongxiaodong@jd.com；15281064889）//cf.jd.com/pages/viewpage.action?pageId=79700041
+    },
+    mall: {
+        getCurrentTime: SLD.mall + '/timeCache/getCurrentTime.html', //获取服务器当前时间
+        getAutoCompleteWords: SLD.mall + '/view/autoComplete/getAutoCompleteWords.html',
+        getSurveyDetail: SLD.mall + '/view/survey/getSurveyDetail.html',
+        submitSurvey: SLD.mall + '/view/survey/submitSurvey.html',
+        getJshopHeader: SLD.mall + '/view/getJshopHeader.html' //获取店铺头部
+    },
+    qingchun: {
+        addFavorite: SLD.qingchun + '/smyJ/addFavorite.html',
+        addAttention: SLD.qingchun + '/smyJ/addAttention.html',
+        smyInfo: SLD.qingchun + '/smyJ/smyInfo.html'
+    },
+    voteData: {
+        set: SLD.voteData + '/set',
+        get: SLD.voteData + '/get'
+    },
+    qiang: {
+        mgets: SLD.qiang + '/qiangnum/mgets' //cf.jd.com/pages/viewpage.action?pageId=74426430
+    },
+    yao: {
+        price: SLD.yao + '/jshop/price.html',
+        itemPrice: SLD.yao + '/item/price',
+        priceDetail: SLD.yao + '/jshop/priceDetail'
+    },
+    ss: {
+        // 2018082 万川 修改库存结构的域名到actjshop下
+        areaStockState: SLD.actJshop + '/ss/areaStockState/mget' //李汪洋（liwangyang@jd.com；18911315165） //cf.jd.com/pages/viewpage.action?pageId=73651429
+    },
+    comment: {
+        commentNum: SLD.club + '/comment/productCommentSummaries.action'
+    },
+    goods: {
+        getRecGoods: SLD.fMall + '/intelligent/diviner' //张磊 (cdzhanglei8@jd.com) http://cf.jd.com/pages/viewpage.action?pageId=78385854
+        // getRecGoods: SLD.fMall + '/diviner'
+    },
+    adBanner: {
+        getBanner: SLD.fMall + '/adviserBanner/getAdviserBanner' // 张磊 (cdzhanglei8@jd.com)
+    },
+    gift: {
+        getVenderGift: SLD.fMall + '/shopGift/getShopGiftInfo', // 龚小冬 (cdgongxiaodong@jd.com)
+        drawVenderGift: SLD.fMall + '/shopGift/drawShopGiftInfo' // 龚小冬 (cdgongxiaodong@jd.com)
+    },
+    getModuleHtml: {
+        decorate: SLD.jshop2013 + '/decorate/common/getModuleHtml.html',
+        browse: SLD.mall + '/view/getModuleHtml'
+    },
+    rules: {
+        getLinkWhiteList: SLD.fMall + '/configParam/getLinkWhiteList'
+    },
+    shop: {
+        checkShopClose: SLD.fMall + '/shopCheck/checkShopClose'
+    },
+    realSku: {
+        arealimit: SLD.c + '/stock/arealimit', //获取分区家电skuID
+        partition: SLD.c + '/stock/partition',  //获取分区skuid 姜坤坤（jiangkunkun@jd.com）//cf.jd.com/pages/viewpage.action?pageId=81773809
+        mixPartition: SLD.c + '/stock/mixPartition'  //20170809 获取分区skuid（skuId|商品数量|业务类型|分类） 姜坤坤（jiangkunkun@jd.com）//cf.jd.com/pages/viewpage.action?pageId=81773809
+    },
+    getData: function (args) {
+        var param = jQuery.extend({
+            url: '',
+            data: {},
+            dataType: 'jsonp',
+            callBack: function () {
+            }
+        }, args || {});
+
+        if (param.jsonpCallback) {
+            jQuery.ajax({
+                url: url,
+                data: data,
+                dataType: 'jsonp',
+                jsonpCallback: param.jsonpCallback,
+                success: function (d) {
+                    callBack.call(d);
+                }
+            });
+        } else {
+            jQuery.ajax({
+                url: url,
+                data: data,
+                dataType: 'jsonp',
+                success: function (d) {
+                    callBack.call(d);
+                }
+            });
+        }
+    }
+};
+/**JDF登录方法封装 20150826星期三**/
+seajs.config({
+    alias: {
+        'login': '//misc.360buyimg.com/jdf/1.0.0/unit/login/1.0.0/login.js'
+    }
+})
+seajs.use('//misc.360buyimg.com/jdf/1.0.0/ui/ui/1.0.0/ui.js');//解决金融频道冲突
+
+function thick_login(callback, scope) {
+    seajs.use('//misc.360buyimg.com/jdf/1.0.0/unit/login/1.0.0/login.js', function (_login) {
+        _login({
+            //firstCheck:false,
+            modal: true,//false跳转,true显示登录注册弹层
+            complete: function (c) {
+                callback.call(scope || this, c.Identity);
+            }
+        });
+    });
+}
+
+/**
+ * 检查当前访问用户是否已经登录，不会引导登录
+ * @param successCallback   已登录的回调函数
+ * @param failCallback      未登录的回调函数
+ */
+function checkLogin(successCallback, failCallback) {
+    $.ajax({
+        url: INTERFACE.passport.jdfLogin,
+        data: {
+            method: 'Login'
+        },
+        dataType: "jsonp",
+        scriptCharset: "gbk",
+        success: function (data) {
+            if (data && data.Identity && data.Identity.IsAuthenticated) {
+                typeof successCallback === 'function' && successCallback(data.Identity);
+            } else {
+                typeof failCallback === 'function' && failCallback();
+            }
+        }
+    });
+}
+/**
+     * @function：关注
+     * @description：活动关注、店铺关注、商品关注、品牌关注
+     * @param：
+     * @author：20151015 cdwanchuan@jd.com 20160428 modified
+     *一、业务
+        1、逻辑业务：
+            1）页面打开时，获取页面上当前作用域下所有带有点击class节点上的data-id，初始化关注状态；
+            2）根据3种关注功能类型，展示不同的效果，参见dataType参数
+
+     * 二、公共方法（Module.js里面增加attent方法）
+        1、点击元素：e-attention（用此class名做唯一区分）
+        2、关注ID：data-id（节点伪属性，将ID保存在此）
+        3、区分关注功能类型：data-type（节点伪属性，用户手动传入），获取点击元素上的功能类型  0：所有状态+弹出层；1：关注和取消关注+修改按钮文案+关注成功弹出层；2：默默关注
+        4、点击元素，受限于模块module-name，只有在模块下才能使用
+        5、使用方法：<div class="j-module" module-function="saleAttent" module-param="{}"><a href="javascript:;" class="e-attention" data-id="" data-state="0" data-type="0">关注活动</a></div>
+	
+	* 三、20170817，cdhewu，经过确认，品牌街相关业务已经全部下线，相关代码删除！
+          品牌接口缺陷：由于批量查询用户关注状态只支持主品牌，如果用关注和取消关注（data-type=1）功能，则子品牌无法获取到关注状态，会导致报错；
+		  如果用单个查询用户关注状态接口isFollowByBrandId，则始终只能查询一个，或者发多个请求；权衡下，关注和取消关注（data-type=1）功能，只限于用主品牌；
+    */
+
+(function(w,$,undefined){
+    function saleAttent(args){
+        var param = jQuery.extend({
+            attentType : 'vender', //关注的ID类型：activity（活动）、vender（店铺）、product（商品
+            attentText : '\u5173\u6ce8', // 关注按钮的文案
+            activityType : 1, //当关注的ID类型是活动时，必须传此值；0采销，1店铺活动，活动关注参数srcType
+            node : '.e-attention', //关注点击元素
+            dataId : 'data-id',//（节点伪属性，将活动ID保存在此）
+            dataState : 'data-state', //临时状态data-state ：0未关注；1关注成功；2已经关注；3关注数量达到上限；4关注失败
+            dataType : 'data-type',//获取点击元素上的功能类型  0：所有状态+弹出层；1：关注和取消关注+修改按钮文案+关注成功弹出层；2：默默关注
+            current : 'current', //已经关注样式名，初始化关注状态时，如果已经关注过的，则默认加上此样式
+            sysName : 'mall.jd.com', //关注注册系统名
+			isDialog : true //是否需要弹出层提示，默认true
+        }, args || {}),
+            _this = jQuery(this),
+            attentType = param.attentType,
+            activityType = param.activityType,
+            node = _this.find(param.node),
+            current = param.current,
+            currentDom,//全局变量，获取当前触发的事件元素
+            dataTypeValue,//全局变量，获取当前触发的事件元素上的功能类型
+            para = [], //全局变量，初始化（关注和取消关注）传入的是id；点击时传入的是接口参数
+			otherHtml, //全局变量，获取关注数量这段模板html
+            _INTERFACE = {
+                follow : SLD.followSoa + '/rpc/' + attentType + '/follow', //关注（活动、店铺、商品）
+                batchIsFollow : SLD.followSoa + '/rpc/' + attentType + '/batchIsFollow', //查询用户关注状态（批量）（活动、店铺、商品）
+                unfollow : SLD.followSoa + '/rpc/' + attentType + '/unfollow', //取消关注（活动、店铺、商品）
+                queryForCount : SLD.followSoa + '/rpc/' + attentType + '/queryForCount' //查询用户关注数量（活动、店铺、商品）
+            };
+			
+        if(!node.length){return;}
+
+        var attentHtml = '<div class="follow-dialog-mask"></div>'
+        +'<div class="follow-dialog">'
+        +   '<div class="attent-mt">'
+        +       '<span class="attent-close" title="关闭">关闭</span>'
+        +       '<span class="attent-title">提示</span>'
+        +   '</div>'
+        +   '<div class="attent-mc">'
+        +       '<div class="attent-con">'
+        +           '<span class="attent-msg"></span>'
+        +           '<span class="attent-other"></span>'
+        +       '</div>'
+        +   '</div>'
+        +'</div>';
+
+        var attentCss = '<style id="followCls">'
+        +'.follow-dialog-mask{position:fixed; _position:absolute; left:0; top:0; right:0; bottom:0; background:#000; opacity:0.3; filter:alpha(opacity=30); z-index:100; display:none;}'
+        +'.follow-dialog-mask.current{display:block;}'
+        +'.follow-dialog{width:320px; border:solid 4px rgba(0,0,0,0.1); background:#fff; position:fixed; _position:absolute; left:50%; top:50%; margin:-60px 0 0 -160px; z-index:101; display:none;}'
+        +'.follow-dialog.current{display:block;}'
+        +'.follow-dialog .attent-mt{height:32px; line-height:32px; background:#f5f5f5; font-size:16px; color:#222; text-indent:10px; overflow:hidden;}'
+        +'.follow-dialog .attent-close{float:right; width:32px; height:32px; text-indent:-9999px; background:url(//misc.360buyimg.com/lib/skin/2013/i/thickbox_close.png) center center no-repeat; cursor:pointer;}'
+        +'.follow-dialog .attent-ok, .follow-dialog .attent-repeat, .follow-dialog .attent-error, .follow-dialog .attent-max{height:48px; margin-left:20px; padding:20px 20px 20px 48px;}'
+        +'.follow-dialog .attent-ok{background:url(//img12.360buyimg.com/cms/jfs/t1435/352/153421548/1347/d377c92d/555e9e71Nb767e906.png) left center no-repeat;}'
+        +'.follow-dialog .attent-repeat, .follow-dialog .attent-error, .follow-dialog .attent-max{background:url(//img14.360buyimg.com/cms/jfs/t1516/358/164942511/1418/e0c25f0c/555e9e75Nfca9da16.png) left center no-repeat;}'
+        +'.follow-dialog .attent-ok .attent-msg{font-size:14px; color:#009900; font-weight:bold;}'
+        +'.follow-dialog .attent-repeat .attent-msg, .follow-dialog .attent-error .attent-msg, .follow-dialog .attent-max .attent-msg{font-size:14px; color:#ff771e; font-weight:bold;}'
+        +'.follow-dialog .attent-other{color:#6f6363; display:block; margin-top:10px;}'
+        +'.follow-dialog .attent-other a{color:#004499;}'
+        +'.follow-dialog .attent-other .attent-text{margin-right:10px;}'
+        +'</style>';
+
+        var attentInfo = {
+            activity : {
+                msgOk : '&#x5173;&#x6CE8;&#x6210;&#x529F;&#xFF01;',
+                msgRepeat : '&#x5DF2;&#x5173;&#x6CE8;&#x8FC7;&#x8BE5;&#x6D3B;&#x52A8;&#xFF01;',
+                msgError : '&#x5173;&#x6CE8;&#x6D3B;&#x52A8;&#x5931;&#x8D25;&#xFF01;',
+                msgMax : '&#x5173;&#x6CE8;&#x7684;&#x6D3B;&#x52A8;&#x8FBE;&#x5230;&#x6700;&#x5927;&#x6570;&#x91CF;&#xFF01;',
+                msgOther : '<span class="attent-text">&#x60A8;&#x5DF2;&#x5173;&#x6CE8;<span class="attent-num">{attentNum}</span>&#x4E2A;&#x6D3B;&#x52A8;</span><a href="//t.jd.com/activity/followActivityList.action" target="_blank">&#x67E5;&#x770B;&#x6211;&#x7684;&#x5173;&#x6CE8;>></a>'
+            },
+            vender : {
+                msgOk : '&#x5173;&#x6CE8;&#x6210;&#x529F;&#xFF01;',
+                msgRepeat : '&#x5DF2;&#x5173;&#x6CE8;&#x8FC7;&#x8BE5;&#x5E97;&#x94FA;&#xFF01;',
+                msgError : '&#x5173;&#x6CE8;&#x5E97;&#x94FA;&#x5931;&#x8D25;&#xFF01;',
+                msgMax : '&#x5173;&#x6CE8;&#x7684;&#x5E97;&#x94FA;&#x8FBE;&#x5230;&#x6700;&#x5927;&#x6570;&#x91CF;&#xFF01;',
+                msgOther : '<span class="attent-text">&#x60A8;&#x5DF2;&#x5173;&#x6CE8;<span class="attent-num">{attentNum}</span>&#x4E2A;&#x5E97;&#x94FA;</span><a href="//t.jd.com/vender/followVenderList.action" target="_blank">&#x67E5;&#x770B;&#x6211;&#x7684;&#x5173;&#x6CE8;>></a>'
+            },
+            product : {
+                msgOk : '&#x5173;&#x6CE8;&#x6210;&#x529F;&#xFF01;',
+                msgRepeat : '&#x5DF2;&#x5173;&#x6CE8;&#x8FC7;&#x8BE5;&#x5546;&#x54C1;&#xFF01;',
+                msgError : '&#x5173;&#x6CE8;&#x5546;&#x54C1;&#x5931;&#x8D25;&#xFF01;',
+                msgMax : '&#x5173;&#x6CE8;&#x7684;&#x5546;&#x54C1;&#x8FBE;&#x5230;&#x6700;&#x5927;&#x6570;&#x91CF;&#xFF01;',
+                msgOther : '<span class="attent-text">&#x60A8;&#x5DF2;&#x5173;&#x6CE8;<span class="attent-num">{attentNum}</span>&#x4E2A;&#x5546;&#x54C1;</span><a href="//t.jd.com/home/follow" target="_blank">&#x67E5;&#x770B;&#x6211;&#x7684;&#x5173;&#x6CE8;>></a>'
+            }
+        };
+        var attentText = {
+            activity : param.attentText, //关注活动
+            vender : param.attentText, //关注店铺
+            product : param.attentText, //关注商品
+            followed : '\u5df2\u5173\u6ce8', //已关注
+            unFollow : '\u53d6\u6d88\u5173\u6ce8' //取消关注
+        };
+
+        //临时状态data-state ：0未关注；1关注成功；2已经关注；3关注数量达到上限；4关注失败
+        function domOperate(){
+            //取消关注
+            if(currentDom.attr(param.dataState) == 0){
+                if(dataTypeValue == 1){currentDom.html(attentText[attentType]);}//如果当前需要取消关注功能，则修改文案
+                return;
+            }
+
+            jQuery('body').append(attentHtml,attentCss);
+            var _this = jQuery('.follow-dialog'),
+                mask = jQuery('.follow-dialog-mask'),
+                con = _this.find('.attent-con'),
+                msg = _this.find('.attent-msg'),
+                other = _this.find('.attent-other'),
+                close = _this.find('.attent-close'),
+                cssDom = jQuery('#followCls');
+
+            //关注成功
+            if(currentDom.attr(param.dataState) == 1){
+                if(dataTypeValue == 1){currentDom.html(attentText.followed); }//如果当前需要取消关注功能，则修改文案
+                msg.html(attentInfo[attentType].msgOk);
+                con.addClass('attent-ok');
+            }
+            //已经关注
+            if(currentDom.attr(param.dataState) == 2){
+                msg.html(attentInfo[attentType].msgRepeat);
+                con.addClass('attent-repeat');
+            }
+            //关注达到最大数量
+            if(currentDom.attr(param.dataState) == 3){
+                msg.html(attentInfo[attentType].msgMax);
+                con.addClass('attent-repeat');
+            }
+            //关注失败
+            if(currentDom.attr(param.dataState) == 4){
+                msg.html(attentInfo[attentType].msgError);
+                con.addClass('attent-error');
+            }
+
+            other.html(otherHtml);
+			
+			if(param.isDialog){
+				_this.addClass(current);
+				mask.addClass(current);
+			}
+
+            //关闭弹层
+            close.click(function(){
+                _this.remove();
+                mask.remove();
+                cssDom.remove();
+            });
+        }
+
+        //获取参数ID，此段供初始化元素状态及文案所用
+		var changeNode = _this.find("[data-type = '1']");
+        !function getId(){
+            /* 只取需要改变状态的节点（dataTypeValue为1，需要取消功能的节点） */
+			
+			for(var i = 0, len = changeNode.length; i<len; i+=1){
+                //activity（活动）、vender（店铺）、product（商品）
+                switch (attentType) {
+                    case 'activity':
+                        para.push({id : jQuery(changeNode[i]).attr(param.dataId),srcType:activityType});
+                        break;
+                    case 'vender':
+                        para.push(jQuery(changeNode[i]).attr(param.dataId));
+                        break;
+                    case 'product':
+                        para.push(jQuery(changeNode[i]).attr(param.dataId));
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }();
+
+        function init(){
+            if(changeNode.length > 0){getState();}//遍历节点，初始化关注状态（只有需要取消关注功能的节点，才需要初始化状态）
+            event();
+        }
+
+        function event(){
+            //当dataTypeValue == 1时，增加鼠标hover改变文字提示
+            node.mouseenter(function(){
+                var _state = jQuery(this).attr(param.dataState);
+                dataTypeValue = jQuery(this).attr(param.dataType);
+
+                if(_state == 1 || _state == 2){
+                    if(dataTypeValue == 1){jQuery(this).html(attentText.unFollow);}//如果当前需要取消关注功能，则修改文案
+                }
+            }).mouseleave(function(){
+                var _state = jQuery(this).attr(param.dataState);
+                dataTypeValue = jQuery(this).attr(param.dataType);
+
+                if(_state == 1 || _state == 2){
+                    if(dataTypeValue == 1){jQuery(this).html(attentText.followed);}//如果当前需要取消关注功能，则修改文案
+                }
+            });
+
+            node.click(function(){
+                //获取当前点击元素上的品牌活动ID伪属性data-id
+                currentDom = jQuery(this);
+
+                //activity（活动）、vender（店铺）、product（商品）
+                switch (attentType) {
+                    case 'activity':
+                        para = {activityId : currentDom.attr(param.dataId), sysName : param.sysName, srcType : activityType};
+                        break;
+                    case 'vender':
+                        para = {venderId : currentDom.attr(param.dataId), sysName : param.sysName};
+                        break;
+                    case 'product':
+                        para = {productId : currentDom.attr(param.dataId), sysName : param.sysName};
+                        break;
+                    default:
+                        break;
+                }
+
+                dataTypeValue = currentDom.attr(param.dataType);
+
+                if(dataTypeValue == 1){//如果当前需要取消关注功能
+                    if(currentDom.attr(param.dataState) == 1 || currentDom.attr(param.dataState) == 2){
+                        thick_login(abortAttent);
+                    }else{
+                        thick_login(attent);
+                    }
+                }else{
+                    thick_login(attent);
+                }
+            });
+        }
+
+        //data : 'sysName=sale.jd.com&data=[{"id":"375590","srcType":"1"},{"id":"375498","srcType":"1"},{"id":"376757","srcType":"1"}]' 采销活动数据形式
+        function getState(){
+            //activity（活动）、vender（店铺）、product（商品）
+            var data;
+			
+			/** 分段发送批量请求：20160719吴劲平：实际是50吧，不过建议不要超过30 */
+			function sendFragment(){
+				var idNum = 30;
+				var len = Math.ceil(changeNode.length/idNum);
+				
+				for(var i=0; i<len; i++){
+					var skuFragment =  para.slice(i*idNum , Math.min(para.length , (i+1)*idNum));
+					
+					switch (attentType) {
+						case 'vender':
+							data = {venderIds : skuFragment.toString(), sysName:param.sysName};
+							break;
+						case 'product':
+							data = {productIds : skuFragment.toString(), sysName : param.sysName};
+							break;
+						default:
+							break;
+					}
+					send();
+				}
+			}
+			
+			/** 发送请求 */
+			function send(){
+				$.ajax({
+					url : _INTERFACE.batchIsFollow,
+					data : data,
+					dataType : 'jsonp',
+					success : function(data){
+						if(data.code == 'F10000'){
+							$.each(data.data,function(index,n){
+								/*if(n){
+									var _node = jQuery('[' + param.dataId + '=' + index +']'),
+										dataTypeValue = _node.attr(param.dataType);
+										
+									if(dataTypeValue == 1){_node.html(attentText.followed);}//如果当前需要取消关注功能，则修改文案
+									_node.attr(param.dataState,2).addClass(current);//已关注
+								}else{
+									var _node = jQuery('[' + param.dataId + '=' + index +']'),
+										dataTypeValue = _node.attr(param.dataType);
+										
+									if(dataTypeValue == 1){_node.html(attentText[attentType]);}//如果当前需要取消关注功能，则修改文案
+									_node.attr(param.dataState,0);//未关注
+								}*/
+                                // cdhewu，上面这段代码有问题：如果页面上不止一个相同id的关注节点，但是确实不同的展示类型dataType，那么会引起这些不同节点都按照第一个节点的展示方式来展示。
+                                var _node = jQuery('[' + param.dataId + '=' + index +']');
+                                $.each(_node, function (index, item) {
+                                    var dataTypeValue = jQuery(item).attr(param.dataType);
+                                    if (n) {
+                                        if(dataTypeValue == 1){jQuery(item).html(attentText.followed);}//如果当前需要取消关注功能，则修改文案
+                                        jQuery(item).attr(param.dataState,2).addClass(current);//已关注
+                                    } else {
+                                        if(dataTypeValue == 1){jQuery(item).html(attentText[attentType]);}//如果当前需要取消关注功能，则修改文案
+                                        jQuery(item).attr(param.dataState,0);//未关注
+                                    }
+                                })
+							});
+						}
+					}
+				});
+			}
+			
+			//如果是查询活动关注状态
+			if(attentType == 'activity'){
+				data = 'sysName=' + param.sysName + '&data=' + JSON.stringify(para);
+				send();
+			}else{
+				sendFragment();
+			}
+		
+        }
+
+        function attent(){
+            $.ajax({
+                url : _INTERFACE.follow,
+                data : para,
+                dataType : 'jsonp',
+                success : function(data){
+                    if(data.code == 'F10000'){
+                        if(data.data){
+                            currentDom.attr(param.dataState,1).addClass(current);
+                        }
+                    }else if(data.code == 'F0402'){
+                        if(!data.data){
+                            currentDom.attr(param.dataState,2);
+                        }
+                    }else if(data.code == 'F0410'){
+                        currentDom.attr(param.dataState,3);
+                    }else{
+                        currentDom.attr(param.dataState,4);
+                    }
+					
+					getAttentNum(function(){
+						if(dataTypeValue == 2){
+							//默默关注
+						}else{
+							domOperate();
+						}
+					});//获取关注数量
+                }
+            });
+        }
+
+        function getAttentNum(callBack,scope){
+            $.ajax({
+                url : _INTERFACE.queryForCount,
+                data : {sysName : param.sysName},
+                dataType : 'jsonp',
+                success : function(data){
+                    otherHtml = attentInfo[attentType].msgOther.replace("{attentNum}", data.data);
+					callBack();
+                }
+            });
+        }
+
+        function abortAttent(){
+            $.ajax({
+                url : _INTERFACE.unfollow,
+                data : para,
+                dataType : 'jsonp',
+                success : function(data){
+                    if(data.code == 'F10000'){
+                        if(data.data){
+                            currentDom.attr(param.dataState,0).removeClass(current);
+                            domOperate();
+                        }
+                    }
+                }
+            });
+        }
+
+        init();
+    }
+    jQuery.fn.saleAttent = saleAttent;
+})(window,jQuery);
+/**
+ * @function：获取店铺header，并加载IM咨询入口
+ * @description：区分自营店铺和POP店铺，自营蓝色图标；POP黄色图标；不在线灰色图标
+ * @param：
+ * @author：cdwanchuan@jd.com 2016-05-13
+ */
+(function($,w){
+	var getMallHeader = function(args){
+		var param = jQuery.extend({
+			urlHeader : INTERFACE.mall.getJshopHeader, //获取店铺header接口
+			urlCheckChat : INTERFACE.checkChat, //查询店铺客服状态接口
+			header : '#J-mall-header', //header替换节点
+			im : '#J-jd-im', //IM节点
+			imLink : 'a',
+			appId : '#pageInstance_appId', //appID
+			shopId : '#shop_id', //店铺ID
+			mallType : '#mallType',
+			current : 'current'
+		}, args || {});
+
+		//如果店铺头节点不存在
+		if(jQuery(param.header).length < 1){
+			return;
+		}
+
+		/** 获取店铺header */
+		function getMallHtml(callback){
+			jQuery.ajax({
+				url : param.urlHeader,
+				data : {appId : jQuery(param.appId).val()},
+				dataType : 'jsonp',
+				success : function(data){
+					if(data && data.result == true){
+						domOperateHeader(data);
+						callback();
+					}
+				}
+			});
+
+			function domOperateHeader(data){
+				if(data && data.result == true){
+					jQuery(param.header).replaceWith(data.html);
+					if (jQuery('#mallType').val() != 3) {
+						jQuery('.jSelfLogo').remove();
+					}
+
+					// 拼购店铺-证照信息处理
+					if(data.venderType == 2) {
+						jQuery('.licenceIcon').html('<span>证照信息：</span><span class="iconPerson" title="京东个人身份认证"></span>');
+					}
+
+				}else{
+					jQuery(param.header).replaceWith('');
+				}
+			}
+		}
+
+		/** 获取店铺客服状态 */
+		function getIm(){
+			//如果咚咚节点不存在
+			if(jQuery(param.im).length < 1){
+				return;
+			}
+
+			jQuery.ajax({
+				url : param.urlCheckChat,
+				data : {shopId : jQuery(param.shopId).val()},
+				dataType : 'jsonp',
+				success : function(data){
+					domOperateIm(data);
+				}
+			});
+
+			function domOperateIm(data){
+				var imInfo = {
+					pop : {
+						online : '\u8054\u7cfb\u5356\u5bb6',
+						offline : '\u7559\u8a00\u5356\u5bb6',
+						tipsOnline : '\u70b9\u51fb\u6b64\u5904\u53ef\u8054\u7cfb\u5356\u5bb6\u8fdb\u884c\u54a8\u8be2',
+						tipsOffline : '\u70b9\u51fb\u6b64\u5904\u7ed9\u5356\u5bb6\u7559\u8a00',
+					},
+					self : {
+						online : '\u8054\u7cfb\u4f9b\u5e94\u5546',
+						offline : '\u7559\u8a00\u4f9b\u5e94\u5546',
+						tipsOnline : '\u70b9\u51fb\u6b64\u5904\u53ef\u8054\u7cfb\u4f9b\u5e94\u5546\u8fdb\u884c\u54a8\u8be2\u54e6',
+						tipsOffline : '\u70b9\u51fb\u6b64\u5904\u7ed9\u4f9b\u5e94\u5546\u7559\u8a00\u54e6',
+					}
+				},
+				mallType = jQuery(param.mallType).val().trim(),
+				mallTypeValue;
+
+				switch (mallType) {
+					case '1':
+						mallTypeValue = 'pop';
+						domFill(data);
+						break;
+					case '3':
+						mallTypeValue = 'self';
+						domFill(data);
+						break;
+					default:
+						break;
+				}
+				/** 填充节点值 */
+				function domFill(data){
+					var im = jQuery(param.im),
+						link = im.find(param.imLink);
+
+					if(data.code == 1){
+						link.attr('href', INTERFACE.chat.chat + '?shopId=' + data.shopId + '&code=' + data.code).attr('title', imInfo[mallTypeValue].tipsOnline).html(imInfo[mallTypeValue].online);
+						im.addClass(mallTypeValue+ ' ' + param.current);
+					}else if(data.code == 3){
+						link.attr('href', INTERFACE.chat.chat + '?shopId=' + data.shopId + '&code=' + data.code).attr('title', imInfo[mallTypeValue].tipsOffline).html(imInfo[mallTypeValue].offline);
+						im.addClass(param.current);
+					}else{
+
+					}
+				}
+			}
+		}
+
+		getMallHtml(getIm);
+
+	}();
+
+})(jQuery,window);
+
+/**
+ * @function：获取店铺热搜词和默认搜索词
+ * @description：
+ * @param：
+ * @author：cdhewu@jd.com 2017-05-27
+ */
+(function(){
+	var cateId = $('#mainCategoryId').val();
+	$.ajax({
+		url:'//cds.3.cn/hotwords/get?cate=' + (cateId?cateId:'1'),
+		dataType:"jsonp",
+		success:function(result){
+			if(!result||typeof(result)!='object')
+				return;
+			var data=result;
+			var html='';
+			$.each(data,function(i){
+				var item=data[i];
+				html+='<a href="'+item.url_info+'" target="_blank">'+item.name+'</a>';
+			});
+			$('#hotwords').html(html);
+			var text = '';
+			$('#key01').val(text).bind("focus",function(){
+				if(this.value==text){
+					this.value="";this.style.color="#333"
+				}
+			}).bind("blur",function(){
+				if(!this.value){
+					this.value=text;
+					this.style.color="#999"
+				}
+			});
+		}
+	});
+})();
+/**
+ * @function：其他方法，全局定义
+ * @description：
+ * @author：cdwanchuan@jd.com 2015-12-02
+ */
+
+/** 获取全局参数中配置的静态资源路径 20151202 cdwanchuan@jd.com */
+var RESOURCEPATH = jQuery('#resourcePath').val();
+
+/** 浏览器协议 20151202 cdwanchuan@jd.com */
+var getHttp = function () {
+    return 'https:' == document.location.protocol ? 'https://' : 'http://';
+}
+
+/** 匹配url地址中是否含有http:、https:、//*/
+var urlReg = /^(http:|https:)?\/\/\w+/;
+//url地址非法验证（比如"http://","http:///","https://","https:///","//","///"）
+var urlLegalReg = /^(http:|https:)?\/{2,3}$/;
+
+function getDecType() {
+    var pageValue = {
+        sale: {
+            pc: 11,// 活动PC装修
+            m: 12, // 活动M装修
+            preview: 13// 活动预览
+        },
+        shop: {
+            pc: 21,// 店铺PC装修
+            m: 22, // 店铺M装修
+            preview: 23 // 店铺预览
+        }
+    };
+    var arr = location.pathname.match(/\/editor\/(.*)|\/([^-]+)/);
+    if (arr) {
+        if (arr[1]) {
+            if (arr[1].split('/').length > 1) {
+                var nameArray = arr[1].split('/');
+                return pageValue[nameArray[0]][nameArray[1]]
+            }
+        }
+    }
+    // 当前并非在装修或者预览页面
+    return null;
+}
+
+/**
+ * @function：判断页面：首页
+ * @description：根据页面地址区分不同页面
+ * @param：
+ * @author：cdwanchuan@jd.com 2016-08-03
+ */
+function getPageType() {
+    var pageValue = {
+        index: 1,//首页
+        preview: 2,//预览
+        home: 3,//装修
+        view_search: 4,//二级页面浏览
+        view_page: 4,//自定义页面，走“二级页面浏览”配置
+        view_shop_search: 4,//商品列表页，走“二级页面浏览”配置
+        advance_search: 5,//高级搜索页面
+        shopLevel: 6,//店铺评级
+        showLicence: 7,//店铺资质详情
+        showVerify: 8,//店铺资质验证
+        shopSign: 9,//店铺签到
+        shopCrmLevel: 10//店铺会员
+    };
+
+    var arr = location.pathname.match(/\/editor\/(.*)|\/([^-]+)/),
+        pageName;
+    // 店铺新增了店铺活动装修，所以这里多了一个活动域名下的浏览URL类型。店铺活动的装修和预览共用店铺的URL无需特殊判断
+    if (location.host.indexOf('sale.jd') != -1) {
+        pageName = 'index';
+    } else {
+        if (arr) {
+            if (arr[1]) {
+                pageName = arr[1];
+                if (pageName.indexOf('preview') != -1) {
+                    pageName = 'preview';
+                } else {
+                    pageName = 'home';
+                }
+            } else {
+                pageName = arr[2];
+            }
+        } else {
+            pageName = 'index';
+        }
+    }
+    return pageValue[pageName];
+}
+
+/**
+ * 兼容设计师模板的关注商品
+ * */
+function doAttention(a) {
+    var b = "//t.jd.com/product/followProduct.action?productId=" + a;
+
+    thick_login(function (a) {
+        if (null != a && null != a.IsAuthenticated && a.IsAuthenticated) {
+            var c = 510
+                , d = 440;
+            $.jdThickBox({
+                    type: "iframe",
+                    source: b + "&t=" + Math.random(),
+                    width: c,
+                    height: d,
+                    title: "\u63d0\u793a",
+                    _box: "attboxr",
+                    _con: "attconr",
+                    _countdown: !1,
+                    _frame: 'dialogIframe'
+                }, function () {
+                }
+            )
+        }
+    });
+}
+
+$(".btn-coll").livequery("click", function () {
+    var a = $(this)
+        , b = parseInt(a.attr("id").replace("coll", ""));
+    doAttention(b);
+});
+
+/*
+ * rewrite some methods provided by sys
+ */
+
+(function ($, w) {
+    /*
+     * rewrite console method in order to avoid IE
+     */
+    if (!w.console) {
+        w.console = {};
+        w.console.log = function (str) {
+        };
+    }
+
+    /*
+     * rewrite alert method with dialog widget
+     */
+    if (typeof UI != 'undefined' && UI.dialog) {
+        w.alert = function (str) {
+            UI.dialog.open({
+                sTitle: '京东店铺提示',
+                sContent: gConfig.assembles.dialog_content(str, 1),
+                nBtn: 1,
+                fSure: function () {
+                    UI.dialog.close();
+                }
+            });
+        };
+    }
+    w.setCaret = function (textObj) {
+        if (textObj.createTextRange) {
+            textObj.caretPos = document.selection.createRange().duplicate();
+        }
+    };
+
+    w.insertText = function (obj, str) {
+        if (document.all) {
+            if (obj.createTextRange && obj.caretPos) {
+                var caretPos = obj.caretPos;
+                caretPos.text = caretPos.text.charAt(caretPos.text.length - 1) == '   ' ? str + '   ' : str;
+            } else {
+                obj.value = str;
+            }
+        }
+        else if (obj.selectionStart || obj.selectionStart == '0') {
+            var startPos = obj.selectionStart,
+                endPos = obj.selectionEnd,
+                cursorPos = startPos,
+                restoreTop = obj.scrollTop,
+                tmpStr = obj.value;
+            obj.value = tmpStr.substring(0, startPos) + str + tmpStr.substring(endPos, tmpStr.length);
+            if (restoreTop > 0) {
+                obj.scrollTop = restoreTop;
+            }
+            obj.focus();
+            cursorPos += str.length;
+            obj.selectionStart = obj.selectionEnd = cursorPos;
+        } else {
+            obj.value += str;
+            obj.focus();
+        }
+    };
+})(jQuery, window);
+
+
+(function ($, w) {
+
+    w.gBase = w.gBase || {};
+
+    $.extend(w.gBase, {
+        nMaxZIndex: null,
+        isIE6: (function () {
+            if (window.ActiveXObject) {
+                if (document.documentElement && typeof document.documentElement.style.maxHeight != 'undefined') {
+                    return false;
+                }
+                else {
+                    return true;
+                }
+            }
+            else {
+                return false;
+            }
+        })(),
+        fGetUrlParms: function () {
+            var args = new Object(),
+                qry = location.search.substring(1),//获取查询串
+                pairs = qry.split("&");//在逗号处断开
+            for (var i = 0; i < pairs.length; i++) {
+                var pos = pairs[i].indexOf('=');//查找name=val
+                if (pos == -1) continue;//如果没有找到就跳过
+                var argname = pairs[i].substring(0, pos),//提取name
+                    val = pairs[i].substring(pos + 1);//提取val
+                args[argname] = unescape(val); //存为属性(解码)
+            }
+            return args;
+        },
+        /*
+         This basic logic can get the max 'z-index' property in the range of BODY
+         or somehow specific DOM element.
+         @doc: search range, BODY in default
+         */
+        fGetMaxZIndex: function (doc) {
+            if (gBase.nMaxZIndex) {
+                gBase.nMaxZIndex++;
+                return gBase.nMaxZIndex;
+            }
+            else {
+                return 3000;
+            }
+
+            function _get(doc) {
+                var root = doc ? doc : 'body',
+                    maxZIndex = 0,
+                    children = $(root).children();
+                for (var i = 0, len = children.length; i < len; i++) {
+                    var zIndex = children.eq(i).css('z-index');
+                    if (zIndex == 'auto') {
+                        zIndex = arguments.callee(children[i]);
+                    }
+                    gBase.nMaxZIndex = Math.max(gBase.nMaxZIndex, zIndex);
+                }
+                return gBase.nMaxZIndex;
+            }
+
+            gBase.nMaxZIndex = _get() + 1;
+            return gBase.nMaxZIndex;
+        },
+
+        fMask: function (prefix, color, opacity) {
+            color = color == null ? '#000' : color;
+            opacity = opacity == null ? 20 : opacity;
+            var ch = Math.max($('body').height(), $(window).height()),
+                zindex = this.fGetMaxZIndex();
+            if ($.browser.msie && ($.browser.version.match(/\d/) == 6)) {
+                var ifm = $('iframe id="' + prefix + '_ie6_mask" className="_mask_2012" style="background:#000;position:absolute;width:100%;height:' + ch + 'px;z-index:' + zindex + ';"></iframe>').appendTo('body');
+                $.browser.msie ? $(ifm).css('filter', 'alpha(opacity=' + opacity + ')') : $(ifm).css('opacity', opacity / 100);
+            }
+            $('<div id="' + prefix + '_mask" className="_mask_2012" style="background:' + color + ';position:absolute;top:0px;display:none;width:100%;height:' + ch + 'px;z-index:' + zindex + ';"></div>').appendTo('body').fadeTo(200, opacity / 100);
+        },
+
+        fMaskHide: function (prefix) {
+            $('#' + prefix + '_ie6_mask,#' + prefix + '_mask').remove();
+        },
+        addFavorite: function (title, url) {
+            var _url = url;
+            var _title = title;
+            try {
+                if (document.all) {
+                    window.external.AddFavorite(_url, _title);
+                } else if (window.sidebar) {
+                    window.sidebar.addPanel(_title, _url, "");
+                } else {
+                    alert("对不起，您的浏览器不支持此操作!\n请您使用菜单栏或Ctrl+D收藏本站。");
+                }
+            }
+            catch (e) {
+                alert('对不起，您的浏览器不支持此操作!\n请您使用菜单栏或Ctrl+D收藏本站。');
+            }
+        },
+
+        JSONClone: function (obj) {
+            var _result = {};
+            for (var i in obj) {
+                _result[i] = obj[i];
+            }
+            return _result;
+        }
+    });
+})(jQuery, window);
+
+$.fn.extend({
+    imgOnload: function () {
+    }
+});
+
+$(function () {
+    gBase.nMaxZIndex = gBase.fGetMaxZIndex();
+});
+
+/*店铺模板过期时，提示店家*/
+/*if (getPageType() === 3) {
+ seajs.use(['components/msgbox.min'], function(Msgbox){
+ var msgbox = new Msgbox();
+ $(document).ajaxComplete(function(event, xhr, settings) {
+ event.preventDefault();
+ if(xhr.getResponseHeader('TEMPLATE_OUTDATE') == 'false'){
+ UI.dialog.close();
+ var prompHtml = $('#js-promp-modal').html();
+ if(true){
+ msgbox.confirm({
+ icon: 'notice',
+ msg: prompHtml,
+ confirmText: '续费',
+ cancelText: '还原',
+ confirmCallback: function(bool){
+ if(bool){
+ var url = '//zx.jd.com/detail.html?id=' + $('#J_ShopTplId').val();
+ window.open(url);
+ }else{
+ $.ajax({
+ url: '/app/backup/restoreForExpired.html?appId=' + $('#J_AppId').val(),
+ success: function(result){
+ var data = $.parseJSON(result);
+ if (data.result) {
+ location.reload();
+ }else{
+ msgbox.alert({
+ icon: 'error',
+ msg: '刷新失败！'
+ })
+ }
+ }
+ })
+ }
+ }
+ })
+ }
+ }
+ if(xhr.getResponseHeader('needUpdate') == 1){
+ var currentVersion = xhr.getResponseHeader('currentVersion');
+ var expireTime = xhr.getResponseHeader('expireTime');
+ var newVersion = xhr.getResponseHeader('newVersion');
+ var prompHtml = $('#js-temp-update').html();
+
+ msgbox.confirm({
+ icon: 'tip',
+ masg: prompHtml,
+ confirmText: '替换',
+ cancelText: '不替换',
+ confirmCallback: function(bool){
+ if(bool){
+ $.ajax({
+ url: '/dec/template/useShopTemplate',
+ type: 'GET',
+ data: {
+ tpId: $('#J_ShopTplId').val(),
+ currentVersion: currentVersion,
+ expireTime: expireTime,
+ needUpdate: 1,
+ newVersion: newVersion,
+ status:1,
+ templateEnvMode: 'modifyTemplate'
+ },
+ success: function(data){
+ if (data.result) {
+ location.reload();
+ }else{
+ msgbox.alert({
+ icon: 'error',
+ msg: '替换失败！'
+ })
+ }
+ }
+ })
+ }
+ }
+ })
+ }
+ });
+ });
+ }*/
+
+/**
+ * 进入首页或者预览页面的时候，异步的获取顶通广告和底通广告。
+ * 20171025，cdhewu
+ * */
+if (getPageType() === 1 || getPageType() === 2) {
+    var appendSalesBanner = function () {
+        // 当前页面有顶通广告节点或者底通广告节点
+        if ($('#salePushBannerHeader').length || $('#salePushBannerFooter').length) {
+            var venderId = $('#vender_id').val();
+            if (venderId) {
+                $.ajax({
+                    url: INTERFACE.adBanner.getBanner,
+                    data: {venderId: venderId},
+                    dataType: 'jsonp',
+                    success: function (data) {
+                        if (data.result) {
+                            $('#salePushBannerHeader').html(data.top || '');
+                            $('#salePushBannerFooter').html(data.bottom || '');
+                        }
+                    }
+                })
+            }
+        }
+    };
+    appendSalesBanner();
+}
+
+/**
+ * 进入首页的时候，查询店铺是否有礼包
+ * 20171026，cdhewu
+ * */
+if (getPageType() === 1) {
+    (function ($, win) {
+        var storage = win.Storage('gift'),
+            venderId = $('#vender_id').val(),
+            token = '',
+            expiredTime = 8 * 60 * 60 * 1000; // 默认8个小时过期
+        try {
+            var currentTime = new Date(),
+                currendDate = new Date(currentTime.getFullYear() + '/' + (currentTime.getMonth() + 1) + '/' + currentTime.getDate() + ' 23:59:59');
+            expiredTime = currendDate.getTime() - currentTime.getTime(); // 设置用户领取礼包状态的过期时间
+        } catch (e) {
+
+        }
+
+        var pin = CookieUtil.getCookie('pin');
+
+        /**
+         * 每个用户每天只能展示同一个活动三次：
+         * 1、第一次设置这个活动时，剩余次数为三次
+         * 2、每次设置时，剩余次数减一次
+         * 3、领取礼包成功时，强制设置为展示0次，并且不过期
+         * */
+        var setVenderGiftStatus = function (activityId, num) {
+            if (num != undefined && num != null) {
+                // 强制设为某次数，并且不再过期
+                storage.setItem(pin + activityId, num);
+            } else {
+                var showGiftNum = storage.getItem(pin + activityId);
+                if (showGiftNum) {
+                    // localstorage中已经有这个礼包的数据了
+                    storage.setItem(pin + activityId, Number(showGiftNum) - 1, expiredTime);
+                } else {
+                    // localstorage没有这个礼包数据，说明是第一次展示，由于最多展示3次，所以减去当前展示这一次，就只剩2次了
+                    storage.setItem(pin + activityId, 2, expiredTime);
+                }
+            }
+        };
+
+        var getVendergGiftStatus = function (activityId) {
+            return storage.getItem(pin + activityId);
+        };
+
+        var showSuccessModal = function () {
+            var modalHtml = '<div class="J_giftSuccessModal d-gift-modal d-success">' +
+                '<a href="javascript:void(0);" class="J_giftclose d-close"></a>' +
+                '<a href="javascript:void(0);" class="J_giftclose d-btn">' +
+                '知道了' +
+                '</a>' +
+                '</div>';
+            $('body').append('<div class="J_giftMask d-gift-mask"></div>');
+            $('body').append(modalHtml);
+            var modalWrap = $('.J_giftSuccessModal'),
+                modalMask = $('.J_giftMask');
+            modalWrap.find('.J_giftclose').click(function () {
+                modalWrap.remove();
+                modalMask.remove();
+            });
+        };
+
+        var showErrorModal = function () {
+            var modalHtml = '<div class="J_giftErrorModal d-gift-modal d-error">' +
+                '<a href="javascript:void(0);" class="J_giftclose d-close"></a>' +
+                '<div class="d-body">' +
+                '<div class="d-icon"></div>' +
+                '<p class="d-title">系统开小差了</p>' +
+                '<p class="d-content">请稍后重试</p>' +
+                '</div>' +
+                '<a href="javascript:void(0);" class="d-btn J_giftclose">' +
+                '知道了' +
+                '</a>' +
+                '</div>';
+            $('body').append('<div class="J_giftMask d-gift-mask"></div>');
+            $('body').append(modalHtml);
+            var modalWrap = $('.J_giftErrorModal'),
+                modalMask = $('.J_giftMask');
+            modalWrap.find('.J_giftclose').click(function () {
+                modalWrap.remove();
+                modalMask.remove();
+            });
+        };
+
+        var drawGift = function (activityId) {
+            $.ajax({
+                url: INTERFACE.gift.drawVenderGift,
+                data: {vId: venderId, jshop_token: token, aId: activityId},
+                dataType: 'jsonp',
+                success: function (data) {
+                    if (data.result) {
+                        // 如果成功领取这个活动，那么强制设置这个活动的展示次数为0
+                        setVenderGiftStatus(activityId, 0);
+                        showSuccessModal();
+                    } else {
+                        showErrorModal();
+                    }
+                }
+            })
+        };
+
+        var showGiftModal = function (giftList) {
+            var modalHtml = '<div class="J_giftModal d-gift-modal">' +
+                '<a href="javascript:void(0);" class="J_giftClose d-close"></a>' +
+                '<div class="d-prize J_prizeList">' +
+                '</div>' +
+                '<a href="javascript:void(0);" class="J_drawGift d-btn">' +
+                '领取并关注' +
+                '</a>' +
+                '</div>';
+            $('body').append('<div class="J_giftMask d-gift-mask"></div>');
+            $('body').append(modalHtml);
+            $.each(giftList, function (index, item) {
+                var num = '',
+                    unit = '';
+                if (item.prizeType === 0) {
+                    //	京券
+                    num = '￥' + item.discount;
+                    unit = '京券';
+                } else if (item.prizeType === 1) {
+                    //	东券
+                    num = '￥' + item.discount;
+                    unit = '东券';
+                } else if (item.prizeType === 4) {
+                    //	京豆
+                    num = item.discount;
+                    unit = '京豆';
+                } else if (item.prizeType === 6) {
+                    //	积分
+                    num = item.discount;
+                    unit = '店铺积分';
+                }
+
+                $('.J_giftModal').find('.J_prizeList').append(
+                    '<div class="d-item">' +
+                    '<p class="d-num">' + num + '</p>' +
+                    '<p class="d-type">' + unit + '</p>' +
+                    '</div>'
+                );
+            });
+            var modalWrap = $('.J_giftModal'),
+                modalMask = $('.J_giftMask');
+            modalWrap.find('.J_giftClose').click(function () {
+                // 如果用户点击了礼包弹出框的关闭按钮，表示用户不想看见这个弹窗，强制设置弹窗展示次数为0;
+                setVenderGiftStatus(giftList[0] ? giftList[0].activityId : '', 0);
+                modalWrap.remove();
+                modalMask.remove();
+            });
+            $.ajax({
+                url: INTERFACE.venderFollow.batchIsFollow,
+                data: {
+                    venderIds: $('#shop_id').val(),
+                    sysName: 'mall.jd.com'
+                },
+                dataType: 'jsonp',
+                success: function (data) {
+                    if (data.code == 'F10000') {
+                        $.each(data.data, function (index, n) {
+                            if (n) {
+                                modalWrap.find('.J_drawGift').html('立即领取');
+                            } else {
+                                modalWrap.find('.J_drawGift').click(function () {
+                                    $('#shop-attention').find('.e-attention').trigger('click');
+                                });
+                            }
+                        });
+                    }
+                }
+            });
+            modalWrap.find('.J_drawGift').click(function () {
+                drawGift(giftList[0] ? giftList[0].activityId : '');
+                modalWrap.remove();
+                modalMask.remove();
+            });
+        };
+
+        var parseCode = function (str) {
+            if(str === "")
+                return "";
+            var hexCharCode = [];
+            hexCharCode.push("0x");
+            for(var i = 0; i < str.length; i++) {
+                hexCharCode.push((str.charCodeAt(i)).toString(16));
+            }
+            return hexCharCode.join("");
+        };
+
+        window.venderGift = function () {
+            // 医药城、1号店、自营店铺（待定），不发礼包请求
+            if ($('#JSHOP_CHANNEL_FLAG').val() == 'yao' || $('#J_AppType').val() == '3' || $.trim($('#mallType').val()) == '3') {
+                return;
+            }
+            // 未登录用户不发礼包请求
+            checkLogin(function () {
+                $.ajax({
+                    url: INTERFACE.gift.getVenderGift,
+                    data: {
+                        token: parseCode(venderId + new Date().getTime())
+                    },
+                    dataType: 'jsonp',
+                    success: function (data) {
+                        if (data.result) {
+                            token = data.jshop_token;
+                            // 当前如果还剩余展示次数，就展示。可能的值为： 2,1,0,null
+                            // null 表示还没有展示过这个活动,或者已经过了1天了
+                            // 2,1 表示已经展示过这个活动
+                            // 0 表示用户已经领取这个礼包了，或者1天内已经展示了三次了
+                            if (getVendergGiftStatus(data.giftList.length ? data.giftList[0].activityId : '') !== 0) {
+                                setVenderGiftStatus(data.giftList.length ? data.giftList[0].activityId : '');
+                                showGiftModal(data.giftList);
+                            }
+                        }
+                    }
+                });
+            });
+        };
+
+        window.venderGift();
+    })(jQuery, window);
+}
+
+/**
+ * 进入首页的时候，查询店铺是否有关店信息
+ * 20181217，cdhewu
+ * */
+if (getPageType() === 1) {
+    (function ($, win) {
+
+        var popCloseShopModal = function (closeTime) {
+            var closeDate = new Date(closeTime),
+                closeTimeStr = closeDate.getFullYear() + '年' + (closeDate.getMonth() + 1) + '月' + closeDate.getDate() + '日',
+                modalHtml = '<div class="J_shopCloseModal d-shop-close">' +
+                '    <a href="javascript:void(0);" class="J_closeBtn d-close-btn"></a>' +
+                '    <div class="d-container">' +
+                '        <div class="d-title">' +
+                '            亲爱的客户，您好：' +
+                '        </div>' +
+                '        <div class="d-content">' +
+                '            本店将于<span>'+ closeTimeStr +'</span>停止营业，因此给您带来的不便敬请谅解，如您需要购买本店商品，请在此日期之前下单。<br/>' +
+                '            再次向一直以来关爱本店的您表达真诚的感谢！' +
+                '        </div>' +
+                '    </div>' +
+                '</div>';
+            $('body').append('<div class="J_shopCloseMask d-shop-close-mask"></div>');
+            $('body').append(modalHtml);
+            var shopCloseModal = $('.J_shopCloseModal');
+            var shopCloseMask = $('.J_shopCloseMask');
+            shopCloseModal.find('.J_closeBtn').click(function () {
+                shopCloseModal.remove();
+                shopCloseMask.remove();
+            });
+        };
+
+        $.ajax({
+            url: INTERFACE.shop.checkShopClose,
+            data: {
+                venderId: $('#vender_id').val()
+            },
+            dataType: 'jsonp',
+            success: function (data) {
+                if (data.result) {
+                    if (data.isDisplayAnnouncement && data.closeTime) {
+                        popCloseShopModal(data.closeTime);
+                    }
+                }
+            }
+        });
+    })(jQuery, window);
+}
+
+/**
+ * 获取页面校验白名单列表
+ * Date: 2018-08-24 Author: leeli
+ * 此段代码在node上线后就没有太大作用了，目前开关关闭，不会对内容进行兜底校验
+ */
+(function ($, w) {
+    var eventsAttr = ['animationend', 'animationiteration', 'animationstart', 'transitionend'];
+    var attrRg = /\son[a-z]{3,}\=("|')([^\1]+?)\1/gi, scriptRg = /<script.*?>[\s\S]*?<\/script>/gi;
+    var TER_checkSwitch = $('#J_MidTemplateSwitch').val();
+    var TER_whiteLink = $('#J_MidTemplateWhiteLink').val();
+
+    function checkRenderHtml(html, $module) {
+        if (getPageType() == 3 || !TER_checkSwitch || TER_checkSwitch == 'false') return html;
+        // 装修不校验，校验开关关闭也不校验
+        if ($module.attr('userdefine') && $module.attr('userdefine') == 'true') {
+            html = html.replace(scriptRg, ' ').replace(attrRg, ' ').replace(/\s(href|src)=("|')([^\2]+?)\2/gi, function (match, $a, $b, $c) {
+                var count = 0, whiteLink = [];
+                if (TER_whiteLink && TER_whiteLink != '') {
+                    whiteLink = TER_whiteLink.split(',');
+                    for (var i = 0, ii = whiteLink.length; i < ii; i++) {
+                        if (!whiteLink[i]) break;
+                        var linkReg = new RegExp(whiteLink[i], 'i');
+                        if (linkReg.test($c)) {
+                            break;
+                        } else {
+                            count++;
+                        }
+                    }
+                    if (whiteLink.length == count) {
+                        return $a + '=""';
+                    }
+                }
+                return match;
+            });
+            for (var i = 0, ii = eventsAttr.length; i < ii; i++) {
+                var _reg = new RegExp(eventsAttr[i] + '=(\'|")[^\\1]+?\\1', 'gi');
+                html = html.replace(_reg, ' ');
+            }
+        }
+        return html;
+    }
+
+    w.checkRenderHtml = checkRenderHtml;
+})(jQuery, window);
+
+/**
+ * 屏蔽特定店铺的视频模块
+ * Date: 2019-02-25 Author: cdhewu
+ */
+
+// (function ($, w) {
+//     var mainCategoryId = $('#mainCategoryId').val();
+//
+//     if (mainCategoryId === '9192') {
+//         $(w).scroll(function () {
+//             $('div[modeid="-368"]').hide();
+//             $('div[modeid="69"]').hide();
+//         });
+//         //-368, 69
+//     }
+//
+// })(jQuery, window);

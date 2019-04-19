@@ -1,0 +1,80 @@
+// Using OpenStreetMap in Wikipedia.
+// (c) 2008 by Magnus Manske
+// heavily altered by [[m:User:Danmichaelo]], [[m:User:Hoo man]], [[m:User:Simon04]]
+// Released under GPL
+
+mw.loader.using('mediawiki.util', function() {
+	function openStreetMapToggle() {
+		var a = $( '#coordinates a' ),
+			link = '',
+			url = '';
+		if (a.length === 0) {
+			return;
+		}
+	 
+		if ($('#openstreetmap-container').length > 0) {
+			$('#openstreetmap-container').toggle();
+			return false;
+		}
+		
+		$.each(a, function(index, value) {
+			if ( value.href.indexOf('geohack') === -1 ) {
+				return true; // Returning non-false is the same as a continue
+			}
+			link = value.href;
+			return false; // break
+		});
+		if (link === '') {
+			return false; // No geohack link found
+		}
+		
+		url = '//tools.wmflabs.org/wiwosm/osm-on-ol/kml-on-ol.php?lang=' + mw.config.get('osm_proj_lang') + '&uselang=' + mw.config.get('wgUserLanguage') + '&params=' + link.split('params=')[1] + '&title=' + mw.util.wikiUrlencode( mw.config.get( 'wgTitle' ) ) + '&secure=1';
+		$('#contentSub').append(
+			$('<div>').attr('id', 'openstreetmap-container').css({
+				width: '100%',
+				height: Math.max($(window).height() / 2, 350) + 'px',
+				clear: 'both',
+				'padding-bottom': '15px',
+				'border-bottom': '1px solid #a2a9b1',
+				resize: 'vertical',
+				overflow: 'hidden'
+			}).append(
+				// src has to be passed using .attr as it could contain malicious html!
+				$('<iframe>').attr('id', 'openstreetmap').attr('src', url).css({
+					border: '1px solid #a2a9b1',
+					width: '100%',
+					height: '100%'
+				})
+			)
+		);
+	 
+		return false;
+	}
+	$(function() {
+		var a = $('#coordinates a'),
+			geohack = false;
+		if (a.length === 0) {
+			return;
+		}
+
+		$.each(a, function(index, value) {
+			if ( value.href.indexOf('geohack') === -1 ) {
+				return true;
+			}
+			if (value.href.indexOf('_globe:') !== -1) {
+				return true; // no OSM for moon, mars, etc
+			}
+			geohack = true;
+			return false;
+		});
+		if (!geohack) {
+			return;
+		}
+
+		$('#coordinates').append(
+			mw.config.get('osm_proj_map_prefix', ' ('),
+			$('<a>').attr('id', 'coordinates_map').attr('href', '#').append(mw.config.get('osm_proj_map')).click(openStreetMapToggle),
+			mw.config.get('osm_proj_map_postfix', ')   ')
+		);
+	});
+});

@@ -1,0 +1,85 @@
+// 「もっと見る、閉じる」ボタン
+var link = '#rankModLink';
+// ランキング表示有無切り替え対象
+var show_hide = '#rank4, #rank5, #rank6, #rank7, #rank8, #rank9, #rank10';
+
+// 施設向けランキングモジュール
+(function() {
+    $.recPg = {};
+    $.recPg.setEvent = function() {
+        var apiUrl = '/api/ranking/hotel';
+
+        // 非同期通信
+        $.ajax({
+            url : apiUrl,
+            timeout : $.recPg.timeout,
+            dataType : 'json',
+            success : function(buf) {
+                if (buf.ResultSet.Status === '000000') {
+                    write(buf.ResultSet.Result);
+                    setDefEvent();
+                } else {
+                    return;
+                }
+            },
+            error : function() {
+                return;
+            }
+        });
+    };
+
+    // 施設向けランキング表示
+    function write(buf) {
+        document.getElementById("htl_rank").innerHTML = buf;
+    }
+
+    // 施設向けランキングの初期表示
+    function setDefEvent() {
+        // 掲載枠を数える
+        var rank_cnt = 0;
+        $(".rankModular-txt").each(function() {
+            rank_cnt++;
+        });
+
+        if (rank_cnt < 4) {
+            // 4位以下の施設情報が取得できなかった場合、ボタンを非表示にする
+            $(".rankModular-more").hide();
+        } else {
+            // 4位以下の施設は非表示にする
+            $(show_hide).hide();
+
+            // data-ylkを埋め込む
+            $(link).attr('data-ylk', 'slk:more;pos:0;');
+            //インスタンス生成前には処理しないよう判定処理を追加
+            if (YAHOO.JP.trv.ins != undefined && YAHOO.JP.trv.ins.isModuleTracked("htl_rank")) {
+                YAHOO.JP.trv.ins.refreshModule("htl_rank");
+            }
+
+            // ボタン処理
+            setBtnEvent();
+        }
+    }
+
+    // 「もっと見る、閉じる」ボタンのクリックイベント
+    function setBtnEvent() {
+        $(".rankModular-more-txt").off("click").on("click", function() {
+            var more = 'rankModular-more-icon01'; // 「もっと見る」ボタン
+            var close = 'rankModular-more-icon02'; // 「閉じる」ボタン
+            var button = document.getElementById("rankModBtn");
+
+            if (button.className == more) {
+                // 「もっと見る」ボタン押下時
+                button.className = close;
+                $(show_hide).show();
+                $(this).html($(this).html().replace(/もっと見る/, "閉じる"));
+                $(link).attr('data-ylk', 'slk:close;pos:0;');
+            } else {
+                // 「閉じる」ボタン押下時
+                button.className = more;
+                $(show_hide).hide();
+                $(this).html($(this).html().replace(/閉じる/, "もっと見る"));
+                $(link).attr('data-ylk', 'slk:more;pos:0;');
+            }
+        });
+    }
+})();

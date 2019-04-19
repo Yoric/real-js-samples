@@ -1,0 +1,88 @@
+function getVideo(){
+	// 取得影片網址
+	var video_urls = [];
+	$(".video").each(function(){
+		// 調整影音高度
+		var video_width = $('.video_screen', $(this)).width();
+		var video_height = video_width / 16 * 9;
+		$('.video_screen', $(this)).height(video_height);	
+
+		video_urls.push($(this).data('video_short_url'));
+	});
+	
+	if(video_urls.length > 0){
+		$.get('/api/video/show',{'urls' : video_urls} ,function(result) {
+			for (var i = 0; i < result.videos.length; i++) {
+				$("#video_" + result.videos[i]['short_id']).attr('src', result.videos[i]['url']);
+			};
+			$('.video video').load();
+		}, 'json');
+	}
+}
+
+function addPageViews(){
+	
+	var id = $('#post_id').val();
+
+	$.post('/posts/add_page_views', {id : id} ,function(result) {
+
+		if (result.status == 'success')
+		{	
+			var views = numberFormat(result.views);
+
+			$("#pageViews").html(views);
+
+			$("#pageViews").parent().show();
+		}
+
+	}, 'json');
+}
+
+function checkWeiboUrl()
+{
+	// 因為共用，要檢查目前站 // 內文頁的引用微博連結導到北京
+	var patt_href = new RegExp("ipop.sina.com.tw");
+
+	if (!patt_href.test(location.hostname))
+	{	
+		// 圖片超連結
+		$("p.photo a", "#artiBlock").each(function() {
+			//如果是微博的連結	
+			var href = $(this).attr("href");
+			var patt_href = new RegExp("tw.weibo.com");
+			if (patt_href.test(href))
+			{	
+
+				 new_href = href.replace(patt_href, "weibo.com");
+				 $(this).attr("href", new_href);
+			}
+		});
+
+
+		// 影音
+		$("p.video span.from a", "#artiBlock").each(function() {
+			//如果是微博的連結	
+			var href = $(this).attr("href");
+			var patt_href = new RegExp("tw.weibo.com");
+			if (patt_href.test(href))
+			{	
+
+				 new_href = href.replace(patt_href, "weibo.com");
+				 $(this).attr("href", new_href);
+			}
+		});
+	}
+}
+
+function numberFormat(n) {
+    n += "";
+    var arr = n.split(".");
+    var re = /(\d{1,3})(?=(\d{3})+$)/g;
+    return arr[0].replace(re,"$1,") + (arr.length == 2 ? "."+arr[1] : "");
+}
+
+$(function() {
+	addPageViews();
+	checkWeiboUrl();
+	getVideo();
+});

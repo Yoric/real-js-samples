@@ -1,0 +1,284 @@
+(function(window, console, undefined) {
+
+if (!console || !$.isFunction(console.log)) {
+    console = {
+        log: function(){},
+        error: function(){}
+    };
+}
+
+var popup;
+
+window.openOAuth = function(url, width, height) {
+    if (popup !== undefined) {
+        popup.close();
+    }
+
+    var centerWidth = ($(window).width() - width) / 2;
+    var centerHeight = ($(window).height() - height) / 2;
+
+    popup = window.open(url, "vc_oauth_popup", "width=" + width + ",height=" + height + ",left=" + centerWidth + ",top=" + centerHeight + ",resizable=yes,scrollbars=no,toolbar=no,menubar=no,location=no,directories=no,status=yes");
+    popup.focus();
+
+    if (window['yaCounter26214453']) {
+        window['yaCounter26214453'].reachGoal('GOAL_REGISTER');
+    }
+};
+
+var Popup = {
+    win: undefined,
+    content: undefined,
+    _alert: undefined,
+    _confirm: undefined,
+    _settings: {},
+
+    init: function() {
+        this.$w       = $(window);
+        this.win      = $('#popup-win');
+        this.content  = $('#popup-content');
+        this._alert   = $('#popup-alert').click(Popup._alertClose);
+        this._confirm = $('#popup-confirm');
+
+        $('#popup-close').click(Popup.close);
+        Overlay.init();
+
+        $('body').on("mouseenter", ".tooltip-enabled", function() {
+            var $elem = $(this);
+            var rect = this.getBoundingClientRect();
+            var $tooltip = $elem.find('.tooltip');
+            $('#tooltip')
+                .html($tooltip.html())
+                .css({
+                    top: (rect.top + $elem.height()) + "px",
+                    left: rect.left + "px"
+                });
+        })
+        .on("mouseleave", ".tooltip-enabled", function(e) {
+            $('#tooltip').empty();
+        });
+    },
+
+    opened: function() {
+        return $('html').hasClass('popup-opened');
+    },
+
+    show: function(caption, content, settings) {
+        if (Popup.opened())
+            Popup.win.hide();
+
+        Popup._settings = $.extend({
+            onOpen: undefined,
+            onClose: undefined
+        }, settings);
+
+        Popup.caption(caption);
+        Popup._fill(content);
+        Popup._show();
+    },
+
+    showAjax: function(title, url, params, settings) {
+        var $preloader = $('#popup-preloader');
+        Popup._updatePosition($preloader, 106);
+        $preloader.show();
+        $.get(url, params, function(result) {
+            $preloader.hide();
+            Popup.show(title, result, settings);
+        }, 'html');
+    },
+
+    close: function() {
+        if (Popup._birthplace){
+            Popup._birthplace.append(Popup.content.children());
+            Popup._birthplace = null;
+        }
+        if (!$.browser.msie) {
+            Popup.win.fadeOut(150, Popup.restorePageScroll);
+        }
+        else {
+            Popup.win.attr('style', ' ').hide();
+            Popup.restorePageScroll();
+        }
+        Overlay.hide();
+
+        if ($.isFunction(Popup._settings.onClose))
+            Popup._settings.onClose();
+    },
+
+    caption: function(caption) {
+        $('#popup-caption').text(caption);
+    },
+
+    $: function(selector) {
+        return Popup.content.find(selector);
+    },
+
+    alert: function(title, text) {
+        var $a = Popup._alert;
+        $a.html('<p class="header">' + title + '</p>' + (text ? text : ''));
+        setTimeout(Popup._alertClose, 5000);
+        Popup._showDiv($a, $a.width(), 0);
+    },
+
+    _alertClose: function() {
+        var $a = Popup._alert;
+        if (!$.browser.msie) {
+            $a.fadeOut(500).animate({top: '+=25px'}, {duration: 500, queue: false});
+        }
+        else {
+            $a.hide();
+        }
+    },
+
+    confirm: function(text, callback, settings) {
+        settings = $.extend({
+            destructive: false,
+            yes: 'Да',
+            no: 'Нет'
+        }, settings);
+
+        var yesColor = settings.destructive ? 'red'   : 'green';
+        var noColor  = settings.destructive ? 'green' : 'blue';
+
+        var html = '<div class="popup-glow"><div class="popup-confirm-content">' +
+            '<div class="text">' + text + '</div>' +
+            '<div class="controls">' +
+            '<a class="ok-btn button ' + yesColor + '"><span class="btn-caption">' +
+            settings.yes + '</span><span class="btn-close"></span></a>&nbsp;' +
+            '<a class="button ' + noColor +
+            '" onclick="Popup.closeConfirm(); return false"><span class="btn-caption">' +
+            settings.no + '</span><span class="btn-close"></span></a>' +
+            '</div></div></div>';
+
+        const $a = Popup._confirm;
+        $a.html(html);
+        $a.find('.ok-btn').click(function() {
+            callback();
+            Popup.closeConfirm();
+        });
+        Popup._showDiv($a, $a.width(), 0);
+    },
+
+    closeConfirm: function() {
+        var $a = Popup._confirm;
+        if (!$.browser.msie) {
+            $a.fadeOut(500).animate({top: '+=25px'}, {duration: 500, queue: false});
+        }
+        else {
+            $a.hide();
+        }
+    },
+
+    _fill: function(content) {
+        if ($.type(content) === 'object') {
+            Popup.content.addClass(content.css('className'));
+            if (Popup._settings.width === undefined || Popup._settings.width === null) {
+                Popup._settings.width = content.width();
+            }
+            var maxHeight = this.$w.height() - 200;
+
+            if (content.height() > maxHeight) {
+                Popup.content.css({
+                    height:    maxHeight,
+                    overflowY: 'scroll'
+                });
+            }
+            else {
+                Popup.content.css('overflow', 'hidden');
+            }
+            if (Popup._settings.dontClone) {
+                Popup._birthplace = content;
+                content = content.children();
+            } else {
+                content = content.children().clone();
+            }
+        }
+        Popup.content.empty();
+        Popup.content.append(content);
+    },
+
+    _show: function() {
+        Popup.disablePageScroll();
+        Overlay.show();
+        Popup._showDiv(Popup.win, Popup._settings.width, Popup._settings.onOpen);
+    },
+
+    _showDiv: function($obj, width, callback) {
+        this._updatePosition($obj, width);
+
+        if (!$.browser.msie) {
+            $obj.fadeIn(500).animate({top: '+=25px'}, {duration: 500, queue: false, complete: callback});
+        }
+        else {
+            $obj.css('display', 'block');
+            if ($.isFunction(callback))
+                callback();
+        }
+    },
+
+    _updatePosition: function($obj, width) {
+        var y = this.$w.scrollTop() + (this.$w.height() - $obj.height() - 100) / 2;
+        if (y < 50) {
+            y = 50;
+        }
+
+        $obj.css({
+            top: y + 'px',
+            width: width + 'px',
+            marginLeft: (this.$w.width() - width) / 2 + 'px'
+        });
+    },
+
+    disablePageScroll: function () {
+        if (Popup.opened()) return;
+
+        // save previous page layout
+        Popup._backup = {
+            top: $('html').scrollTop(),
+            pad: $('.overflow-align').css('paddingRight')
+        };
+        var width = $('body').outerWidth(true);
+
+        $('html').addClass('popup-opened');
+
+        // add padding to content
+        var newWidth = $('body').outerWidth(true) - width;
+        $('.overflow-align').css('paddingRight', newWidth + 'px');
+        $('html').scrollTop(Popup._backup.top);
+    },
+
+    restorePageScroll: function() {
+        if (Popup._backup == undefined) return;
+        $('html').removeClass('popup-opened').scrollTop(Popup._backup.top);
+        $('.overflow-align').css('paddingRight', Popup._backup.pad);
+    }
+};
+
+var Overlay = {
+    init: function() {
+        this.$o = $('#popup-overlay');
+        this.$o.click(Popup.close);
+    },
+
+    show: function() {
+        this.$o.height(Popup.$w.scrollTop() + Popup.$w.height());
+        if ($.browser.msie) {
+            this.$o.show();
+        }
+        else {
+            this.$o.stop().fadeIn(250);
+        }
+    },
+
+    hide: function() {
+        if ($.browser.msie) {
+            this.$o.hide();
+        }
+        else {
+            this.$o.stop().fadeOut(250);
+        }
+    }
+};
+
+window.Popup = Popup;
+
+})(window, window.console);

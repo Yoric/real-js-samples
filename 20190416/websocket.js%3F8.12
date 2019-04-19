@@ -1,0 +1,72 @@
+
+function WebSocketClient(options) {
+    options = $.extend({
+        alwaysReconnect: false,
+        autoReconnectSeconds: 5
+    }, options || {});
+    this.alwaysReconnect = !!options.alwaysReconnect;
+    this.autoReconnectInterval = options.autoReconnectSeconds * 1000;
+}
+
+WebSocketClient.prototype.open = function(url) {
+    this.url = url;
+    var ws = this.ws = new WebSocket(this.url);
+    var client = this;
+    var pingInterval = undefined;
+
+    this.ws.onopen = function() {
+        client.onopen();
+        pingInterval = setInterval(function() {
+            ws.send(JSON.stringify({
+                cmd: "ping"
+            }));
+        }, 60000);
+    };
+    this.ws.onmessage = function(msg) {
+        client.onmessage(msg);
+    };
+    this.ws.onclose = function(e) {
+        clearInterval(pingInterval);
+        if (client.alwaysReconnect || e.code !== 1000) {
+            client.reconnect(e);
+        } else {
+            client.onclose(e);
+        }
+    };
+    this.ws.onerror = function(e) {
+        if (e.code === 'ECONNREFUSED') {
+            client.reconnect(e);
+        } else {
+            client.onerror(e);
+        }
+    };
+};
+
+WebSocketClient.prototype.send = function(data, option) {
+    if (this.ws.readyState === this.ws.CLOSED) {
+        console.log("Sending to a closed connection");
+        return;
+    }
+    try {
+        this.ws.send(data, option);
+    } catch (e) {
+        console.log("Error sending data to websocket", e, e.message);
+        this.onerror(e);
+    }
+};
+
+WebSocketClient.prototype.reconnect = function(e) {
+    console.log('WebSocketClient: retry in ' + this.autoReconnectInterval + 'ms', e);
+    this.ondisconnect(e);
+    var that = this;
+    setTimeout(function() {
+        console.log("WebSocketClient: reconnecting...");
+        that.open(that.url);
+    }, this.autoReconnectInterval);
+};
+
+WebSocketClient.prototype.onopen = function(e) { console.log("WebSocketClient: open", arguments); };
+WebSocketClient.prototype.onmessage = function(data, flags, number) { console.log("WebSocketClient: message", arguments); };
+WebSocketClient.prototype.ondisconnect = function(e) { console.log("WebSocketClient: reconnect", arguments); };
+WebSocketClient.prototype.onerror = function(e) { console.log("WebSocketClient: error", arguments); };
+WebSocketClient.prototype.onclose = function(e) { console.log("WebSocketClient: closed", arguments); };

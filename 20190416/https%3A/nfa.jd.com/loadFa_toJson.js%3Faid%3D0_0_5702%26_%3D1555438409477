@@ -1,0 +1,73 @@
+
+;(function(cfg) {
+    if($('body').hasClass('yyp')) {
+        return;
+    }
+
+    if($('#banner-miaosha').length > 0) {
+        return;
+    }
+    /**
+     * inDate([+new Date(2015, 11, 3, 0, 0, 0), +new Date(2015, 11, 3, 0, 0, 0)])
+     */
+    function inDate(date) {
+        var now = +new Date();
+        return now > date[0] && now < date[1];
+    }
+
+    function setTopBanner(r) {
+        var $choose = $('#summary,.summary').eq(0);
+        var tpl = '\
+        <div id="act-top-bottom" clstag="\${cls}" data-name="\${name}" style="height:32px;overflow:hidden;background-color:#ff8a00">\
+            {if materials[0].link}<a target="_blank" href="\${materials[0].link}">{/if}\
+                <img height="32" src="\${materials[0].imagePath}" >\
+            {if materials[0].link}</a>{/if}\
+        </div>';
+
+        $choose.before(tpl.process(r));
+    }
+
+    function getStatus(val, callback, notShowCallback) {
+        var vid = cfg.venderId;
+
+        if (!vid) {
+            if(typeof notShowCallback == 'function') {
+                notShowCallback();
+            }
+            return;
+        }
+
+        $.ajax({
+            url: '//rms.shop.jd.com/json/vender/msmyDynValue.action',
+            data: { venderId: vid },
+            dataType: 'jsonp',
+            jsonpCallback: 'get',
+            success: function (r) {
+                if (r && r.success && r.value === val) {
+                    callback();
+                } else {
+                    if(typeof notShowCallback == 'function') {
+                        notShowCallback();
+                    }
+                }
+            }
+        });
+    }
+
+    // 2017京东家装节 4月1日-5月2日
+    cfg.isDecCat = cfg.cat[0] == 1620 || cfg.cat[0] == 9847 || cfg.cat[0] == 9855 || cfg.cat[0] == 6196
+    if (cfg.isDecCat && false) {
+        if (inDate([+new Date(2017, 3, 1, 0, 0, 1), +new Date(2017, 4, 3, 0, 0, 0)])) {
+            getStatus('423886', function () {
+                $('#banner-shangou').remove();
+                setTopBanner({
+                    materials: [{
+                        imagePath: '//img30.360buyimg.com/devfe/jfs/t4372/345/3592252516/13277/292fb39c/58e455b5N3ca3f406.png'
+                    }],
+                    name: '2017京东家装节',
+                    cls: 'shangpin|keycount|product|ad_jiazhuangjie'
+                });
+            })
+        }
+    }
+})(pageConfig.product);

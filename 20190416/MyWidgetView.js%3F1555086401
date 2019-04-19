@@ -1,0 +1,153 @@
+/**
+ * Представление для виджета рекомендаций
+ *
+ * @requires 'lib/basic.js'
+ * @requires 'lib/constructors.js'
+ * @requires 'tools/tools.pubsub.js' (optional)
+ */
+(function ($, window, cpf) {
+	'use strict';
+
+	var MODULE_NAME = 'MyWidgetView';
+	var setParams = cpf.Basic.moduleOpts.setParams;
+	var fExtend = cpf.Basic.Extend;
+
+	/**
+	 * Настройки для автоинициализации
+	 * @property {string} cssSels.container - Необязательный селектор контейнера для заполнения содержимым. Если не указан, то заполняется парент
+	 * @property {string} cssClss.loaded - модификатор для родительского элемента,
+	 * ставится после завершения загрузки содержимого
+	 * @property {string} cssClss.empty - модификатор для родительского элемента,
+	 * ставится если было получено пустое содержимое
+	 * @property {string} inst - id рекоммендации
+	 * @property {string} canReload - можно ли перезагружать контент (в случае ошибки или всегда). Значения: '', 'error', 'all'
+	 * @property {string} template - переопределяет template для опций mwManager
+	 * @property {object} sdkParams - переопределяет sdkParams для опций mwManager
+	 */
+	var defaultOptions = {
+		cssSels: {
+			Main: {
+				container: null
+			}
+		},
+		cssClss: {
+			loaded: null,
+			empty: null
+		},
+		inst: null,
+		canReload: '',
+		template: null,
+		sdkParams: null
+	};
+
+	var View = cpf.Basic.getView({
+		_Handlers: {
+			model: {
+				'data': _onData
+			}
+		},
+
+		_Init: function (initialData) {
+			var opts = this._opts;
+			var mwManager = window.mwManager;
+
+			if (!opts.inst) {
+				throw new Error(MODULE_NAME + ': не указан inst');
+			}
+
+			var conf = mwManager.getInstData(opts.inst);
+			conf.template = opts.template || conf.template;
+			if (opts.sdkParams) {
+				fExtend(true, conf.sdkParams, opts.sdkParams);
+			}
+
+			this._state = {
+				id: getId(),
+				config: conf,
+				loading: false,
+				loaded: false,
+				templateData: initialData || {}
+			};
+
+			this._state.container = this._elems.container && this._elems.container.length ?
+				this._elems.container :
+				this._elems.parent;
+
+			this._state.template = cpf.Basic.typeOf(conf.template, 'function') ?
+				conf.template.bind(this) : cpf.Tools.getTemplate(conf.template);
+
+			this.reload();
+		},
+
+		/**
+		 * Обновление данных
+		 */
+		reload: function () {
+			var state = this._state;
+			state.loaded = false;
+			this._model.requestContent(state.id, state.config, this._opts.canReload);
+		}
+	}, defaultOptions, null, MODULE_NAME);
+
+	setParams(MODULE_NAME, {
+		acceptTypes: 'MyWidgetModel',
+		paramAttrs: {
+			inst: 'data-inst'
+		}
+	});
+
+	cpf.Basic.Extend(true, window.getNameSpace('Modules', cpf), {
+		MyWidgetView: View
+	});
+
+	// ----------- privates ----------------------------------------
+
+	/**
+	 * Обработчик model-события получения результата запроса.
+	 * @param {object} data – данные с сервера.
+	 */
+	function _onData(data) {
+		var widgetData = data[this._state.id];
+		if (!this._state.loaded && widgetData) {
+			this._state.loaded = true;
+			if (widgetData.data) {
+				_fillContent.call(this, widgetData.data, widgetData.callback);
+			}
+		}
+	}
+
+	/**
+	 * Заполнение контейнера
+	 * @param {object} data.content – данные с сервера.
+	 * @param {object} data.callback – collback для вызова sdk.
+	 */
+	function _fillContent(data, callback) {
+		var state = this._state;
+		var tplData = state.templateData;
+		var addTplData = state.config.templateData;
+		if (addTplData) {
+			if (typeof addTplData === 'function') {
+				addTplData = addTplData.call(this, data);
+			}
+			tplData = fExtend(true, addTplData, state.templateData);
+		}
+		state.container.html(state.template({
+			data: data,
+			templateData: tplData
+		}));
+		callback();
+	}
+
+	// ----------- utils -------------------------------------------
+
+	/**
+	 * Генератор уникального id
+	 */
+	var getId = (function () {
+		var seq = 0;
+		return function () {
+			return (++seq).toString(16);
+		};
+	})();
+
+})(window.jQuery || window.$, window, window.ru.mail.cpf);

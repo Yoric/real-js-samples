@@ -1,0 +1,14 @@
+﻿(function(){
+var s = "<"+"div id=\'beacon_5cb86823fd2e6337d7c85ca8bfe8b8d8\' style=\'position: absolute; left: 0px; top: 0px; visibility: hidden;\'>\n";
+s += "<"+"img width=\"0\" height=\"0\" src=\"https://cat.nl.eu.criteo.com/delivery/lg.php?cppv=2&cpp=rDe5gXx1djByOW5MalpmYmthQmdNTmFwb2tuOW5BSGY5QUU5V1pRSlFXZFB3V3FUVTFQZU9PcGJoYnJ3VFVaVTlNMXNvczl2ZTVZY0hsQ1E5TGJMdEt0L0xNOW5BUTNzVkp0aHozMFFCa21hd08yYnJnSmtPMDdzQ2VnSS9kV1YvSXdZRWFTTStDcUxLaUdOaC80NDZJNjk1czZWZ3gwNjlzcVJ1OFBVU0d0TmdvL0s0bDNtWnBUY082Nzg0eWllWWhWOUxpTnlBODlia0ViaTB0YzRBQ25adlYyMW5GQ0c3UVl3azVWb2d6NWJsdXNwcWVBVHFrVlpoeTBxaTlDb1EwSDJufA\"/>\n";
+s += "<"+"/div>\n";
+s += "<"+"!-- PassBack AdSlot 1 for Ad Unit \'240x400_sport.mail.ru\' ### Size: [[240,400]] -->\n";
+s += "<"+"script src=\'https://www.googletagservices.com/tag/js/gpt.js\'>\n";
+s += "  googletag.pubads().definePassback(\'/205338224/240x400_sport.mail.ru\', [[240,400]])\n";
+s += "                    .setClickUrl(\'%%CLICK_URL_UNESC%%\')\n";
+s += "                    .set(\'page_url\', \'https://sport.mail.ru\')\n";
+s += "                    .display();\n";
+s += "<"+"/script>\n";
+s += "<"+"!-- End -->\n";
+s += "\n";
+document.write(s);})();

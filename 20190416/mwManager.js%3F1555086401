@@ -1,0 +1,141 @@
+(function (window) {
+	if (window.mwManager) {
+		return;
+	}
+
+	var ParamStorage = (function() {
+		function merge(src, dest) {
+			if (!src || Object.prototype.toString.call(src) !== '[object Object]') {
+				return src === void 0 ? dest : src;
+			}
+			dest = dest && Object.prototype.toString.call(dest) === '[object Object]' ? dest : {};
+			var keys = Object.keys(src);
+			for (var i = 0, kle = keys.length; i < kle; ++i) {
+				var key = keys[i];
+				dest[key] = merge(src[key], dest[key]);
+			}
+			return dest;
+		}
+
+		function PS(separator) {
+			this._separator = separator || '.';
+			this._paramsData = {};
+		}
+		PS.prototype = {
+			constructor: PS,
+			set: function(name, opts) {
+				this._paramsData[name || '*'] = merge(opts, this._paramsData[name || '*']);
+			},
+			get: function(name) {
+				return (!name || name === '*') ? merge(this._paramsData['*'] || null) :
+					merge(this._paramsData[name], this.get(name.substr(0, name.lastIndexOf(this._separator))));
+			}
+		};
+		return PS;
+	})();
+
+	var templates = new ParamStorage('.');
+
+	var mwManager = window.mwManager = {
+		prefetch: function (inst) {
+			var args = mwManager.getInstData(inst);
+			if (args && window.myWidget) {
+				window.myWidget.prefetch(args.cid, args.sdkParams);
+			}
+		},
+		getInstData: function (inst) {
+			if (!inst) {
+				return null;
+			}
+			var data = inst.split(':');
+			var tpl = templates.get(data[0]);
+			if (!data[1] || !tpl) {
+				return null;
+			}
+			tpl.cid = data[1];
+			return tpl;
+		},
+		setParams: function (template, opts) {
+			templates.set(template, opts);
+		},
+		setUID: function (uid) {
+			this._uid = uid;
+		},
+		getUID: function () {
+			return this._uid;
+		}
+	};
+
+	// -----def templates -----------------------
+
+	mwManager.setParams('*', {
+		sdkParams: {
+			timeout: 0
+		}
+	});
+
+	mwManager.setParams('big', {
+		template: 'ct-mywidget-big.xml',
+		sdkParams: {
+			n: 3,
+			preview: {
+				width: 450,
+				height: 252,
+				crop: true
+			},
+			titleLength: 77
+		}
+	});
+
+	mwManager.setParams('small', {
+		template: 'ct-mywidget-small.xml',
+		sdkParams: {
+			n: 3,
+			preview: {
+				width: 140,
+				height: 100,
+				crop: true
+			},
+			titleLength: 60
+		}
+	});
+
+	mwManager.setParams('footer-preview', {
+		template: 'ct-mywidget-footer-preview.xml',
+		sdkParams: {
+			n: 4,
+			preview: {
+				width: 260,
+				height: 195,
+				crop: true
+			},
+			titleLength: 55
+		}
+	});
+
+	mwManager.setParams('footer-vertical', {
+		template: 'ct-mywidget-footer-vertical.xml',
+		sdkParams: {
+			n: 4,
+			preview: {
+				width: 140,
+				height: 100,
+				crop: true
+			},
+			titleLength: 60
+		}
+	});
+
+	mwManager.setParams('touch-sect', {
+		template: 'ct-mywidget-touch-sect.xml',
+		sdkParams: {
+			n: 3,
+			preview: {
+				width: 160,
+				height: 114,
+				crop: true
+			},
+			titleLength: 60
+		}
+	});
+})(window);

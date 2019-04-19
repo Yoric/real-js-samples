@@ -1,0 +1,61 @@
+class PushMessage {
+
+    constructor() {
+        this.pushContainer = document.createElement('div');
+        this.pushContainer.id = 'push-container';
+        document.body.appendChild(this.pushContainer);
+        this.pushContainer.addEventListener('click', function () {
+            this.removePush();
+        }.bind(this));
+        this.timeout = null;
+    }
+
+    showPush(title, body, link) {
+        clearTimeout(this.timeout);
+        this.pushContainer.innerHTML = '';
+        var push = this.createPush(this.trimMessage(title, 70), this.trimMessage(body, 100), link);
+        this.pushContainer.appendChild(push);
+        document.getElementById('push-notification__close').addEventListener('click', function () {
+            this.removePush();
+        }.bind(this));
+        this.pushContainer.style.right = '40px';
+        this.timeout = setTimeout(this.removePush.bind(this), 8000);
+    }
+
+    createPush(title, body, link) {
+        var push = document.createElement('div');
+        push.id = "push-notification";
+        push.innerHTML =
+            '<a href="' + link + '" target="_blank" class="push-notification__logo-container push-link">' +
+            '<div class="push-notification__logo"></div>' +
+            '</a>' +
+            '<a href="' + link + '" target="_blank" class="push-notification__text push-link">' +
+            '<div class="push-notification__title">' +
+            title +
+            '</div>' +
+            '<div class="push-notification__body">' +
+            body +
+            '</div>' +
+            '</a>' +
+            '<div id="push-notification__close">✕</div>';
+        return push;
+    }
+
+    trimMessage(string, maxLength) {
+        if (string.length <= maxLength) {
+            return string;
+        }
+        var shortened = string.substring(0, maxLength);
+        return shortened.substring(0, shortened.lastIndexOf(' ')) + '...';
+    }
+
+    removePush() {
+        this.pushContainer.style.right = '-440px';
+        clearTimeout(this.timeout);
+        this.timeout = setTimeout(function () {
+            this.pushContainer.innerHTML = '';
+        }.bind(this), 200)
+
+    }
+
+}

@@ -1,0 +1,3 @@
+if (self.CavalryLogger) { CavalryLogger.start_js(["OTvuH"]); }
+
+__d("AdsUEditorCampaignGroupToggleDayPartingReducerPlugin",["AdsCampaignGroupBudgetMutationUtils","AdsMutators","AdsUEditorCampaignGroupReducerUtils","AdsUEditorCampaignGroupToggleDayPartingActionFlux"],(function(a,b,c,d,e,f){"use strict";a={reduce:b("AdsUEditorCampaignGroupReducerUtils").createReducer({},function(a,c){return b("AdsMutators").mutateEach(a,c.campaignGroupIDs,function(a){return b("AdsCampaignGroupBudgetMutationUtils").setCampaignGroupDayParting(a,c.useDayParting)})},b("AdsUEditorCampaignGroupToggleDayPartingActionFlux").actionType)};e.exports=a}),null);

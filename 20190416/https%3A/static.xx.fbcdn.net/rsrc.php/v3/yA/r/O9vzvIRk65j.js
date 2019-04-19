@@ -1,0 +1,3 @@
+if (self.CavalryLogger) { CavalryLogger.start_js(["2oCTb"]); }
+
+__d("UFIReactionsAnimatedLikeActionIcon.react",["Keyframes.react","React","UFIReactionsKeyframesAssets"],(function(a,b,c,d,e,f){"use strict";__p&&__p();a=function(a){babelHelpers.inheritsLoose(c,a);function c(){return a.apply(this,arguments)||this}var d=c.prototype;d.render=function(){return b("React").createElement(b("Keyframes.react"),babelHelpers["extends"]({projectName:"feedback_reactions",assetName:"like_action",source:b("UFIReactionsKeyframesAssets").likeAction,width:36,playing:!0,repeatCount:1},this.props))};return c}(b("React").Component);e.exports=a}),null);

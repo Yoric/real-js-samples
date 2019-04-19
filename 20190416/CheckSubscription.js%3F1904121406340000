@@ -1,0 +1,6 @@
+(function () {
+    if (!Fcm) return false;
+    new Fcm().checkSubscription().catch(e => {
+        console.warn(e.message);
+    });
+})();

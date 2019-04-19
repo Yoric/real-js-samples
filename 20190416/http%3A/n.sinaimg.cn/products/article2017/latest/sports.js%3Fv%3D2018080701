@@ -1,0 +1,1295 @@
+// 20171218124836
+(function() {
+        var ua = navigator.userAgent.toLowerCase(); var isIE6 = /msie 6/.test(ua); var extend = function(destination, source) {for (var property in source) {destination[property] = source[property]; } return destination; }; var setStyles = function(ele, styles) {for (property in styles) {ele.style[property] = styles[property]; } }; var getOffset = function(ele) {var top = 0; var left = 0; while (ele != null && ele != document.body) {left += ele.offsetLeft; top += ele.offsetTop; ele = ele.offsetParent; } return {top: top, left: left }; }; var hasClass = function(el, clz) {if (!el) {return false; } return el.className.match(new RegExp('(\\s|^)' + clz + '(\\s|$)')); }; var addClass = function(el, clz) {if (!hasClass(el, clz)) {el.className = el.className.replace(/(^\s*)|(\s*$)/g, '') + ' ' + clz; } }; var removeClass = function(el, clz) {if (hasClass(el, clz)) {var reg = new RegExp('(\\s|^)' + clz + '(\\s|$)'); el.className = el.className.replace(reg, ' '); } }; var addEvent = function(el, evType, func, useCapture) {if (typeof useCapture == 'undefined') {useCapture = false; } if (el.addEventListener) {el.addEventListener(evType, func, useCapture); return true; } else if (el.attachEvent) {el.attachEvent('on' + evType, func); return true; } else {el['on' + evType] = func; } };
+        var ScrollFix = function(wrap, config) {
+            var defaults = {
+                getTop: function(wrap){
+                    return 0;
+                },
+                getHeight:function(wrap){
+                    return wrap.offsetHeight;
+                },
+                fixed:function(wrap,scrollTop,offsetTop,top){
+                    return scrollTop > offsetTop-top;
+                },
+                onFix:function(wrap){
+
+                },
+                onUnFix:function(wrap){
+
+                }
+            };
+            config = extend(defaults, config);
+            var pNode = wrap.parentNode;
+            var divFilled = document.createElement('div');
+            pNode.insertBefore(divFilled, wrap);
+            if(isIE6){
+                var position = pNode.style.position;
+                if(position!=='absolute'&&position!=='relative'){
+                    setStyles(pNode, {
+                        position:'relative'
+                    });
+                }
+            }
+            var fixedClz = config.fixedClz||'fixed';
+            var toggle = function(b) {
+                var height = '1px';
+                var marginTop = '-1px';
+                if (b) {
+                    height = config.getHeight(wrap) + 'px';
+                    marginTop = 0;
+                }
+                setStyles(divFilled, {
+                    height:height,
+                    marginTop:marginTop,
+                    overflow:'hidden'
+                });
+            };
+            var scrollHandle = function() {
+                var offsetTop = getOffset(divFilled).top;
+                var scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+                var top = config.getTop(wrap)||0;
+                if (config.fixed(wrap,scrollTop, offsetTop,top)) {
+                    toggle(true);
+                    addClass(wrap, fixedClz);
+
+                    if(isIE6){
+                        top = top+scrollTop- getOffset(pNode).top;
+                    }
+                    setStyles(wrap,{
+                        top:top+'px'
+                    });
+                    config.onFix(wrap);
+                } else {
+                    toggle(false);
+                    removeClass(wrap, fixedClz);
+                    config.onUnFix(wrap);
+                }
+            }
+            var timerId = null;
+            addEvent(window, 'scroll', function() {
+                if (!timerId) {
+                    scrollHandle();
+                    timerId = true;
+                } else {
+                    clearTimeout(timerId);
+                    setTimeout(function() {
+                        scrollHandle();
+                    }, 100);
+                }
+            });
+            scrollHandle();
+        };
+        window.ScrollFix = ScrollFix;
+    })();
+
+
+$('[node-type="toTop"]').on("click", function() {
+    $("body,html").animate({
+        scrollTop: 0
+    }, 500);
+    return false;
+});
+$('[node-type="toRelated"]').on("click", function() {
+    var a = $("#tab_related").offset().top;
+    $("body,html").animate({
+        scrollTop: a
+    }, 500);
+    return false;
+});
+$(window).on("scroll", function() {
+    var a = $(document).scrollTop();
+    if (a >= 800) {
+        $('[node-type="toTop"]').removeClass("fadeOut");
+    } else {
+        $('[node-type="toTop"]').addClass("fadeOut");
+    }
+});
+SinaPage.loadWidget({
+    trigger: {
+        id: "top_bar_wrap"
+    },
+    require: [{
+        url: "//finance.sina.com.cn/other/src/pageTools.final.js"
+    }],
+    triggerAhead: false,
+    onAfterLoad: function() {
+        new PageTool.SetScrollFixed({
+            wrap: "top_bar",
+            start: "top_bar_wrap",
+            end: "article-bottom",
+            fixedClass: "top-bar-fixed"
+        });
+    }
+});
+SinaPage.loadWidget({
+    require: [{
+        url: "//finance.sina.com.cn/other/src/pageTools.final.js"
+    }, {
+        url: "//n.sinaimg.cn/finance/fe/share.min.js"
+    }],
+    onAfterLoad: function() {
+        new PageTool.FontAdjustor();
+        new PageTool.AddFavorite({
+            docid: SINA_TEXT_PAGE_INFO.docID
+        });
+        var c = document.getElementById("artibody").getElementsByTagName("img")[0];
+        var b = $(".main-title").html().replace(/<[^<>]*?font[^<>]*?>/gi, "");
+        var a = window.location.href;
+        var d = new FnShare("#top_bar", {
+            url: a,
+            wxurl: a,
+            img: c ? c.src : "",
+            title: b,
+            security: "http"
+        });
+        $('[node-type="comment"]').on("click", function() {
+            var e = $("#bottom_sina_comment").offset().top;
+            $("body,html").animate({
+                scrollTop: e
+            }, 500);
+        });
+    }
+});
+SinaPage.loadWidget({
+    require: [{
+        url: "//n.sinaimg.cn/ent/mainpage/js/pl/DivSelect.js"
+    }, {
+        url: "//ent.sina.com.cn/470/2014/0328/search_suggest.js"
+    }],
+    onAfterLoad: function() {
+        new DivSelect("search_type", "search_type_div");
+        var e = document.cheadSearchForm;
+        var a = e.c;
+        var b = e.q;
+        var d = function() {
+            e.submit();
+        };
+        var c = function() {
+            return a.value === "news";
+        };
+        new searchsUggest({
+            input: b,
+            maxLen: 10,
+            placeholderStr: "\u8bf7\u8f93\u5165\u5173\u952e\u8bcd",
+            showHotList: c,
+            showSuggestList: c,
+            onSelect: d
+        });
+        e.onsubmit = function() {
+            var f = this.q.value;
+            if (!f || f == "\u8bf7\u8f93\u5165\u5173\u952e\u8bcd") {
+                alert("\u8bf7\u8f93\u5165\u641c\u7d22\u5173\u952e\u8bcd!");
+                this.q.focus();
+                return false;
+            }
+        };
+    }
+});
+SinaPage.loadWidget({
+    require: [{
+        url: "//finance.sina.com.cn/other/src/article-comment-2017.js"
+    }],
+    onAfterLoad: function() {
+        var g = window.SINA_TEXT_PAGE_INFO;
+        var a = window.___sinacMNT___;
+        var c = "bottom_sina_comment";
+        var f = {
+            channel: g.channel,
+            newsid: g.newsid,
+            allNewsid: "",
+            parent: "",
+            encoding: "utf-8",
+            commented: function(i, h) {},
+            share_url: location.href.split("#")[0],
+            video_url: "",
+            img_url: "",
+            postTip: "\u6211\u6709\u8bdd\u8981\u8bf4...",
+            autoGrow: false,
+            content: ""
+        };
+        var e = true;
+        var d = {
+            url: "",
+            channel: g.channel,
+            newsid: g.newsid,
+            group: 0,
+            encoding: "utf-8",
+            hotPageNum: 3,
+            latestPageNum: 3,
+            replyShowNum: 3,
+            replyPageNum: 15,
+            replyClickMoreTimes: 3,
+            clickMoreTimes: 0,
+            maxWordCount: 200,
+            loaded: function(h) {
+                var i = function i(j) {
+                    j = j + "";
+                    var k = /(-?\d+)(\d{3})/;
+                    while (k.test(j)) {
+                        j = j.replace(k, "$1,$2");
+                    }
+                    return j;
+                };
+                /*if (h.data && h.data.count && h.data.count.total) {
+                    $('[node-type="comment-num"]').html(i(h.data.count.total));
+                }*/
+
+                //如果评论关闭，隐藏顶部评论icon 和数字
+                if(h.data.news.status=='N_CLOSE'){
+                    $('.tool-icon.tool-cmt').hide();
+                }else{
+                    if (h.data && h.data.count && h.data.count.total) {
+                        var numStr = i(h.data.count.total);
+                        $('[node-type="comment-num"]').html(numStr);
+                    }else{
+                        $('[node-type="comment-num"]').html('');
+                    }
+
+                }
+
+                if (e) {
+                    $(".sina-comment-form").attr("data-sudaclick", "make_comment");
+                    $(".sina-comment-list").attr("data-sudaclick", "comment_content");
+                    e = false;
+                }
+            },
+            beforeLoad: function() {}
+        };
+        var b = {
+            isBBS: 0,
+            hideList: SINA_TEXT_PAGE_INFO.hideCommentList,//是否隐藏列表:某些新闻需要隐藏
+            hideComment:SINA_TEXT_PAGE_INFO.hideComment//是否隐藏评论
+        };
+        window.bottom_comment = new a.cmnt.FormList(c, f, d, b);
+    }
+});
+SinaPage.loadWidget({
+    trigger: {
+        id: "tab_related"
+    },
+    require: [
+        [{
+            url: "//sjs0.sinajs.cn/video/sinaplayer/js/page/player_v1.js"
+        }, {
+            url: "//h5.sinaimg.cn/m/videoPlayer/js/ty.e56f55e8.js"
+        }, {
+            url: "//news.sina.com.cn/js/pctianyi/sima.js"
+        }], {
+            url: "//news.sina.com.cn/js/pctianyi/tianyi.js"
+        },
+        /*{
+            url: "//n.sinaimg.cn/finance/pctianyi_wdg/apps/ent-atc-feed/js/feed-app.js?t=201010111909"
+        }, */
+        {
+            url: "//n.sinaimg.cn/finance/page/ent/js/weiboList.js"
+        }, {
+            url: "//n.sinaimg.cn/finance/fe/Tab-min.js"
+        }
+    ],
+    onAfterLoad: function() {
+    	(function(){
+    	    // 获取全部可用插件
+    	    var allPludgins = tianYi.CardList.getAvailablePlugin().all;
+
+    	    // 天乙feed实例化
+    	    var cardList = new tianYi.CardList({
+    	        wrap: '#tycard_list',
+    	        isTianYi: false, // 设为false将可在data中自行指定uid
+    	        defaultPlugins: [], // 禁用默认插件配置
+    	        plugins: [allPludgins['basePlugin-a'], allPludgins['interactionPlugin-a'], allPludgins['analysisPlugin-a'], allPludgins['scrollLoadPlugin-a']({
+    	            scrollLoadTimes: 7
+    	            // scrollLoadTimes: 3
+    	        }), allPludgins['plugin-video'], allPludgins['plugin-video-play'], allPludgins['plugin-mpics'], allPludgins['plugin-live'], allPludgins['plugin-topic'], allPludgins['moto-plugin'], allPludgins['plugin-weibo'], allPludgins['plugin-weibo-video-play']], // 自定义feed插件
+    	        read: {
+    	            url: '//cre.mix.sina.com.cn/api/v3/get',
+    	            data: {
+    	                cateid: '1Q',
+    	                cre: 'tianyi',
+    	                mod: 'pcpager_spt',
+    	                merge: 3,
+    	                statics: 1,
+    	                this_page: 1,
+    	                length: 40,
+    	                up: 0,
+    	                down: 0,
+    	                cateid: 'sina_all',
+    	                pageurl: location.href,
+    	                imp_type: 2,
+    	                fields: 'media,author,labels_show,commentid,comment_count,title,ltitle,url,info,thumbs,thumb,ctime,reason,category,video_id,hotTag,img_count,gif,live_stime,live_etime,media_id,summary,orgUrl,show,intro,docid,playtimes,video_height,video_width,time_length,user_icon,uid',
+    	                tm: parseInt((new Date()).getTime() / 1e3, 10),
+    	                action: 0,
+    	                top_id: window.iidsList && window.iidsList.join(','),
+    	                offset: 0,
+    	                ad: JSON.stringify({
+    	                    rotate_count: 100, // 广告轮播
+    	                    platform: 'pc',
+    	                    channel: 'tianyi_pcpager_spt',
+    	                    page_url: encodeURI(location.href),
+    	                    timestamp: (new Date()).getTime()
+    	                })
+    	            },
+    	            dataType: 'jsonp'
+    	        },
+    	        timeout: 7e3,
+    	        // timeout: 10,
+    	        // 标签链接前缀
+    	        tagUrl: 'http://tags.sports.sina.com.cn/@tag@',
+    	        // 是否允许feed中出现重复内容，是则不会进行前端排重
+    	        allowDupCont: false,
+    	        // 数据是否有效，如返回false会触发load-error事件
+    	        hasRightResult: function(data) {
+    	            return true;
+    	        },
+    	        // 数据是否加载完了，如返回true会触发load-full事件
+    	        hasFullLoaded: function (data) {
+    	            var isFullLoaded = false;
+    	            if (data.status && data.status.end === 0) {
+    	                isFullLoaded = true;
+    	            }
+    	            return isFullLoaded;
+    	        },
+    	        success: function(data) {
+    	        },
+    	        error: function(data) {
+    	        },
+    			// 自定义大分页底部提示
+    			// customBottomText : '已经到底了~',
+    			// 大分页加载前回调
+    			onBeforeReloadBottom : function () {
+    				$('html,body')
+    					.stop(true, false)
+    					.animate({scrollTop: $('#tycard_list').offset().top}, 500);
+    			},
+    	        // 广告获取feed视觉起始条数
+    	        getMotoStartIndex : function () {
+    	            // 根据cms置顶条数，获取feed视觉起始条数
+    	            return 0;
+    	        },
+    	        // 条目是否隐藏媒体信息
+    	        hideMedia : function (data) {
+    	            return true;
+    	        },
+    	        // 条目是否隐藏负反馈
+    	        hideDislike : function (data) {
+    	            return true;
+    	        },
+    	        // 当前条目是否隐藏视频前缀
+    	        hideVideoPrefix : function (data) {
+    	            return false;
+    	        },
+    	        // 是否不采用640视频模板
+    	        hide640WVideo : function () {
+    	            // ipad及正文内有视频时仍显示小视频
+    	            if (window.isIpad || ( window.SINA_TEXT_PAGE_INFO && window.SINA_TEXT_PAGE_INFO['videoDatas'] )) {
+    	                return true;
+    	            }
+    	            return false;
+    	        },
+    	        // cms播放器皮肤选择，默认3
+    	        cmsPlayerSkin : 3,
+    	        // cms播放器控制栏呈现，默认0
+    	        cmsPlayerVideoCtrl : 0,
+    	        // 补充点击评论统计字段
+    	        fixClickCmntSIMAData : function (simaData) {
+    	            simaData.column = 'related_news';
+    	            simaData.mod = 'pcpager_spt';
+    	        },
+    	        // 补充点击标签统计字段
+    	        fixClickTagSIMAData : function (simaData) {
+    	            simaData.column = 'related_news';
+    	            simaData.mod = 'pcpager_spt';
+    	        },
+    	        // 补充点击链接统计字段
+    	        fixClickURLSIMAData : function (simaData) {
+    	            simaData.column = 'related_news';
+    	            simaData.mod = 'pcpager_spt';
+    	        },
+    	        // 补充负反馈统计字段
+    	        fixDislikeSIMAData : function (simaData) {
+    	            simaData.column = 'related_news';
+    	            simaData.mod = 'pcpager_spt';
+    	        },
+    	        // 补充曝光统计字段
+    	        fixExposeSIMAData : function (simaData) {
+    	            simaData.column = 'related_news';
+    	            simaData.mod = 'pcpager_spt';
+    	        }
+    	    });
+
+    	    cardList.load();
+
+    	    window.cardList = cardList;
+    	})();
+
+
+
+        new PageTool.SetScrollFixed({
+            wrap: "tab_related_btn",
+            start: "tab_related",
+            fixedClass: "tab-related-fixed"
+        });
+        var a = new Tab({
+            bonds: [
+                ["tab01_btn01", "tab01_cont01"],
+                ["tab01_btn02", "tab01_cont02"]
+            ],
+            selected: "cur",
+            trigger: "click",
+            onAfter: function(e) {
+                var c = this;
+                var b = $("#tab01_btn02");
+                var d = $("#tab_related").offset().top;
+                $("body,html").animate({
+                    scrollTop: d
+                }, 500);
+                if (e == 1 && b.attr("data-first") != "1") {
+                    new WeiboList({
+                        id: "related_wb",
+                        url: '//widget.weibo.com/hotmblog/feedlist.php?type=sina_sports&keyword=',
+                        keywords: $("#keywords").attr("data-wbkey")
+                    });
+                    b.attr("data-first", "1");
+                }
+            }
+        });
+    }
+});
+/*SinaPage.loadWidget({
+    require: [{
+        url: "//finance.sina.com.cn/other/src/pageTools.final.js"
+    }, {
+        url: "//n.sinaimg.cn/finance/fe/doT.min.js"
+    }],
+    onAfterLoad: function() {
+        new PageTool.TPLRander({
+            tplId: "TPL_kandian",
+            wrap: "wrap_kandian",
+            api: SinaPage.config.apis.kandian,
+            dataType: "jsonp",
+            apiData: {},
+            hasData: function(a) {
+                var b;
+                if (a && a.result && a.result.data && a.result.data.length > 0) {
+                    b = true;
+                } else {
+                    b = false;
+                }
+                return b;
+            },
+            formatData: function(a) {
+                return a.result.data;
+            },
+            onSuccess: function(a) {},
+            onError: function(a) {}
+        });
+    }
+});*/
+/*SinaPage.loadWidget({
+    trigger: {
+        id: "wrap_wbHot"
+    },
+    onAfterLoad: function() {
+        $("#wrap_wbHot").attr("src", "http://ent.sina.com.cn/iframe/zw/wb.shtml");
+    }
+});*/
+/*SinaPage.loadWidget({
+    trigger: {
+        id: "wrap_hotSearch"
+    },
+    require: [{
+        url: "//finance.sina.com.cn/other/src/pageTools.final.js"
+    }, {
+        url: "//n.sinaimg.cn/finance/fe/doT.min.js"
+    }],
+    onAfterLoad: function() {
+        new PageTool.TPLRander({
+            tplId: "TPL_hotSearch",
+            wrap: "wrap_hotSearch",
+            api: SinaPage.config.apis.hotSearch,
+            dataType: "jsonp",
+            apiData: {},
+            hasData: function(a) {
+                var b;
+                if (a && a.result && a.result.data && a.result.data.length > 0) {
+                    b = true;
+                } else {
+                    b = false;
+                }
+                return b;
+            },
+            formatData: function(a) {
+                return a.result.data;
+            },
+            onSuccess: function(a) {},
+            onError: function(a) {}
+        });
+    }
+});*/
+/*SinaPage.loadWidget({
+    trigger: {
+        id: "wrap_newsRank"
+    },
+    require: [{
+        url: "//finance.sina.com.cn/other/src/pageTools.final.js"
+    }, {
+        url: "//n.sinaimg.cn/finance/fe/doT.min.js"
+    }],
+    onAfterLoad: function() {
+        new PageTool.TPLRander({
+            tplId: "TPL_newsRank",
+            wrap: "wrap_newsRank",
+            api: SinaPage.config.apis.newsRank,
+            dataType: "jsonp",
+            apiData: {},
+            hasData: function(a) {
+                var b;
+                if (a && a.result && a.result.data && a.result.data.length > 0) {
+                    b = true;
+                } else {
+                    b = false;
+                }
+                return b;
+            },
+            formatData: function(a) {
+                return a.result.data;
+            },
+            onSuccess: function(a) {},
+            onError: function(a) {}
+        });
+    }
+});*/
+/*SinaPage.loadWidget({
+    trigger: {
+        id: "wrap_bagua"
+    },
+    require: [{
+        url: "//finance.sina.com.cn/other/src/pageTools.final.js"
+    }, {
+        url: "//n.sinaimg.cn/finance/fe/doT.min.js"
+    }],
+    onAfterLoad: function() {
+        new PageTool.TPLRander({
+            tplId: "TPL_bagua",
+            wrap: "wrap_bagua",
+            api: SinaPage.config.apis.bagua,
+            dataType: "jsonp",
+            apiData: {},
+            hasData: function(a) {
+                var b;
+                if (a && a.result && a.result.data && a.result.data.length > 0) {
+                    b = true;
+                } else {
+                    b = false;
+                }
+                return b;
+            },
+            formatData: function(a) {
+                var c = [];
+                for (var f = 0; f < a.result.data.length; f++) {
+                    var b = a.result.data[f];
+                    var e = b.title || "";
+                    var d = b.url;
+                    if (e != "") {
+                        c.push({
+                            title: e,
+                            url: d
+                        });
+                    }
+                }
+                return c;
+            },
+            onSuccess: function(a) {},
+            onError: function(a) {}
+        });
+    }
+});*/
+/*SinaPage.loadWidget({
+    trigger: {
+        id: "wrap_HdSlider"
+    },
+    require: [{
+        url: "//finance.sina.com.cn/other/src/pageTools.final.js"
+    }, {
+        url: "//n.sinaimg.cn/finance/fe/doT.min.js"
+    }, {
+        url: "//n.sinaimg.cn/finance/fe/slider-min.js"
+    }],
+    onAfterLoad: function() {
+        new PageTool.TPLRander({
+            tplId: "TPL_HdPic",
+            wrap: "HdSilder_pics",
+            api: SinaPage.config.apis.hdPic,
+            dataType: "jsonp",
+            apiData: {},
+            hasData: function(a) {
+                var b;
+                if (a && a.result && a.result.data && a.result.data.length > 0) {
+                    b = true;
+                } else {
+                    b = false;
+                }
+                return b;
+            },
+            formatData: function(a) {
+                return a.result.data;
+            },
+            onSuccess: function(a) {
+                var b = new Slider({
+                    wrap: "HdSilder_pics",
+                    itemClass: "slider-item",
+                    autoPlay: false,
+                    onReady: function() {
+                        var h = this,
+                            g = this.conf.isLoop ? this.states.total / 2 : this.states.total,
+                            k = this._id("hd_slider_dot"),
+                            e = this._id("hd_slider_prev"),
+                            d = this._id("hd_slider_next"),
+                            j = "",
+                            c = "";
+                        for (var f = 0; f < g; f++) {
+                            j = f == 0 ? "dot_list cur" : "dot_list";
+                            if (f == g - 1) {
+                                j = "dot_list last";
+                            }
+                            c += '<span class="' + j + '" data-index="' + f + '"></span>';
+                        }
+                        k.innerHTML = c;
+                        this.doms.dots = k.getElementsByTagName("span");
+                        $(".dot_list").on("mouseover", function() {
+                            var i = $(this).index();
+                            h.slideTo(i);
+                        });
+                        this._addEvent(e, "click", function() {
+                            h.prev();
+                        });
+                        this._addEvent(d, "click", function() {
+                            h.next();
+                        });
+                    },
+                    onIndexChanged: function(c) {
+                        var e = this,
+                            f = this.doms.dots,
+                            d = this.conf.isLoop ? this.states.total / 2 : this.states.total;
+                        $(f).removeClass("cur");
+                        $(f[c % d]).addClass("cur");
+                    }
+                });
+            },
+            onError: function(a) {}
+        });
+    }
+});*/
+/*SinaPage.loadWidget({
+    trigger: {
+        id: "wrap_videoList"
+    },
+    require: [{
+        url: "//finance.sina.com.cn/other/src/pageTools.final.js"
+    }, {
+        url: "//n.sinaimg.cn/finance/fe/doT.min.js"
+    }],
+    onAfterLoad: function() {
+        new PageTool.TPLRander({
+            tplId: "TPL_videoList",
+            wrap: "wrap_videoList",
+            api: SinaPage.config.apis.videoList,
+            dataType: "jsonp",
+            apiData: {},
+            hasData: function(a) {
+                var b;
+                if (a && a.result && a.result.data && a.result.data.length > 0) {
+                    b = true;
+                } else {
+                    b = false;
+                }
+                return b;
+            },
+            formatData: function(a) {
+                return a.result.data.slice(0, 4);
+            },
+            onSuccess: function(a) {},
+            onError: function(a) {}
+        });
+    }
+});*/
+/*SinaPage.loadWidget({
+    trigger: {
+        id: "wrap_starRank"
+    },
+    require: [{
+        url: "//finance.sina.com.cn/other/src/pageTools.final.js"
+    }, {
+        url: "//n.sinaimg.cn/finance/fe/doT.min.js"
+    }, {
+        url: "//n.sinaimg.cn/finance/fe/Tab-min.js"
+    }],
+    onAfterLoad: function() {
+        function b(d, e) {
+            var c = $(e.doms.tabs[d]);
+            var f = c.attr("data-type");
+            new PageTool.TPLRander({
+                tplId: "TPL_starRank",
+                wrap: "tab02_cont0" + (d + 1),
+                api: SinaPage.config.apis.starRank,
+                dataType: "jsonp",
+                apiData: {
+                    rank_type: f
+                },
+                hasData: function(g) {
+                    var h;
+                    if (g && g.length > 0) {
+                        h = true;
+                    } else {
+                        h = false;
+                    }
+                    return h;
+                },
+                formatData: function(g) {
+                    return g;
+                },
+                onSuccess: function(g) {
+                    c.attr("data-loaded", "1");
+                },
+                onError: function(g) {}
+            });
+        }
+        var a = new Tab({
+            bonds: [
+                ["tab02_btn01", "tab02_cont01"],
+                ["tab02_btn02", "tab02_cont02"],
+                ["tab02_btn03", "tab02_cont03"],
+                ["tab02_btn04", "tab02_cont04"],
+                ["tab02_btn05", "tab02_cont05"]
+            ],
+            selected: "tab_selected",
+            trigger: "mouseover",
+            onRender: function() {
+                var c = this;
+                b(0, c);
+            },
+            onAfter: function(e) {
+                var d = this;
+                var c = $(d.doms.tabs[e]);
+                if (c.attr("data-loaded") != 1) {
+                    b(e, d);
+                }
+            }
+        });
+    }
+});*/
+/*SinaPage.loadWidget({
+    trigger: {
+        id: "wrap_bookingRank"
+    },
+    require: [{
+        url: "//finance.sina.com.cn/other/src/pageTools.final.js"
+    }, {
+        url: "//n.sinaimg.cn/finance/fe/doT.min.js"
+    }, {
+        url: "//n.sinaimg.cn/finance/fe/Tab-min.js"
+    }],
+    onAfterLoad: function() {
+        function b(d, e) {
+            var c = $(e.doms.tabs[d]);
+            var f = c.attr("data-type");
+            new PageTool.TPLRander({
+                tplId: "TPL_bookingRank",
+                wrap: "tab03_cont0" + (d + 1),
+                api: SinaPage.config.apis.bookingRank,
+                dataType: "jsonp",
+                apiData: {
+                    key: f
+                },
+                hasData: function(g) {
+                    var h;
+                    if (g && g.data && g.data.length > 0) {
+                        h = true;
+                    } else {
+                        h = false;
+                    }
+                    return h;
+                },
+                formatData: function(k) {
+                    var p = [];
+
+                    function g(u) {
+                        var t = "";
+                        if (!u) {
+                            t = "";
+                        } else {
+                            var i = u.split("/");
+                            var v = i.slice(0, 5);
+                            var m = [];
+                            for (var s = 0; s < v.length; s++) {
+                                if (v[s] != "") {
+                                    m.push(v[s].split(" ")[0].split("-")[0]);
+                                }
+                            }
+                            t = m.length == 0 ? "" : m.join(" / ");
+                        }
+                        return t;
+                    }
+                    for (var o = 0; o < k.data.length; o++) {
+                        var r = k.data[o];
+                        var l = r.url ? r.url : "javascript:;";
+                        var q = r.pic ? r.pic : "//n.sinaimg.cn/finance/page/ent/images/blank.png";
+                        var h = r.director ? "\u5bfc\u6f14: " + r.director : "";
+                        var j = r.star ? "\u4e3b\u8981\u6f14\u5458: " + r.director : "";
+                        var n = r.score ? r.score == "0.0" ? "" : r.score + "\u5206" : "";
+                        p.push({
+                            title: r.title,
+                            url: l,
+                            status: r.status,
+                            pic: q,
+                            director: h,
+                            star: g(r.star),
+                            score: n
+                        });
+                    }
+                    return p;
+                },
+                onSuccess: function(g) {
+                    c.attr("data-loaded", "1");
+                    $(".list-booking dl").on("mouseover", function() {
+                        var h = $(this).find(".pic img");
+                        var i = h.attr("data-src");
+                        if (h.attr("data-load") != "1") {
+                            h.attr("src", i);
+                            h.attr("data-load", "1");
+                        }
+                        $(this).parent().children().removeClass("unfold");
+                        $(this).addClass("unfold");
+                    });
+                },
+                onError: function(g) {}
+            });
+        }
+        var a = new Tab({
+            bonds: [
+                ["tab03_btn01", "tab03_cont01"],
+                ["tab03_btn02", "tab03_cont02"],
+                ["tab03_btn03", "tab03_cont03"],
+                ["tab03_btn04", "tab03_cont04"]
+            ],
+            selected: "tab_selected",
+            trigger: "mouseover",
+            onRender: function() {
+                var c = this;
+                b(0, c);
+            },
+            onAfter: function(e) {
+                var d = this;
+                var c = $(d.doms.tabs[e]);
+                if (c.attr("data-loaded") != 1) {
+                    b(e, d);
+                }
+            }
+        });
+    }
+});*/
+/*SinaPage.loadWidget({
+    trigger: {
+        id: "last_side_ad"
+    },
+    require: [{
+        url: "//finance.sina.com.cn/other/src/pageTools.final.js"
+    }],
+    triggerAhead: !1,
+    onAfterLoad: function() {
+        new PageTool.SetScrollFixed({
+            wrap: "last_side_ad",
+            start: "last_ad_wrap",
+            fixedClass: "com-fixed",
+            onFixed: function() {
+                $("#top_bar").hasClass("top-bar-fixed") && this.obj.addClass("com-fixed-02")
+            }
+        })
+    }
+});*/
+
+(function(){
+        var mod = $('#last_side_ad');
+        var fuyi = $('#rightSinaFuyiArea');
+        var bar = $('#top_bar');
+        if( !mod[0] || !fuyi[0] ){
+        		return;
+        }
+        var S1 = new ScrollFix(mod[0],{
+            fixedClz: 'com-fixed',
+            fixed:function(wrap,scrollTop,offsetTop,top){
+            	var fixed = scrollTop > offsetTop + wrap.offsetHeight + fuyi[0].offsetHeight;
+            	if(fixed){
+            		if(bar.hasClass("top-bar-fixed")){
+            			mod.css('margin-top',70);
+            		}else{
+            			mod.css('margin-top',0);
+            		}
+            	}else{
+            		mod.css('margin-top',0);
+            	}
+                return fixed;
+            }
+        });
+    })();
+
+
+// 体育
+( function(){
+
+	// k服务获取图片地址
+	var getImgSrc = (function() {
+	    var pattern1 = /[^./]\w+\.(com|cn)/;
+	    var pattern2 = /^http:\/\/(\w{1,3})(\d{0,1})\.sinaimg\.cn/i;
+	    var protocol = document.location.protocol;
+	    return function(src, suffix, domain) {
+	        domain = domain || 'k';
+	        src = src.replace('https://', 'http://');
+	        if (src.indexOf('auto/resize?img=') === -1 && (src.match(pattern1) ? src.match(pattern1)[0] : null) === 'sinaimg.cn') {
+	            src = src.replace(pattern2, function(m, p1, p2) {
+	                if (p1 === 'ns') {
+	                    p1 = 'n';
+	                }
+	                return protocol + '//' + domain + p2 + '.sinaimg.cn/' + p1 + p2;
+	            });
+	            src += '/' + suffix;
+	        }
+	        return src;
+	    };
+	})();
+
+	// 节点缓存
+	function getNodes( wrap, attr ) {
+	    var $ = jQuery;
+	    attr = attr || 'node-type';
+	    wrap = $( wrap );
+	    var nodes = $( '[' + attr + ']', wrap );
+	    var nodesObj = {};
+	    nodesObj.wrap = wrap;
+	    var list = {};
+	    nodes.each( function() {
+	        var item = $( this );
+	        nodesObj[ item.attr( attr ) ] = item;
+	        if ( !list[ item.attr( attr ) ] ) {
+	            list[ item.attr( attr ) ] = [];
+	        }
+	        list[ item.attr( attr ) ].push( this );
+	    } );
+	    $.each( list, function( i, n ) {
+	        list[ i ] = $( [].slice.call( n ) );
+	    } );
+	    nodesObj._list = list;
+	    return nodesObj;
+	}
+
+	// 加载器生成
+	function getLoader( config ){
+		var id = config.id;
+		var dom = getNodes( '#j_wrap' + id );
+		if( dom.wrap.length === 0 ){
+			return;
+		}
+		var listId = 'list' + id;
+		var tplId = 'tpl' + id;
+		dom.list[0].id = listId;
+		dom.tpl[0].id = tplId;
+
+
+
+		var defaults = {
+			__dom__: dom,
+			tplId: tplId,
+			wrap: listId,
+			dataType: 'jsonp',
+			hasData: function() {
+			    return true;
+			},
+			formatData: function(data) {
+			       return data;
+			},
+			onSuccess: function() {},
+			onError: function() {}
+		};
+		var options = $.extend( true, defaults, config.options );
+		return new PageTool.TPLRander( options );
+	}
+
+	var protocol = document.location.protocol;
+	var configs = [
+		{
+			name: 'topAd',
+			cnname: '顶部随机广告',
+			id: '_b8abfebd_6cf2_8996_40ac_083d063bf2ee',
+			options: {
+				api: protocol+ '//interface.sina.cn/sports/article_2017_adtop.d.json',
+				apiData: {
+				},
+				hasData: function(msg) {
+				    try {
+				        if (msg.result.status.code == 0) {
+				            return true;
+				        }
+				    } catch (e) {
+				        return false;
+				    }
+				},
+				formatData: function( msg ) {
+					var data = msg.result.data;
+					var index = Math.floor( Math.random() * data.length + 1) - 1;
+					var list = data[  index ];
+					list._index = index;
+					return [list];
+				},
+				onSuccess: function(){
+					var dom = this.options.__dom__;
+					dom.wrap.show();
+				}
+			}
+
+		},
+		{
+			name: 'recommend',
+			cnname: '推荐阅读',
+			id: '_55a07552_9f6c_12b3_4f25_921db3cc5584',
+			options: {
+				api: protocol+ '//cre.mix.sina.com.cn/api/v3/get',
+				apiData: {
+				   cateid: '2L',
+				   fields: 'url,thumb,ctime,title',
+				   cre: 'sportspc',
+				   mod: 'f',
+				   statics: '1',
+				   merge: '3',
+				   num: '5',
+				    ie: 'utf-8',
+				    last_id: '1'
+				},
+				hasData: function(data) {
+				    try {
+				        if (data.status.code == 0) {
+
+				            return true;
+				        }
+				    } catch (e) {
+				        return false;
+				    }
+				},
+				formatData: function(data) {
+				        var list = data.data;
+				        list.length = Math.min( 5, list.length );
+				        for (var i = 0; i < list.length; i++) {
+				        	var item = list[i];
+				            if (item.ctime) {
+				                item.time = new Date(item.ctime * 1000).toJSON().substr(0, 10);
+				            }
+				            if( item.thumb ) {
+						item.thumb = getImgSrc( item.thumb,'w150h100f1t0l0syf.jpg', 'k').replace('http://', '//');
+				            }
+				        }
+				    return list;
+				}
+			}
+		},
+		{
+			name: 'video',
+			cnname: '体育视频',
+			id: '_894980cb_ad47_ac8b_4b9e_a4f65e6b70fb',
+			options: {
+                // api: protocol+ '//platform.sina.com.cn/top_news/top',
+                //3.30换为新接口@donghao
+				api: protocol+ '//interface.sina.cn/sports/article_2017_video.d.json',
+				apiData: {
+				   app_key: '3633771828',
+				   top_channel: 'sports',
+				   top_type: 'day',
+				   top_cat: 'video_sports_all_by_vv',
+				   top_time: 'today',
+				   top_show_num: '4',
+				   top_order: 'DESC',
+				   show_video_info: '1'
+				},
+				hasData: function(data) {
+				    try {
+				        if (data.result.status.code == 0) {
+				            return true;
+				        }
+				    } catch (e) {
+				        return false;
+				    }
+				},
+				formatData: function(data) {
+				     var list = data.result.data;
+			             for (var i = 0; i < list.length; i++) {
+			             	var item = list[i];
+			                 if( item.video.thumb ) {
+			     			item.video.thumb = getImgSrc( item.video.thumb,'w160h90f1t0l0syf.jpg', 'k').replace('http://', '//');
+			                 }
+			             }
+				     return list;
+				}
+			}
+		},
+		{
+			type: 'slide',
+			name: 'album',
+			cnname: '精彩图集',
+			id: '_6cd3d224_0387_17b4_4429_9d95ad0adbb7',
+			options: {
+				api: protocol+ '//interface.sina.cn/sports/article_2017_slide.d.json',
+				apiData: {
+				},
+				hasData: function(data) {
+				    try {
+				        if (data.result.status.code == 0) {
+				            return true;
+				        }
+				    } catch (e) {
+				        return false;
+				    }
+				},
+				formatData: function(data) {
+				     var list = data.result.data;
+			             /*for (var i = 0; i < list.length; i++) {
+			             	var item = list[i];
+			                 if( item.video.thumb ) {
+			     			item.video.thumb = getImgSrc( item.video.thumb,'w160h90f1t0l0syf.jpg', 'k').replace('http://', '//');
+			                 }
+			             }*/
+				     return list;
+				},
+				onSuccess:function(m){
+				   var dom = this.options.__dom__;
+				    var slide_01 = new Slider({
+				        wrap: dom.list[0].id,
+				        itemClass: 'slider-item',
+				        autoPlay : false,
+				        onReady : function () {
+				            var that = this,
+				                total = this.conf.isLoop ? this.states.total / 2 : this.states.total,
+				                dots = dom.dots[0],
+				                btnPrev = dom.prev[0],
+				                btnNext = dom.next[0],
+				                dotCls = '',
+				                dotsStr = '';
+				            // 点阵
+				            for(var i = 0; i < total; i ++){
+				                dotCls = i == 0 ? 'dot_list cur' : 'dot_list';
+				                if(i==total-1){
+				                    dotCls = 'dot_list last';
+				                }
+				                dotsStr += '<span class="' + dotCls + '" data-index="' + i + '"></span>';
+				            }
+				            dots.innerHTML = dotsStr;
+				            this.doms.dots = dots.getElementsByTagName('span');
+
+				            $('.dot_list', dom.dots).on('mouseover',function(){
+				                var _index = $(this).index();
+				                that.slideTo(_index);
+				            });
+				            // 前进/后退按钮
+				            this._addEvent(btnPrev, 'click', function () {
+				                that.prev();
+				            });
+				            this._addEvent(btnNext, 'click', function () {
+				                that.next();
+				            });
+				        },
+				        onIndexChanged : function (index) {
+				            var that = this,
+				                dots = this.doms.dots,
+				                total = this.conf.isLoop ? this.states.total / 2 : this.states.total;
+				            $(dots).removeClass('cur');
+				            $(dots[index % total]).addClass('cur');
+				        },
+				    });
+				},
+				onError:function(){}
+			}
+		},
+		{
+			name: 'miaopai',
+			cnname: '秒拍视频',
+			id: '_a0ff4cae_adf2_578f_4c55_bbefe76ea2b3',
+			options: {
+				api: protocol+ '//interface.sina.cn/sports/article_2017_miaopai.d.json',
+				apiData: {},
+				hasData: function(data) {
+				    try {
+				        if (data.result.status.code == 0) {
+				            return true;
+				        }
+				    } catch (e) {
+				        return false;
+				    }
+				},
+				formatData: function(data) {
+				     var list = data.result.data;
+			             /*for (var i = 0; i < list.length; i++) {
+			             	var item = list[i];
+			                 if( item.video.thumb ) {
+			     			item.video.thumb = getImgSrc( item.video.thumb,'w160h90f1t0l0syf.jpg', 'k').replace('http://', '//');
+			                 }
+			             }*/
+				     return list;
+				}
+			}
+		},
+		{
+			name: 'news',
+			cnname: '新闻排行榜',
+			id: '_8018e0e5_aec8_75bb_49ec_6f13f0593654',
+			options: {
+				api: protocol+ '//platform.sina.com.cn/top_news/top',
+				apiData: {
+					app_key: '3633771828',
+					top_channel: 'sports',
+					top_type: 'day',
+					top_cat: 'sports_suda',
+					top_time: 'today',
+					top_show_num: '5',
+					top_order: 'DESC'
+				},
+				hasData: function(data) {
+				    try {
+				        if (data.result.status.code == 0) {
+				            return true;
+				        }
+				    } catch (e) {
+				        return false;
+				    }
+				},
+				formatData: function(data) {
+				     var list = data.result.data;
+			             /*for (var i = 0; i < list.length; i++) {
+			             	var item = list[i];
+			                 if( item.video.thumb ) {
+			     			item.video.thumb = getImgSrc( item.video.thumb,'w160h90f1t0l0syf.jpg', 'k').replace('http://', '//');
+			                 }
+			             }*/
+				     return list;
+				}
+			}
+		}
+
+	];
+
+
+	SinaPage.loadWidget({
+	    require: [{
+	        url: "//finance.sina.com.cn/other/src/pageTools.final.js"
+	    }, {
+	        url: "//n.sinaimg.cn/finance/fe/doT.min.js"
+	    },{
+	        url: "//n.sinaimg.cn/finance/fe/slider-min.js"
+	    }],
+	    onAfterLoad: function() {
+
+	        	for (var i = 0, len = configs.length; i < len; i++) {
+	        		var config = configs[i];
+	        		config.loader = getLoader( config );
+	        	}
+	    }
+	});
+
+
+})();

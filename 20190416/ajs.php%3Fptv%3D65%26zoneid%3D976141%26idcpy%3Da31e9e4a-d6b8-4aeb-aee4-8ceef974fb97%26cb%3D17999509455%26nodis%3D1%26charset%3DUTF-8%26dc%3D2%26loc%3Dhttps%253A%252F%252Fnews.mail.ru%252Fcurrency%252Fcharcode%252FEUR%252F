@@ -1,0 +1,14 @@
+﻿(function(){
+var s = "<"+"div id=\'beacon_5cb86820639c3c8147f3011fd6cd6686\' style=\'position: absolute; left: 0px; top: 0px; visibility: hidden;\'>\n";
+s += "<"+"img width=\"0\" height=\"0\" src=\"https://cat.nl.eu.criteo.com/delivery/lg.php?cppv=2&cpp=GwtKhHx6blY2N2w5NFFRM014amN1SEdkU3JmKzVrb3FwVDBFVXFJQkJUY3RhTDRsdkE0RGlKTWJ6U1NRUldxamMvMGp6OTEvNlYxbFgxbFlWNFUzYndza2g4THlRT3J0Y1lGL0Q4RWdhTlZCWWVRQzRLVWpINXJlOUd6SUY0Mk8vQVR4ZWNtTWcxQnp1RHZOMm9BZ2tjaGM4ZDY1OTgySElFVHFpSUx3MVdsRnBJeUJNNWxvcnhZbXo3YzdoSzZHRVVHWlpsN0htQ1pFd2k4Q21QQTlmSFBhRVVnTlA1OFRWSTE5ZGlLVG1uNXlYUjhHaWFOSDhkTlRkNHhmUlpoSkJPK1U0fA\"/>\n";
+s += "<"+"/div>\n";
+s += "<"+"!-- PassBack AdSlot 1 for Ad Unit \'970x90_news.mail.ru\' ### Size: [[970,90]] -->\n";
+s += "<"+"script src=\'https://www.googletagservices.com/tag/js/gpt.js\'>\n";
+s += "  googletag.pubads().definePassback(\'/205338224/970x90_news.mail.ru\', [[970,90]])\n";
+s += "                    .setClickUrl(\'%%CLICK_URL_UNESC%%\')\n";
+s += "                    .set(\'page_url\', \'https://mail.ru\')\n";
+s += "                    .display();\n";
+s += "<"+"/script>\n";
+s += "<"+"!-- End -->\n";
+s += "\n";
+document.write(s);})();

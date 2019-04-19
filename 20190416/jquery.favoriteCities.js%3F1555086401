@@ -1,0 +1,78 @@
+(function ($, window, oNS, oFest) {
+	var oBasic = oNS.Basic;
+	var typeOf = oBasic.typeOf;
+	var fCookie = $.cookie;
+	var sCookieName = 'cityfav';
+	var sDelimiter = '/';
+	var oSels = {
+		favToggle: '.js-toggle_fav',
+		cityCont: '.js-city_one'
+	};
+	var sFavClass = 'information_favorite';
+	var sIdAttr = 'data-id';
+	function getFavorites() {
+		var cookieVal = fCookie(sCookieName);
+		return cookieVal && cookieVal.split(sDelimiter) || [];
+	}
+	var oFavCities = oNS.Modules.favoriteEntities({
+		transport: function (sAction, mData) {
+			var oOnAction = $.Deferred();
+			var aFavorites = getFavorites();
+			var sCityId, idIndex, mCookieDomain;
+			switch (sAction) {
+			case 'get_list':
+				oOnAction.resolve(aFavorites);
+				break;
+			case 'toggle':
+				if (typeOf(mData, 'object')) {
+					sCityId = mData.id;
+					if (mData.add) {
+						aFavorites.push(sCityId);
+						if (aFavorites.length > 10) {
+							aFavorites.shift();
+						}
+					} else if ((idIndex = aFavorites.indexOf(sCityId)) > -1) {
+						aFavorites.splice(idIndex, 1);
+					}
+					mCookieDomain = window.document.domain.split('.');
+					if (mCookieDomain[0] === 'new') {
+						mCookieDomain.shift(); 
+					}
+					mCookieDomain.unshift('');
+					fCookie(sCookieName, aFavorites.join(sDelimiter), {path: '/', expires: 365, domain: mCookieDomain.join('.')});
+					oOnAction.resolve({status: 'OK'});
+				} else {
+					oOnAction.reject();
+				}
+				break;
+			}
+			return oOnAction;
+		}
+	});
+	oBasic.Extend(window.getNameSpace('ru.mail.weather'), {
+		Instances: {
+			favoriteCities: oFavCities
+		}
+	});
+	$(window.document).on('click', oSels.favToggle, function (oEvt) {
+		var jTarget = $(this);
+		var cityId = jTarget.parents(oSels.cityCont).attr(sIdAttr);
+		if (cityId) {
+			oFavCities.toggleEntityStatus(cityId);
+		}
+	});
+	oFavCities.on('list_recived', function () {
+		$(function () {
+			$(oSels.cityCont).each(function () {
+				var jCity = $(this);
+				var sCityId = jCity.attr(sIdAttr);
+				if (sCityId && oFavCities.isFavEntity(sCityId)) {
+					jCity.addClass(sFavClass);
+				}
+			});
+		});
+	});
+	oFavCities.on('status_toggle', function (sCityId, bAdded) {
+		$(oSels.cityCont).filter('[' + sIdAttr + '=' + sCityId + ']').toggleClass(sFavClass, bAdded);
+	});
+}(this.jQuery, this, this.ru.mail.cpf, this.fest));

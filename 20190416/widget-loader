@@ -1,0 +1,15 @@
+
+        (function(w, d) {
+            if (!w["YandexZen"]) {
+                w["YandexZen"] = {};
+            }
+            w["YandexZen"].baseUrl = 'https://zen.yandex.ru/';
+            
+            w.YandexZen.countryCode='ru';
+            var script = d.createElement('script');
+            script.src = 'https://yastatic.net/s3/zen-lib/2.34.0/widget/widget.firefox.en.bundle.js';
+            script.async = true;
+            script.charset = 'UTF-8';
+            d.head.appendChild(script);
+        })(window, document);
+    

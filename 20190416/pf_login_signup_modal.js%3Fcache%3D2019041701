@@ -1,0 +1,535 @@
+/* Common Login/Signup Modal used in purchase flows
+------------------------------------------------------
+ Used for Fan Club, Custom Video, Tipping
+ Changing this file will affect all the above purchase flows
+*/
+var PurchaseFlow_LoginSignup = function() {
+    "use strict";
+    var Self = this;
+
+    Self.defaultSettings = {
+        timer : null,
+        idleTime: 500,
+        signup_errors: {},
+    };
+
+    Self.init = function (options) {
+        Self.params = MG_Utils.extendSimple(Self.defaultSettings, options);
+    };
+
+    // Call this method when the modal is opened.
+    Self.addListeners = function(parentModal, showSignupCaptcha){
+        if (showSignupCaptcha || showSignupCaptcha == 'true') {
+            MG_Utils.addClass(parentModal.querySelector('.pf_signup_recaptcha'), 'active');
+        }
+
+        // keep modal open when clicking out
+        MG_Utils.addClass(parentModal, 'leave_confirmation');
+        parentModal.querySelector('.js_cancel_leave_modal').parentElement.setAttribute('data-previousModal', 'login_signup_modal');
+
+        // Tabbing logic
+        var loginSignupTabList = parentModal.querySelectorAll('.login_signup_tabs_item');
+        [].forEach.call(loginSignupTabList, function(tab) {
+            MG_Utils.addEventHandler(tab, 'click', function(e) {
+                // Tab buttons - reset active classes, activate the selected tab
+                MG_Utils.removeClassMultiple(loginSignupTabList, 'active_tab');
+                MG_Utils.addClass(e.target, 'active_tab');
+
+                // Tab content - reset active classes, activate the selected tab
+                var tabContentItems = parentModal.querySelectorAll('.login_signup_content_wrap .login_signup_content');
+                var contentDiv = parentModal.querySelector('#' +  e.target.getAttribute('data-tabid'));
+                MG_Utils.removeClassMultiple(tabContentItems, 'active');
+                MG_Utils.addClass(contentDiv, 'active');
+            });
+        });
+
+        Self.addLoginListeners(parentModal);
+        Self.addSignupListeners(parentModal);
+
+        Self.signup_initCaptcha(parentModal);
+    };
+
+    Self.addLoginListeners = function(parentModal) {
+        // Handles On Click Submit
+        MG_Utils.addEventHandler(parentModal.querySelector('.js_purchase_flow_login'), 'click', function(e) {
+            if (!MG_Utils.hasClass(e.target, 'disabled')) {
+                Self.handleLoginAjax(parentModal, e.target);
+    }
+        });
+        // Disables Submit button if username & password has value and allows to submit form with Enter Key
+        var loginInputList = parentModal.querySelectorAll('.pf_login_input');
+        [].forEach.call(loginInputList, function (input) {
+            ['keyup', 'input', 'keypress'].forEach(function(eventType) {
+                MG_Utils.addEventHandler(input, eventType, function (e) {
+                    if (parentModal.querySelector('.js_pf_login_username').value != '' && parentModal.querySelector('.js_pf_login_password').value != '') {
+                        MG_Utils.removeClass(parentModal.querySelector('.js_purchase_flow_login'), 'disabled');
+
+                        if (eventType == 'keyup' && e.keyCode == '13') {
+                            Self.handleLoginAjax(parentModal, parentModal.querySelector('.js_purchase_flow_login'));
+                        }
+                    }
+                });
+            });
+        });
+    };
+
+    Self.addSignupListeners = function (parentModal) {
+        Self.signupInputs = {
+            'email' : parentModal.querySelector('.js_pf_signup_email'),
+            'username' : parentModal.querySelector('.js_pf_signup_username'),
+            'password' : parentModal.querySelector('.js_pf_signup_password')
+        };
+
+        ['keyup', 'input', 'keypress'].forEach(function(eventType) {
+            ['email', 'username', 'password'].forEach(function(elementType) {
+                MG_Utils.addEventHandler(Self.signupInputs[elementType], eventType, function (e) {
+                    if (e.target.value != '') {
+                        if (Self.signup_isInputValid(elementType, e.target, parentModal)) {
+                            Self.idleTimeoutValidation(function() {
+                                Self.signup_backendCheckSetup(e.target, elementType, parentModal);
+                            });
+                        }
+                        // enter keypress for signup submit
+                        if (eventType == 'keyup' && e.keyCode == '13' && !MG_Utils.hasClass(parentModal.querySelector('.js_purchase_flow_signup'), 'disabled')) {
+                            Self.signup_submitAjax(parentModal.querySelector('.js_purchase_flow_signup'), parentModal);
+                        }
+                    }
+                });
+            });
+        });
+
+        // On focus, if there's a error message for the input, then show the error message
+        ['email', 'username', 'password'].forEach(function(elementType) {
+            MG_Utils.addEventHandler(Self.signupInputs[elementType], 'focus', function (e) {
+                if (e.target.value != '' && Self.params.signup_errors[elementType]) {
+                    parentModal.querySelector('.fanclub_signup_form .error_message').innerHTML = Self.params.signup_errors[elementType];
+                }
+            });
+        });
+
+        // Signup Submit
+        MG_Utils.addEventHandler(parentModal.querySelector('.js_purchase_flow_signup'), 'click', function(e) {
+            if (!MG_Utils.hasClass(e.target, 'disabled')) {
+                Self.signup_submitAjax(e.target, parentModal);
+            }
+        });
+    };
+
+    Self.handleLoginAjax = function (parentModal, submitButton, extraData, twoFactor) {
+        extraData = (typeof extraData !== 'undefined') ? extraData : false;
+        twoFactor = (typeof twoFactor !== 'undefined') ? twoFactor : false;
+
+        var loginData = {
+            token : Self.params.token,
+            username : parentModal.querySelector('.js_pf_login_username').value,
+            password : parentModal.querySelector('.js_pf_login_password').value,
+            remember_me : parentModal.querySelector('.js_pf_login_remember').checked,
+            modelId : submitButton.getAttribute('data-model_id'),
+            login : 1,
+            redirect : parentModal.querySelector('.js_pf_login_redirect').value,
+            pageUser : parentModal.querySelector('.js_pf_login_pageUser').value
+        };
+
+        if (extraData) {
+            loginData = MG_Utils.extendSimple(loginData, extraData);
+        }
+
+        MG_Utils.ajaxCall({
+            type: 'POST',
+            url: submitButton.getAttribute('data-submit_url'),
+            data: loginData,
+            success: function(resp) {
+                var purchaseFlowType = submitButton.getAttribute('data-purchase_flow_type');
+
+                // Reset error states
+                MG_Utils.removeClassMultiple(parentModal.querySelectorAll('.error_message'), 'active');
+                MG_Utils.removeClassMultiple(parentModal.querySelectorAll('.pf_login_input'), 'error');
+                [].forEach.call(parentModal.querySelectorAll('.error_message'), function(errMsg) {
+                    errMsg.innerHTML = '';
+                });
+
+                if ((typeof resp.twoStepVerification !== 'undefined') && resp.twoStepVerification) {
+                    // Hide login Form and show 2-step verification
+                    MG_Utils.addClass(parentModal.querySelector('.pf_login_form'), 'hide');
+                    MG_Utils.addClass(parentModal.querySelector('.pf_login_verification'), 'active');
+
+                    // Add information to section
+                    var verificationDiv = parentModal.querySelector('.pf_login_verification');
+                    verificationDiv.querySelector('#loginPageVerificationEnabledUsername').value = resp.username;
+                    verificationDiv.querySelector('#verificationEnabledToken').value = resp.autoLoginParameter;
+                    verificationDiv.querySelector('#loginPageAuthyId').value = resp.authyId;
+                    verificationDiv.querySelector('.pf_verify_userNumber').innerText = resp.phoneNumber;
+
+                    // Add listeners
+                    Self.loginVerification_addListeners(parentModal, verificationDiv);
+
+
+                } else if (resp.success === "1" || resp.success == "PASS") {
+                    if (twoFactor) {
+                        MG_Utils.addClass(parentModal.querySelector('.pf_verify_message'), 'active');
+                    } else {
+                        MG_Utils.addClass(parentModal.querySelector('.fanclub_login_form .success_message'), 'active');
+                    }
+
+                    if (purchaseFlowType == 'fanclub') {
+                        fanclubPurchaseFlow.handleAfterLoginSignup(parentModal, resp, resp.last4Required, resp.isAlreadyFan);
+
+                    } else if (purchaseFlowType == 'customVideo') {
+                        customVideoPurchaseFlow.handleAfterLoginSignup(parentModal, resp, resp.last4Required);
+
+                    } else if (purchaseFlowType == 'tipping') {
+                        tippingPurchaseFlow.handleAfterLoginSignup(parentModal, resp, resp.last4Required);
+
+                    } else if (purchaseFlowType == 'videoPurchase') {
+                        videoPurchaseFlow.handleAfterLoginSignup(parentModal, resp, resp.last4Required);
+                    }
+
+                } else {
+                    // Login Failed
+                    if (twoFactor) {
+                        if (typeof resp.message !== 'undefined' && resp.message) {
+                            var verificationDiv = parentModal.querySelector('.pf_login_verification');
+
+                            MG_Utils.addClass(verificationDiv.querySelector('.pf_verify_message_error'), 'active');
+                            verificationDiv.querySelector('.pf_verify_message_error').innerText = resp.message
+                        }
+                    } else {
+                        parentModal.querySelector('.fanclub_login_form .error_message').innerHTML = resp.message;
+                        MG_Utils.addClass(parentModal.querySelector('.fanclub_login_form .error_message'), 'active');
+                        MG_Utils.addClassMultiple(parentModal.querySelectorAll('.pf_login_input'), 'error');
+                    }
+
+                }
+            }
+        });
+    };
+
+    Self.loginVerification_addListeners = function (parentModal, verificationDiv) {
+
+        // Listeners for the verification code input
+        var verificationCodeInput = verificationDiv.querySelector('.pf_login_verificationCode');
+        ['keyup', 'input', 'keypress'].forEach(function (eventType) {
+            MG_Utils.addEventHandler(verificationCodeInput, eventType, function (e) {
+
+                if ((eventType == 'input') && verificationCodeInput.value.length > 0) { // Enabling the submit button if there's input
+                    MG_Utils.removeClass(verificationDiv.querySelector('.js_pfVerifySubmit'), 'disabled');
+                }
+                // Allows submitting the form with Enter Key if conditions are met
+                if ((eventType == 'keyup') && (e.keyCode == '13') && !MG_Utils.hasClass(verificationDiv.querySelector('.js_pfVerifySubmit'), 'disabled')) {
+                    Self.loginVerification_submit(parentModal, verificationDiv, verificationDiv.querySelector('.js_pfVerifySubmit'));
+                }
+
+                if (verificationCodeInput.value.length === 0) {
+                    MG_Utils.addClass(verificationDiv.querySelector('.js_pfVerifySubmit'), 'disabled');
+                }
+
+            });
+        });
+
+        // Listeners for the submit button
+        var verificationSubmitButton = verificationDiv.querySelector('.js_pfVerifySubmit');
+        MG_Utils.addEventHandler(verificationSubmitButton, 'click', function(e) {
+            // Submits the form on click if the button is not disabled
+            if (!MG_Utils.hasClass(verificationSubmitButton, 'disabled')) {
+                Self.loginVerification_submit(parentModal, verificationDiv, verificationSubmitButton);
+            }
+        });
+
+        // Listeners for the resend button
+        MG_Utils.addEventHandler(verificationDiv.querySelector('.js_pfVerifyResendCode'), 'click', function(e) {
+            // reset messages
+            verificationDiv.querySelector('.pf_verify_resend_msg').innerText = '';
+            MG_Utils.removeClass(verificationDiv.querySelector('.pf_verify_resend_msg'), 'active');
+
+            MG_Utils.ajaxCall({
+                type: 'POST',
+                data:  {
+                    authyId : verificationDiv.querySelector('#loginPageAuthyId').value,
+                    token : Self.params.token
+                },
+                url: Self.params.twoStepResendUrl,
+                success: function(data) {
+
+                    if (data.status == 'success') {
+                        if (typeof data.message !== 'undefined' && data.message) {
+                            verificationDiv.querySelector('.pf_verify_resend_msg').innerText = data.message;
+                            MG_Utils.addClass(verificationDiv.querySelector('.pf_verify_resend_msg'), 'active');
+                        }
+                    } else {
+                        if (typeof data.message !== 'undefined' && data.message) {
+                            MG_Utils.addClass(verificationDiv.querySelector('.pf_verify_message_error'), 'active');
+                            verificationDiv.querySelector('.pf_verify_message_error').innerText = data.message
+                        }
+                    }
+                }
+            });
+        });
+    };
+
+    Self.loginVerification_submit = function (parentModal, verificationDiv, submitButton) {
+        var data = {
+            username : verificationDiv.querySelector('#loginPageVerificationEnabledUsername').value,
+            token2 : verificationDiv.querySelector('#verificationEnabledToken').value,
+            verification_modal : 1,
+            authyId : verificationDiv.querySelector('#loginPageAuthyId').value,
+            token : Self.params.token,
+            verification_code : verificationDiv.querySelector('.pf_login_verificationCode').value,
+        };
+
+        Self.handleLoginAjax(parentModal, submitButton, data, true);
+    };
+
+    Self.signup_backendCheckSetup = function (elm, type, parentModal) {
+        Self.signup_ajaxCheck(elm, type, elm.value, parentModal);
+    };
+
+    Self.signup_hideError = function (elm, type, parentModal) {
+        MG_Utils.removeClass(elm, 'invalid');
+        if (Self.params.signup_errors[type]) {
+            delete Self.params.signup_errors[type];
+        }
+
+        if (Object.keys(Self.params.signup_errors).length > 0) {
+            parentModal.querySelector('.fanclub_signup_form .error_message').innerHTML = Self.params.signup_errors[Object.keys(Self.params.signup_errors)[0]];
+        } else {
+            MG_Utils.removeClass(parentModal.querySelector('.fanclub_signup_form .error_message'), 'active');
+            parentModal.querySelector('.fanclub_signup_form .error_message').innerHTML = '';
+        }
+    };
+
+    Self.signup_ajaxCheck = function (elm, type, value, parentModal) {
+        var ajaxData = { token: Self.params.token, redirect: '', check_what: type };
+        ajaxData[type] = value;
+
+        MG_Utils.ajaxCall({
+            type: 'POST',
+            url: Self.params.checkInputAjax,
+            data: ajaxData,
+            success: function (data) {
+                if(data.error_message !== ''){
+                    Self.signup_putError(elm, type, data.error_message, parentModal);
+                } else {
+                    Self.signup_makeElementValid(elm, type, parentModal);
+                    Self.signup_validateForm(parentModal);
+                }
+            },
+            error: function () {
+                console.log('Network Error!');
+            }
+        });
+    };
+
+    // Doing the BE input check on change/keyup so that the submit button can automatically be enabled without checking on blur
+    // Using a timer so that we are not sending too many requests to the BE
+    // If the user hasn't typed or changed the input in the X seconds/milliseconds then do ajax check on the input
+    Self.idleTimeoutValidation = function (onIdleFunction) {
+        if (Self.params.timer) {
+            clearTimeout(Self.params.timer);
+        }
+        Self.params.timer = setTimeout(function() {
+            onIdleFunction();
+        }, Self.params.idleTime);
+    };
+
+    Self.signup_isInputValid = function (elementType, elm, parentModal) {
+        switch (elementType) {
+            case 'email':
+                return Self.signup_isEmailValid(elm, parentModal);
+            case 'username' :
+                return Self.signup_isUsernameValid(elm, parentModal);
+            case 'password' :
+                return Self.signup_isPasswordValid(elm, parentModal);
+        }
+    };
+
+    Self.signup_isEmailValid = function (elm, parentModal) {
+        // At this point, the input has a value
+        var emailRegex = /^([a-zA-Z0-9_\.\-])+\@(([a-zA-Z0-9\-])+\.)+([a-zA-Z0-9]{2,4})+$/;
+        if (!emailRegex.test(elm.value)) {
+            Self.signup_putError(elm, 'email', Self.params.errorMsg.invalidEmail, parentModal);
+            return false;
+        } else if (elm.value.length < 5) {
+            Self.signup_putError(elm, 'email', Self.params.errorMsg.emailTooShort, parentModal);
+            return false;
+        } else if (elm.value.length > 50) {
+            Self.signup_putError(elm, 'email', Self.params.errorMsg.emailTooLong, parentModal);
+            return false;
+        } else {
+            return true;
+        }
+    };
+
+    Self.signup_isUsernameValid = function (elm, parentModal) {
+        // At this point, the input has a value
+        var passwordInput = parentModal.querySelector('.js_pf_signup_password');
+        if (elm.value.length < 5) {
+            Self.signup_putError(elm, 'username', Self.params.errorMsg.usernameTooShort, parentModal);
+            return false;
+        } else if (elm.value.length > 18) {
+            Self.signup_putError(elm, 'username', Self.params.errorMsg.usernameTooLong, parentModal);
+            return false;
+        } else if (passwordInput.value != '' && passwordInput.value == elm.value) {
+            Self.signup_putError(elm, 'username', Self.params.errorMsg.usernamePasswordcantMatch, parentModal);
+            return false;
+        } else {
+            return true;
+        }
+    };
+    Self.signup_isPasswordValid = function (elm, parentModal) {
+        // At this point, the input has a value
+        var usernameInput = parentModal.querySelector('.js_pf_signup_username');
+        if (elm.value.length < 6) {
+            Self.signup_putError(elm, 'password', Self.params.errorMsg.passwordTooShort, parentModal);
+            return false;
+        } else if (elm.value.length > 40) {
+            Self.signup_putError(elm, 'password', Self.params.errorMsg.passwordTooLong, parentModal);
+            return false;
+        } else if (usernameInput.value != '' && usernameInput.value == elm.value) {
+            Self.signup_putError(elm, 'password', Self.params.errorMsg.usernamePasswordcantMatch, parentModal);
+            return false;
+        } else {
+            return true;
+        }
+    };
+
+    Self.signup_putError = function (elm, type, message, parentModal) {
+        message = typeof message !== 'undefined' ? message : '';
+
+        // disable submit button
+        MG_Utils.addClass(parentModal.querySelector('.js_purchase_flow_signup'), 'disabled');
+
+        MG_Utils.removeClass(elm, 'valid');
+        MG_Utils.addClass(elm, 'invalid');
+        elm.setAttribute('data-valid', false);
+
+        Self.params.signup_errors[type] = message;
+        if (message) {
+            parentModal.querySelector('.fanclub_signup_form .error_message').innerHTML = message;
+            MG_Utils.addClass(parentModal.querySelector('.fanclub_signup_form .error_message'), 'active');
+        } else {
+            Self.signup_getError(type, parentModal);
+        }
+    };
+
+    Self.signup_getError = function (type, parentModal) {
+        if (Self.params.signup_errors[type]) {
+            parentModal.querySelector('.fanclub_signup_form .error_message').innerHTML = Self.params.signup_errors[type];
+            parentModal.querySelector('.fanclub_signup_form .error_message').style.opacity = 1;
+        }
+    };
+
+    Self.signup_makeElementValid = function (elm, type, parentModal) {
+        MG_Utils.removeClass(elm, 'invalid');
+        MG_Utils.addClass(elm, 'valid');
+        elm.setAttribute('data-valid', true);
+
+        Self.signup_hideError(elm, type, parentModal);
+    };
+
+    Self.signup_validateForm = function (parentModal) {
+        var validForm = false;
+        var validCaptcha = MG_Utils.hasClass(parentModal.querySelector('.pf_signup_recaptcha'), 'active') ? false : true;
+        if(parentModal.querySelector('.js_pf_signup_email').getAttribute('data-valid') == "true" &&
+            parentModal.querySelector('.js_pf_signup_username').getAttribute('data-valid') == "true" &&
+            parentModal.querySelector('.js_pf_signup_password').getAttribute('data-valid') == "true") {
+            validForm = true;
+        }
+        if (MG_Utils.hasClass(parentModal.querySelector('.pf_signup_recaptcha'), 'active')) { // CHECK FOR CAPTCHA
+            validCaptcha = recaptchaComplete ? true : false;
+        }
+        if (validForm && validCaptcha) {
+            MG_Utils.removeClass(parentModal.querySelector('.js_purchase_flow_signup'), 'disabled');
+        } else {
+            MG_Utils.addClass(parentModal.querySelector('.js_purchase_flow_signup'), 'disabled');
+        }
+    };
+
+    Self.signup_initCaptcha = function (parentModal) {
+
+        // if (MG_Utils.hasClass(parentModal.querySelector('.pf_signup_recaptcha'), 'active')) {
+        if (document.querySelectorAll('script[src="https://www.google.com/recaptcha/api.js?onload=initCaptcha&render=explicit"]').length == 0) {
+            var recaptchaScript = document.createElement('script');
+            recaptchaScript.setAttribute('src' , 'https://www.google.com/recaptcha/api.js?onload=initCaptcha&render=explicit');
+            recaptchaScript.setAttribute('type', 'text/javascript');
+            recaptchaScript.setAttribute('async', '');
+            recaptchaScript.setAttribute('defer', '');
+            document.head.appendChild(recaptchaScript);
+        }
+        // }
+    };
+
+    Self.signup_submitAjax = function (submitButton, parentModal) {
+        var email = Self.signupInputs.email.value;
+        var username = Self.signupInputs.username.value;
+        var password = Self.signupInputs.password.value;
+        MG_Utils.ajaxCall({
+            type: 'POST',
+            url: submitButton.getAttribute('data-submit_url'),
+            data: {
+                token : Self.params.token,
+                email : email,
+                username : username,
+                password : password,
+                modelId : submitButton.getAttribute('data-model_id'),
+                signup : 1,
+                pageUser : parentModal.querySelector('.js_pf_signup_pageUser').value
+            },
+            success: function(resp) {
+                if (resp.success == 'PASS' || resp.success ==='1') {
+                    var purchaseFlowType = submitButton.getAttribute('data-purchase_flow_type');
+
+                    if (purchaseFlowType == 'fanclub') {
+                        fanclubPurchaseFlow.handleAfterLoginSignup(parentModal, resp);
+
+                    } else if (purchaseFlowType == 'customVideo') {
+                        customVideoPurchaseFlow.handleAfterLoginSignup(parentModal, resp);
+
+                    } else if (purchaseFlowType == 'tipping') {
+                        tippingPurchaseFlow.handleAfterLoginSignup(parentModal, resp);
+
+                    } else if (purchaseFlowType == 'videoPurchase') {
+                        videoPurchaseFlow.handleAfterLoginSignup(parentModal, resp);
+                    }
+                } else {
+                    parentModal.querySelector('.fanclub_signup_form .error_message').innerHTML = resp.message;
+                    if (resp.showSignupCaptcha) {
+                        MG_Utils.addClass(parentModal.querySelector('.pf_signup_recaptcha'), 'active');
+                    }
+                }
+            }
+        });
+    }
+
+
+};
+
+try{
+    var purchaseFlow_LoginSignup = new PurchaseFlow_LoginSignup();
+    purchaseFlow_LoginSignup.init(typeof purchaseFlow_LoginSignup_Params !== 'undefined' ? purchaseFlow_LoginSignup_Params : {});
+
+}catch(e){
+    console.log("ERROR === Login / Signup Modal ===");
+    console.log(e);
+}
+
+if (typeof initCaptcha !== "function") {
+    function initCaptcha() {
+        var captchas = document.querySelectorAll('.g-recaptcha');
+        if (captchas.length > 0) {
+            for (var i = 0; i < captchas.length; i++) {
+                grecaptcha.render(captchas[i], {
+                    'sitekey': purchaseFlow_LoginSignup_Params.signupSitekey,
+                    'theme': 'dark',
+                    'callback': verifiedCallback
+                });
+            }
+        }
+    }
+    var recaptchaComplete;
+    function verifiedCallback() {
+        recaptchaComplete = true;
+        if (document.querySelector('.modalMTubes .login_signup_modal')) {
+            purchaseFlow_LoginSignup.signup_validateForm(document.querySelector('.modalMTubes .login_signup_modal'));
+        }
+    }
+}

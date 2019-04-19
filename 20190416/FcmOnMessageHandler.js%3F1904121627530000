@@ -1,0 +1,39 @@
+class FcmOnMessageHandler {
+
+    constructor(messaging) {
+        if (!messaging) {
+            throw new Error('No messenger instance found!');
+        }
+
+        if (!PushService) {
+            throw new Error('FcmOnMessageHandler requires PushService');
+        }
+
+        if (!PushMessage) {
+            throw new Error('FcmOnMessageHandler requires PushMessage');
+        }
+
+        this.service = new PushService('fcm');
+
+        this.messageHangler = new PushMessage();
+
+        messaging.onMessage(payload => {
+            const data = JSON.parse(JSON.stringify(payload.data));
+            this.messageHangler.showPush(data.title, data.body, data.click_action);
+        });
+
+        messaging.onTokenRefresh(() => {
+            messaging.getToken().then(refreshedToken => {
+                    console.log('Token refreshed!');
+                    this.service.sendTokenToServer(refreshedToken).then(() => {
+                        localStorage.setItem('last_fcm_token', refreshedToken);
+                        console.log('Token successfully updated!');
+                    }).catch(e => {
+                        console.error("Token update error: " + e.message);
+                    });
+                }).catch(e => {
+                    console.error("Token update error: " + e.message);
+                });
+        });
+    }
+}

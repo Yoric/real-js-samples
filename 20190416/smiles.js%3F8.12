@@ -1,0 +1,192 @@
+(function(w) {
+    var regExp = /\[:(\d+):([^:]+):]/g;
+
+    var Smiles = {
+        groups: [
+            {
+                "id": "1",
+                "icon": "smile1",
+                "level": 0,
+                "sex": 1,
+                "folder": "original",
+                "ext": "gif",
+                "smiles": [
+                    "smile1", "tongue1", "cool1", "wink1", "crazy1", "cry1", "blush1",
+                    "grief1", "haha1", "hi1", "love1", "shock1", "question1", "super1", "kiss1", "dance0",
+                    "dance1", "dance2", "dance3", "dance4", "dance5", "dance6", "dance7", "dance8",
+                    "dance9", "dance10", "dance11", "dance12", "dance13", "dance14", "dance15"
+                ]
+            },
+            {
+                "id": "1",
+                "icon": "smile2",
+                "level": 0,
+                "sex": 2,
+                "folder": "original",
+                "ext": "gif",
+                "smiles": [
+                    "smile2", "tongue2", "cool2", "wink2", "crazy2", "cry2", "blush2", "grief2",
+                    "haha2", "hi2", "love2", "shock2", "question2", "super2", "kiss2", "dance0",
+                    "dance1", "dance2", "dance3", "dance4", "dance5", "dance6", "dance7", "dance8",
+                    "dance9", "dance10", "dance11", "dance12", "dance13", "dance14", "dance15"
+                ]
+            },
+            {
+                "id": "2",
+                "icon": "happy",
+                "level": 10,
+                "sex": 3,
+                "folder": "gray",
+                "ext": "png",
+                "smiles": [
+                    "amative", "angry", "asleep", "bother", "cry", "despise", "faint", "grin",
+                    "happy", "impatient", "laugh", "painful", "puzzled", "rage", "sad", "scared",
+                    "shy", "sorry", "strive", "surprise"
+                ]
+            },
+            {
+                "id": "3",
+                "icon": "smile",
+                "level": 15,
+                "sex": 3,
+                "folder": "black",
+                "ext": "png",
+                "smiles": [
+                    "amazing", "anger", "awkward", "bad_egg", "bad_smile", "beaten", "cry", "electric",
+                    "exciting", "eyes", "girl", "greedy", "grimace", "haha", "happy", "heart", "hearts",
+                    "horror", "ironman", "money", "neo", "nothing", "po", "scorn", "secret", "shame",
+                    "shocked", "smile", "superman", "unhappy", "victory", "what", "yo"
+                ]
+            },
+            {
+                "id": "4",
+                "icon": "37",
+                "level": 25,
+                "sex": 3,
+                "folder": "club",
+                "ext": "png",
+                "smiles": [
+                    "1", "2", "3", "4", "5", "6", "25", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20",
+                    "21", "22", "23", "24", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "40",
+                    "41", "42", "43", "44", "45", "46", "47", "48"
+                ]
+            },
+            {
+                "id": "5",
+                "icon": "fu",
+                "level": 30,
+                "sex": 3,
+                "folder": "vk",
+                "ext": "png",
+                "smiles": [
+                    "afraid", "bdsm", "blush", "cat", "cool", "cry", "disappointed", "dress", "eyes", "fu",
+                    "gift", "hair", "hat", "heart", "hmm", "horror", "japan", "kid", "love", "mind", "money",
+                    "no", "popcorn", "protect", "rainbow", "sad", "so", "tongue", "what", "wow", "devil", "mk"
+                ]
+            },
+            {
+                "id": "6",
+                "icon": "15",
+                "level": 35,
+                "sex": 3,
+                "folder": "kot",
+                "ext": "png",
+                "smiles": [
+                    "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20",
+                    "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "40",
+                    "41", "42", "43", "44", "45", "46", "47", "48"
+                ]
+            },
+            {
+                "id": "7",
+                "mode": "christmas",
+                "icon": "tree",
+                "level": 5,
+                "sex": 3,
+                "folder": "christmas",
+                "ext": "png",
+                "smiles": [
+                    "happyny", "drink", "tree", "tree2", "santa", "gift", "ball2", "cook", "flake", "gift2", "ribbon", "sing",
+                    "snow3", "snowman", "spark", "tangerine", "ball", "food", "hot", "snow2", "snow4", "snow", "sweater"
+                ]
+            },
+            {
+                "id": "8",
+                "mode": "valentine",
+                "icon": "a1",
+                "level": 5,
+                "sex": 3,
+                "folder": "valentine",
+                "ext": "png",
+                "smiles": [
+                    "a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8", "d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8", "d9"
+                ]
+            }
+        ],
+        url: function(group, smile) {
+            return "/public/img/smiles/" + group.folder + "/" + smile + "." + group.ext;
+        },
+        parse: function(text) {
+            function replacer(match, groupId, code) {
+                var group = getGroupById(groupId);
+                if (group && checkCode(group.id, code)) {
+                    return '<img src="' + Smiles.url(group, code) + '">';
+                } else {
+                    return "";
+                }
+            }
+
+            return text.replace(regExp, replacer);
+        },
+        clean: function(text, level, mode) {
+            var limit = 3;
+
+            function replacer(match, groupId, code) {
+                var group = getGroupById(groupId);
+                if (!group) {
+                    return "";
+                }
+
+                if (group.level > level) {
+                    return "";
+                }
+
+                if (group.mode && mode !== group.mode) {
+                    return "";
+                }
+
+                if (--limit < 0) {
+                    return "";
+                }
+
+                return match;
+            }
+            return text.replace(regExp, replacer);
+        }
+    };
+
+    function getGroupById(id) {
+        var groups = Smiles.groups;
+        for (var i = 0; i < groups.length; i++) {
+            if (groups[i].id === id) {
+                return groups[i];
+            }
+        }
+        return null;
+    }
+
+    function checkCode(groupId, code) {
+        for (var i = 0; i < Smiles.groups.length; i++) {
+            var group = Smiles.groups[i];
+            if (Smiles.groups[i].id !== groupId) continue;
+            for (var j = 0; j < group.smiles.length; j++) {
+                if (group.smiles[j] === code) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    w.Smiles = Smiles;
+})(window);

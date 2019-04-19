@@ -1,0 +1,1 @@
+define(["vendors/sha256"],function(e){function n(n){return new Promise(function(t,o){var r=window.XMLHttpRequest?new XMLHttpRequest:new ActiveXObject("Microsoft.XMLHTTP");r.open("GET","https://api.ipify.org"),r.send(),r.onload=function(){var o=r.responseText;t(n?e(o):o)},r.onerror=function(){o(r.statusTex)}})}return{getIp:n}});

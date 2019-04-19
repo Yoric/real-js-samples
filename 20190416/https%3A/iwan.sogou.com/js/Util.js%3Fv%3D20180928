@@ -1,0 +1,143 @@
+var Util = {
+    AJAX_TIMEOUT:5000,
+    tpl_replace : function (tpl,obj){
+             if(obj == null) return '';
+             var result='';
+             result = tpl.replace(/\{([\w]+)\}/gi,function(word,key){
+                     if(obj[key] != undefined){ 
+                        return obj[key];
+             }
+          })
+       return result;
+    },
+   getDataJsonP:function(url,callback){
+    $.ajax({
+           type: "GET",
+           url: '/https.jsp?oformat=jsonp&url='+encodeURIComponent(encodeURIComponent(url)),
+           timeout: Util.AJAX_TIMEOUT,
+           scriptCharset: "utf-8",
+           dataType: "jsonp",
+           jsonp:"callback",
+           success: function(json) {
+               callback(json);
+           },
+           error: function (xhr, textStatus, errorThrown) {
+              // alert(textStatus);
+              //alert(errorThrown);
+               callback(null);
+           }
+       });
+   },
+   getDataJson:function(url,callback){
+    $.ajax({
+        type: "GET",
+        url: '/https.jsp?oformat=json&url='+encodeURIComponent(encodeURIComponent(url)),
+        timeout: Util.AJAX_TIMEOUT,
+        scriptCharset: "utf-8",
+        dataType: "json",
+        success: function(json) {
+            callback(json);
+        },
+        error: function (xhr, textStatus, errorThrown) {
+            //alert(errorThrown);
+            callback(null);
+        }
+    });    
+   },
+   getDataHtml:function(url,callback){
+       $.ajax({
+           type: "GET",
+           url: url,
+           timeout: Util.AJAX_TIMEOUT,
+           scriptCharset: "gbk",
+           dataType: "html",
+           success: function(data, textStatus, request) {
+               callback(data, textStatus, request);
+           },
+           error: function (xhr, textStatus, errorThrown) {
+               callback(null);
+           }
+       });    
+    },
+   renderHTML:function(data,tpl,attachFun){
+       var stringBuffer = [];
+       if($.isArray(data)){
+                for(var i=0;i<data.length;i++){
+                   var obj = data[i];
+                   if(obj.hasOwnProperty("picUrl") && obj.picUrl.indexOf("http://")==0){
+                       	obj.picUrl = obj.picUrl.replace("http://","https://");
+                   }
+                   obj.index=(i+1);
+                   if(attachFun){
+                       obj = attachFun(obj);
+                   }
+                   stringBuffer.push(Util.tpl_replace(tpl,obj));
+               }       
+       }else{
+           if(attachFun){
+               data = attachFun(data);
+           }
+           stringBuffer.push(Util.tpl_replace(tpl,data)); 
+       }
+       return stringBuffer.join("");
+   },
+    renderHTML_INC:function(container,data,tpl,attachFun){
+        var stringBuffer = [];
+        if($.isArray(data)){
+            for(var i=0;i<data.length;i++){
+                var obj = data[i];
+                if(obj.hasOwnProperty("picUrl") && obj.picUrl.indexOf("http://")==0){
+                        obj.picUrl = obj.picUrl.replace("http://","https://");
+                }
+                obj.index=(i+1);
+                if(attachFun){
+                    obj = attachFun(obj);
+                }
+                stringBuffer.push(Util.tpl_replace(tpl,obj));
+            }
+        }else{
+            if(attachFun){
+                data = attachFun(data);
+            }
+            stringBuffer.push(Util.tpl_replace(tpl,data));
+        }
+        $(container).html(stringBuffer.join(""));
+       // return stringBuffer.join("");
+    },
+    subString:function (str, len, hasDot)   
+   {   
+       var newLength = 0;   
+       var newStr = "";   
+       var chineseRegex = /[^\x00-\xff]/g;   
+       var singleChar = "";   
+       var strLength = str.replace(chineseRegex,"**").length;
+       if (strLength <= len) {
+       	return str;
+       } else {
+       	len = len-2;
+       }  
+       for(var i = 0;i < strLength;i++)   
+       {   
+           singleChar = str.charAt(i).toString();   
+           if(singleChar.match(chineseRegex) != null || singleChar.match(/[A-Z]/))   
+           {   
+               newLength += 2;   
+           }       
+           else   
+           {   
+               newLength++;   
+           }   
+           if(newLength > len)   
+           {   
+               break;   
+           }   
+           newStr += singleChar;   
+       }   
+          
+       if(hasDot && strLength > len)   
+       {   
+           newStr += "...";   
+       }   
+       return newStr;   
+   }
+}

@@ -1,0 +1,3 @@
+if (self.CavalryLogger) { CavalryLogger.start_js(["qncEV"]); }
+
+__d("VCKUEditorSetPACVideosDataAction",["Laminar","ifRequired"],(function(a,b,c,d,e,f){"use strict";a=b("Laminar").__createAction(function(){return[b("ifRequired")("AdsUEditorVCKSetPACVideosDataReducerPlugin",function(a){return b("ifRequired")("AdsCFAdgroupDataProvider",function(c){return b("Laminar").__createReducer(a,c,{})})})]},function(){return[]},"VCK.UEDITOR_SET_PAC_VIDEOS");e.exports=a}),null);

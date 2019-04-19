@@ -1,0 +1,100 @@
+var OPEN_SERVER=(function(){
+    var tplreplace =  function (tpl,obj){
+        if(obj == null) return '';
+        var result='';
+        result = tpl.replace(/\{([\w]+)\}/gi,function(word,key){
+                if(obj[key] != undefined){ //若obj含有这个属性，则返回obj的属性值
+                   return obj[key];
+        }
+     })
+        return result;
+    }
+	TPL = {
+		     'ULHEAD':[
+                '<div class="rank_wrap">',
+                    '<table width="100%" border="0" cellspacing="0" cellpadding="0" class="rank_table">',
+                    '<colgroup>',
+                    '<col style="width: 16%;">',
+                    '<col style="width: 34%;">',
+                    '<col style="width: 30%;">',
+                    '<col style="width: 20%;">',
+                    '</colgroup>',
+                    '<tbody><tr> <th class="first_col">时间</th> <th>游戏</th> <th>平台</th> <th>操作</th> </tr>' ].join(""),
+	         'TAIL':'</tbody></table></div>',
+             'LI':[
+		        '<tr class="{className}">',
+               	'<td>',
+              	'<a href="{clickurl}" onclick="return sogou_adclk(event,this)" target="_blank" uigs="item" class="{redclas}">{kftime}</a>',
+	            '</td>',
+	            '<td>',
+	            '<a href="{clickurl}" onclick="return sogou_adclk(event,this)" target="_blank" uigs="item"  class="{redclas}" title="{gamename}" style="white-space: nowrap;overflow: hidden;text-overflow: ellipsis;width: 80px;display: block;">{cutgamename}</a>',
+		        '</td>',
+		        '<td>',
+		        '<a href="{clickurl}" onclick="return sogou_adclk(event,this)" target="_blank" uigs="item"><span class="fc9">{customer}</span></a>',
+		        '</td>',
+		        '<td>',
+		        '<a  href="{clickurl}" onclick="return sogou_adclk(event,this)" class="but" target="_blank" uigs="item">进入</a>',
+				'</td>',
+		        '</tr>'].join("")
+	}
+	function isValid(obj){
+		return obj!=null && obj.length>0;
+	}
+	function renderLi(arys,sb){
+		for(var i=0;i<arys.length;i++){
+            if(i<3){
+                arys[i].className="front";
+				arys[i].redclas="fcr_9f";
+
+            }else{
+                arys[i].className="";
+				arys[i].redclas="";
+            }
+			if(arys[i].gamename.length>8){
+				arys[i].cutgamename=arys[i].gamename.substring(0,8)+"...";
+			}else{
+				arys[i].cutgamename=arys[i].gamename;
+			}
+			var tmp = arys[i].kftime.split(" ");
+			if(tmp && tmp.length>0){
+				arys[i].kftime=tmp[1];
+			}
+			sb.push(tplreplace(TPL.LI,arys[i]));
+       }
+	}
+	function renderHTML(obj){
+		var sb = [];
+		if(obj!=null ){
+			sb.push(TPL.ULHEAD);
+			renderLi(obj.hotopenserver,sb);
+			sb.push(TPL.TAIL);
+			$(CONTAINER).html(sb.join(""));
+		}
+	    $(LOADING_CONTAINER).hide();
+	    $(CONTAINER).show();
+	}
+    var LOADING_CONTAINER;
+    var CONTAINER;
+	function init(loading_container,container,server){
+		LOADING_CONTAINER =loading_container;
+		CONTAINER = container;
+		  $.ajax({
+		        type: "GET",
+		        url: "/https.jsp?oformat=jsonp&url="+encodeURIComponent(encodeURIComponent(server)),
+		        timeout: 5000,
+		        scriptCharset: "utf-8",
+		        contentType: "application/json; charset=utf-8",
+		        dataType: "jsonp",
+		        success: function(json) {
+		        	renderHTML(json.data);
+		        },
+		        error: function (xhr, textStatus, errorThrown) {
+		              $(LOADING_CONTAINER).hide();
+		            $(CONTAINER).show();
+		        }
+		    });
+	}
+	return {
+		init : init
+	}
+})();

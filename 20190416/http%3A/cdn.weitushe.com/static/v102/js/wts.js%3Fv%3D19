@@ -1,0 +1,214 @@
+const wtx = {
+	'name': '123',
+	'source': 0,
+	'init': function() {
+		var str = '';
+
+		if(getCookie('last_client_id')) {
+			if(getCookie('last_client_id') == 3) {
+				if(getCookie('last_home_topic_id')) {
+					str = '?last_client_id=' + getCookie('last_client_id') + '&last_home_topic_id=' + getCookie('last_home_topic_id');
+				} else if(getCookie('last_topic_id')) {
+					str = '?last_client_id=' + getCookie('last_client_id') + '&last_topic_id=' + getCookie('last_topic_id');
+				}
+
+			} else {
+				if(getCookie('last_topic_id')) {
+					str = '?last_client_id=' + getCookie('last_client_id') + '&last_topic_id=' + getCookie('last_topic_id');
+				} else if(getCookie('last_home_topic_id')) {
+					str = '?last_client_id=' + getCookie('last_client_id') + '&last_home_topic_id=' + getCookie('last_home_topic_id');
+				}
+			}
+		}
+		$('.closeAd').click(function() {
+			$(this).parent().hide();
+		})
+		$(".container").click(function(e) {
+			var isIna = false;
+			var dom = e.target;
+
+			while(dom.tagName != "HTML") {
+				console.log(dom.tagName)
+				if(dom.tagName == "A") {
+					isIna = true;
+					break;
+				}
+				dom = dom.parentNode;
+			}
+			console.log(isIna);
+			isIna ? (function() {
+				if($(dom).attr('_topic_id')) {
+					if(!($(dom).attr('_pos') == 1) || !getCookie('last_client_id')) {
+						$.post('/xjmg/update_pv_site', {
+							'site_id': getCookie('last_client_id') || 0,
+							'topic_id': $(dom).attr('_topic_id')
+						}, function(res) {
+							console.log(res)
+						})
+					}
+				}
+
+
+			})() : null;
+
+		})
+		document.onscroll = function() {
+			//					console.log(1)
+			$('img').each(function(index, dom) {
+				if($(dom).attr('src') && $(dom).attr('src').length > 0) {
+					return;
+				} else {
+					if($(dom).offset().top < (window.innerHeight + $(document).scrollTop())) {
+						$(dom).attr({
+							'src': $(dom).attr('wts_src')
+						})
+					}
+				}
+
+			})
+		}
+
+		$.get('//www.weitushe.com/xjmg/xjmg_home_load_v2' + str, function(res) {
+			//								$.get('//192.168.1.5:3030/xjmg_home_load_v2' + str, function(res) {
+			if(res.code == 0) {
+				if(res.ad.length > 0) {
+
+					res.container.splice(res.ad[0].position - 1, 0, {
+						'cover': res.ad[0].img_url,
+						'title': res.ad[0].title,
+						'url': res.ad[0].url
+					});
+					res.container = res.container.slice(0, res.container.length - 1);
+				}
+				res.container[0].url = res.container[0].url.replace('weitushe.com', 'weitushe.com').replace('shot_spage_new', 'shot_spage_weitushe').replace('http:','');
+				res.container[0].cover = res.container[0].cover.replace('weitushe.com', 'weitushe.com').replace('shot_spage_new', 'shot_spage_weitushe').replace('http:','');
+				for(var i = 1; i < res.container.length; i++) {
+					if(!res.container[i].title || res.container[i].title == res.container[0].title) {
+						res.container.splice(i, 1)
+					} else {
+						res.container[i].url = res.container[i].url.replace('weitushe.com', 'weitushe.com').replace('shot_spage_new', 'shot_spage_weitushe').replace('http:','');
+						res.container[i].cover = res.container[i].cover.replace('weitushe.com', 'weitushe.com').replace('shot_spage_new', 'shot_spage_weitushe').replace('http:','');
+					}
+				}
+				//暂定广告位 [3,4,5,6],[11,12,13,14],[23,24,25,26],[35,36,37,38],[47,48,49,50],[59,60,61,62]
+				var ad_line_1 = [3,4,5,6][parseInt(Math.random(0,1)*4)];
+				var ad_line_2 = [11,12,13,14][parseInt(Math.random(0,1)*4)];
+				var ad_line_3 = [23,24,25,26][parseInt(Math.random(0,1)*4)];
+				var ad_line_4 = [35,36,37,38][parseInt(Math.random(0,1)*4)];
+				var ad_line_5 = [47,48,49,50][parseInt(Math.random(0,1)*4)];
+				var ad_line_6 = [59,60,61,62][parseInt(Math.random(0,1)*4)];
+				res.container.splice(ad_line_1,1,{'type':'AD'})
+				res.container.splice(ad_line_2,1,{'type':'AD'})
+				res.container.splice(ad_line_3,1,{'type':'AD'})
+				res.container.splice(ad_line_4,1,{'type':'AD'})
+				res.container.splice(ad_line_5,1,{'type':'AD'})
+				res.container.splice(ad_line_6,1,{'type':'AD'})
+				var _str1 = '';
+				var _str12 = '';
+				function returnDOMstrByIndex(i){
+					return '<a _topic_id="' + res.container[i].topic_id + '" _pos="' + (i + 1) + '" _title="' + res.container[i].title + '"  target="_blank" class="jxCell" href="' + res.container[i].url + '&og=v102"><div class="view"><div class="view_wrap"><div class="view_div1"></div><div class="view_div2"></div><div class="view_div3"></div></div><img wts_src="' + res.container[i].cover + '"/></div><div class="desc">' + res.container[i].title + '</div></a>';
+				}
+				for(var i = 0; i < 7; i++) {
+					if(i < 3) {
+						_str1 += '<a _topic_id="' + res.container[i].topic_id + '" _pos="' + (i + 1) + '" _title="' + res.container[i].title + '" target="_blank" class="messageCell_l" href="' + res.container[i].url + '&og=v102"><div class="view"><div class="view_wrap"><div class="view_div1"></div><div class="view_div2"></div><div class="view_div3"></div></div><img src="' + res.container[i].cover + '"/></div><div class="desc">' + res.container[i].title + '</div></a>';
+					} else {
+						if(i == ad_line_1 ){
+							_str12 += '<div id="lineAd1" style="width:295px;height:245px;box-shadow:1px 1px 5px rgba(0, 0, 0, 0.05)"></div>'
+						}else{
+							_str12 += '<a _topic_id="' + res.container[i].topic_id + '" _pos="' + (i + 1) + '" _title="' + res.container[i].title + '" target="_blank" class="messageCell_s" href="' + res.container[i].url+ '&og=v102"><div class="view"><div class="view_wrap"><div class="view_div1"></div><div class="view_div2"></div><div class="view_div3"></div></div><img src="' +  res.container[i].cover + '"/></div><div class="desc">' + res.container[i].title + '</div></a>';
+						}
+					}
+				}
+				$('.section_top1').html(_str1);
+				$('.section_top2').html(_str12);
+				var _str2 = '';
+				for(var i = 7; i < 19; i++) {
+					if(i == ad_line_2){
+						_str2 += '<div id="lineAd2" style="width:295px;height:245px;box-shadow:1px 1px 5px rgba(0, 0, 0, 0.05)"></div>';
+					}else{
+						_str2 += returnDOMstrByIndex(i);
+					}
+					
+				}
+				$('.jx1').html(_str2);
+				var _str3 = '';
+				for(var i = 19; i < 31; i++) {
+					if(i == ad_line_3){
+						_str3 += '<div id="lineAd3" style="width:295px;height:245px;box-shadow:1px 1px 5px rgba(0, 0, 0, 0.05)"></div>';
+					}else{
+						_str3 += returnDOMstrByIndex(i);
+					}
+				}
+				$('.jx2').html(_str3);
+				var _str4 = '';
+				for(var i = 31; i < 43; i++) {
+					if(i == ad_line_4){
+						_str4 += '<div id="lineAd4" style="width:295px;height:245px;box-shadow:1px 1px 5px rgba(0, 0, 0, 0.05)"></div>';
+					}else{
+						_str4 += returnDOMstrByIndex(i);
+					}
+				}
+				$('.jx3').html(_str4);
+				var _str5 = '';
+				for(var i = 43; i < 55; i++) {
+					if(i == ad_line_5){
+						_str5 += '<div id="lineAd5" style="width:295px;height:245px;box-shadow:1px 1px 5px rgba(0, 0, 0, 0.05)"></div>';
+					}else{
+						_str5 += returnDOMstrByIndex(i);
+					}
+				}
+				$('.jx4').html(_str5);
+				var _str6 = '';
+				for(var i = 55; i < Math.min(67, res.container.length); i++) {
+					if(i == ad_line_6){
+						_str6 += '<div id="lineAd6" style="width:295px;height:245px;box-shadow:1px 1px 5px rgba(0, 0, 0, 0.05)"></div>';
+					}else{
+						_str6 += returnDOMstrByIndex(i);
+					}
+				}
+				$('.jx5').html(_str6);
+				setTimeout(function() {
+					$('img').each(function(index, dom) {
+						if($(dom).attr('src') && $(dom).attr('src').length > 0) {
+							return;
+						} else {
+							if($(dom).offset().top < (window.innerHeight + $(document).scrollTop())) {
+								$(dom).attr({
+									'src': $(dom).attr('wts_src')
+								})
+							}
+						}
+
+					})
+					BAIDU_CLB_fillSlotAsync("u3500489", "lineAd1");
+					BAIDU_CLB_fillSlotAsync("u3500489", "lineAd2");
+					BAIDU_CLB_fillSlotAsync("u3500489", "lineAd3");
+					BAIDU_CLB_fillSlotAsync("u3500489", "lineAd4");
+					BAIDU_CLB_fillSlotAsync("u3500489", "lineAd5");
+					BAIDU_CLB_fillSlotAsync("u3500489", "lineAd6");
+				})
+
+			}
+		})
+		setTimeout(function() {
+			if($('#ipAddress').text().length > 0 && !/北京市/.test($('#ipAddress').text())){
+				$('.fixSectionRightAd').show();
+				$('.fixSectionLeftAd').show();
+				BAIDU_CLB_fillSlotAsync("u3500478", "fixSectionLeftAd");
+				BAIDU_CLB_fillSlotAsync("u3500478", "fixSectionRightAd");
+			}
+		}, 300)
+
+	}
+}
+
+function getCookie(name) {
+	var arr, reg = new RegExp("(^| )" + name + "=([^;]*)(;|$)");
+
+	if(arr = document.cookie.match(reg))
+
+		return unescape(arr[2]);
+	else
+		return null;
+}
+wtx.init()

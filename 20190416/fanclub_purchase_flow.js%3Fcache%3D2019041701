@@ -1,0 +1,410 @@
+var FanclubPurchaseFlow = function() {
+    "use strict";
+    var Self = this;
+
+    Self.defaultSettings = {
+        showSuccessModal: false,
+        showFailureModal: false,
+        dynamicallyTargetButton : true,
+        dismissUrl : ''
+    };
+
+    Self.init = function (options) {
+        Self.params = MG_Utils.extendSimple(Self.defaultSettings, options);
+        Self.initModals();
+        Self.add_listeners();
+    };
+
+    Self.initModals = function () {
+        Self.purchaseFlowModal = new MG_Modal({
+            closeButton : false,
+            closeDocument: false,
+            content: document.querySelector('.fanclub_purchase_flow_modals_container'),
+            className : 'fanclubPurchaseFlowModal'
+        });
+    };
+
+    Self.add_listeners = function(){
+        if (Self.params.dynamicallyTargetButton) {
+            // Targetting the whole document, because there are cases where the button will be dynamically added
+            // Example on 'load more' in the stream and through sorting comments
+            MG_Utils.addEventHandler(document, 'click', function(e) {
+                if(e.target) {
+                    var parent = e.target.parentNode,
+                        superParent = parent ? parent.parentNode : null;
+
+                    if (MG_Utils.hasClass(e.target,'js_becomeFan')) {
+                        Self.triggerPurchaseModal(e.target.getAttribute('data-model_id'));
+                    } else if (parent && MG_Utils.hasClass(parent,'js_becomeFan')) {
+                        // Sometimes Become a Fan button has child elements, this is for that case (only has 1 level down of child elements)
+                        Self.triggerPurchaseModal(parent.getAttribute('data-model_id'));
+                    } else if (superParent && MG_Utils.hasClass(superParent,'js_becomeFan')) {
+                        // Sometimes Become a Fan button has child elements
+                        Self.triggerPurchaseModal(superParent.getAttribute('data-model_id'));
+                    }
+                }
+            });
+        } else {
+            var triggerButtonList = document.querySelectorAll('.js_becomeFan');
+            [].forEach.call(triggerButtonList, function(triggerButton) {
+                MG_Utils.addEventHandler(triggerButton, 'click', function(e) {
+                    Self.triggerPurchaseModal(triggerButton.getAttribute('data-model_id'))
+                });
+            });
+        }
+
+        // Automatically open purchase modal
+        if (Self.params.triggerPurchaseFlow && Self.params.isModelPage && Self.params.modelId) {
+            // Do not trigger purchase flow if age modal is supposed to open
+            if (purchaseFlow_Utils.noAgeModal()) {
+                Self.triggerPurchaseModal(Self.params.modelId);
+            }
+        }
+
+        // Automatically open success modal
+        if (Self.params.showSuccessModal) {
+            Self.purchaseFlowModal.openModal();
+            var parentModal = document.querySelector('.contentMTubes .fanclub_purchase_flow_modals');
+            // Activate Purchase Modal
+            MG_Utils.addClass(parentModal.querySelector('.pf_success_modal'), 'active_modal');
+            MG_Utils.addClass(parentModal, 'redirect_on_close');
+            purchaseFlow_Utils.addModalCloseListeners(parentModal, Self.params, Self.purchaseFlowModal);
+        }
+        // Automatically open failure modal
+        if (Self.params.showFailureModal) {
+            Self.purchaseFlowModal.openModal();
+            var parentModal = document.querySelector('.contentMTubes .fanclub_purchase_flow_modals');
+            var failureModal = parentModal.querySelector('.pf_failure_modal');
+            // Activate Purchase Modal
+            MG_Utils.addClass(failureModal, 'active_modal');
+            MG_Utils.addClass(parentModal, 'redirect_on_close');
+            purchaseFlow_Utils.addModalCloseListeners(parentModal, Self.params, Self.purchaseFlowModal);
+
+            MG_Utils.addEventHandler(failureModal.querySelector('.js_change_cc'), 'click', function(e) {
+                var modelId = e.target.getAttribute('data-model_id');
+                MG_Utils.ajaxCall({
+                    type: 'POST',
+                    data: { modelId : modelId },
+                    url: Self.params.changeCCAjax,
+                    success: function(resp) {
+                        if (resp.success == 'PASS') {
+                            window.location.href = resp.redirectUrl;
+                        }
+                    }
+                });
+            });
+        }
+    };
+
+
+    Self.addNewEventHandlers = function(parentModal, responseData) {
+
+        // Event listeners for last digits section
+        Self.addLastDigitEventListeners(parentModal);
+
+        MG_Utils.addEventHandler(parentModal.querySelector('.js_purchase_modal_submit'), 'click', function(e) {
+            if (e.target.getAttribute('data-loginSignup') == 'true') {
+                purchaseFlow_Utils.openSelectedModal('.login_signup_modal', parentModal);
+                purchaseFlow_LoginSignup.addListeners(parentModal, responseData.showSignupCaptcha);
+            } else {
+                window.location.href = e.target.getAttribute('data-redirectUrl');
+            }
+        });
+
+        MG_Utils.addEventHandler(parentModal.querySelector('.js_report_other_perks'), 'click', function(e) {
+            if(!MG_Utils.hasClass(e.target, 'disabled')) {
+                Self.reportOtherPerks(e.target);
+            }
+        });
+
+        var changeCCList = parentModal.querySelectorAll('.js_change_cc');
+        [].forEach.call(changeCCList, function(changeCCButton) {
+            MG_Utils.addEventHandler(changeCCButton, 'click', function(e) {
+                var modelId = e.target.getAttribute('data-model_id');
+                MG_Utils.ajaxCall({
+                    type: 'POST',
+                    data: { modelId : modelId },
+                    url: Self.params.changeCCAjax,
+                    success: function(resp) {
+                        if (resp.success == 'PASS') {
+                            window.location.href = resp.redirectUrl;
+                        }
+                    }
+                });
+            });
+        });
+
+        MG_Utils.addEventHandler(parentModal.querySelector('.js_alreadyFanTip'), 'click', function (e) {
+            Self.purchaseFlowModal.closeModal(function () {
+                window.location = e.target.getAttribute('data-url');
+                // Dismiss url only set for premium users, only reload for free users
+                if (Self.params.isModelPage && !Self.params.dismissUrl) {
+                    window.location.reload(true);
+                }
+            });
+        });
+
+        // Listeners for closing the modals
+        purchaseFlow_Utils.addModalCloseListeners(parentModal, Self.params, Self.purchaseFlowModal);
+        // Listeners for the Leave Confirmation Modal
+        purchaseFlow_Utils.addLeaveModalListeners(parentModal, Self.params, Self.purchaseFlowModal);
+    };
+
+    Self.addLastDigitEventListeners = function (parentModal) {
+        // last digit input listeners
+        var lastDigitInputList = parentModal.querySelectorAll('.lastFour');
+        [].forEach.call(lastDigitInputList, function(lastDigitInput) {
+
+            ['keyup', 'input', 'keypress'].forEach(function (eventType) {
+                MG_Utils.addEventHandler(lastDigitInput, eventType, function (e) {
+                    // Auto jumps to the next input if the user has type an input
+                    // Only allows one digit in each input box
+                    if ((eventType == 'input') && e.target.value.length >= 1) {
+                        e.target.value = e.target.value.slice(0, 1);
+                        if (!MG_Utils.hasClass(e.target, 'lastFourEnd')) {
+                            e.target.nextElementSibling.focus();
+                        }
+                    }
+                    var lastDigitDiv = parentModal.querySelector('.'+purchaseFlow_Utils.getCurrentOpenedModal(parentModal));
+                    var last4 = '';
+                    [].forEach.call(lastDigitDiv.querySelectorAll('.lastFour'), function (input) {
+                        last4 += input.value;
+                    });
+                    if ((eventType == 'input') && last4.length == 4) { // Enabling the submit button if there's 4 digits
+                        MG_Utils.removeClass(lastDigitDiv.querySelector('.js_last_digits_submit'), 'disabled');
+                    }
+                    // Allows submitting the form with Enter Key if conditions are met
+                    if ((eventType == 'keyup') && (e.keyCode == '13') && !MG_Utils.hasClass(lastDigitDiv.querySelector('.js_last_digits_submit'), 'disabled')) {
+                        Self.handleLastDigitsAjax(lastDigitDiv, last4);
+                    }
+
+                });
+            });
+        });
+        // last digit submit listeners
+        var lastDigitSubmitList = parentModal.querySelectorAll('.js_last_digits_submit');
+        [].forEach.call(lastDigitSubmitList, function(submitButton) {
+            MG_Utils.addEventHandler(submitButton, 'click', function(e) {
+                // Submits the form on click if the button is not disabled
+                if (!MG_Utils.hasClass(submitButton, 'disabled')) {
+                    var lastDigitDiv = e.target.parentElement;
+                    var last4 = '';
+                    lastDigitDiv.querySelectorAll('.lastFour').forEach(function (input) {
+                        last4 += input.value
+                    });
+                    Self.handleLastDigitsAjax(lastDigitDiv, last4);
+                }
+            });
+        });
+
+    };
+
+
+    Self.triggerPurchaseModal = function (model_id) {
+        Self.purchaseFlowModal.openModal( function () {
+            MG_Utils.addClass(document.querySelector('.modalMTubes.fanclubPurchaseFlowModal'), 'loadingModal');
+
+            MG_Utils.ajaxCall({
+                type: 'POST',
+                data: { modelId : model_id },
+                url: Self.params.initiatePurchaseFlowAjax,
+                success: function(resp) {
+                    MG_Utils.removeClass(document.querySelector('.modalMTubes.fanclubPurchaseFlowModal'), 'loadingModal');
+
+                    if (resp.success == 'PASS') {
+                        var parentModal = document.querySelector('.contentMTubes .fanclub_purchase_flow_modals');
+
+                        // Activate Purchase Modal
+                        MG_Utils.addClass(parentModal.querySelector('.fanclub_purchase_modal'), 'active_modal');
+                        Self.populatePurchaseModal(resp, parentModal);
+                        Self.replaceModelInfo(resp, parentModal, model_id);
+                        Self.addNewEventHandlers(parentModal, resp);
+
+                        Self.initScroll(parentModal.querySelectorAll('.fanclub_purchase_top_content'), '100%', '250px');
+                    } else {
+                        if (typeof resp.fanclubInactive !== 'undefined' && resp.fanclubInactive) {
+                            var parentModal = document.querySelector('.contentMTubes .fanclub_purchase_flow_modals');
+
+                            // Activate Inactive Fanclub Modal
+                            MG_Utils.addClass(parentModal.querySelector('.inactive_fanclub_modal'), 'active_modal');
+                            parentModal.innerHTML = parentModal.innerHTML.replace(/%%MODEL_NAME%%/g, '<span class="modelName">'+resp.username+'</span>');
+
+                            purchaseFlow_Utils.addModalCloseListeners(parentModal, Self.params, Self.purchaseFlowModal);
+                        }
+                    }
+
+                }
+            });
+        });
+    };
+
+    Self.populatePurchaseModal = function (data, parentModal) {
+        if (data.perks) {
+            data.perks.forEach( function (perkText) {
+                var perksTemplate = parentModal.querySelector('.perks_template .perk_container').cloneNode(true);
+                perksTemplate.querySelector('.perk_content').innerText = perkText;
+                parentModal.querySelector('.fanclub_purchase_perks_list').appendChild(perksTemplate);
+            });
+        }
+
+        if (data.otherPerks) {
+            data.otherPerks.forEach( function (perkText) {
+                var perksTemplate = parentModal.querySelector('.perks_template .perk_container').cloneNode(true);
+                perksTemplate.querySelector('.perk_content').innerText = perkText;
+                parentModal.querySelector('.fanclub_purchase_other_perks_list').appendChild(perksTemplate);
+            });
+            MG_Utils.addClass(parentModal.querySelector('.fanclub_purchase_other_perks'), 'active');
+            MG_Utils.addClass(parentModal.querySelector('.fanclub_purchase_top_content'), 'two_perks_list');
+        }
+
+        if (data.showLast4) {
+            MG_Utils.addClass(parentModal.querySelector('.fanclub_purchase_bottom'), 'purchase_modal_2');
+        } else {
+            MG_Utils.addClass(parentModal.querySelector('.fanclub_purchase_bottom'), 'purchase_modal_1');
+        }
+
+        if (data.loginSignup) {
+            parentModal.querySelector('.js_purchase_modal_submit').setAttribute('data-loginSignup', true);
+        }
+        if (typeof data.redirectUrl !== 'undefined') {
+            parentModal.querySelector('.js_purchase_modal_submit').setAttribute('data-redirectUrl', data.redirectUrl);
+        }
+        if (typeof data.paidVideoOptOutMessage !== "undefined" && data.paidVideoOptOutMessage) {
+            parentModal.querySelector('.fanclub_purchase_optout').innerHTML = data.paidVideoOptOutMessage;
+        }
+    };
+
+    Self.replaceModelInfo = function (data, parentModal, modelId) {
+        var modelName = data.modelInfo.modelName;
+        var fanclubPrice = data.modelInfo.priceFrequency;
+
+        parentModal.innerHTML = parentModal.innerHTML.replace(/FANCLUB_PRICE/g, fanclubPrice);
+        parentModal.innerHTML = parentModal.innerHTML.replace(/MODEL_ID/g, modelId);
+        [].forEach.call(parentModal.querySelectorAll('.modelName'), function (elm) {
+            elm.innerText = modelName;
+        });
+    };
+
+    Self.reportOtherPerks = function (elm) {
+        var modelId = elm.getAttribute('data-model_id');
+        MG_Utils.ajaxCall({
+            type: 'POST',
+            data: { modelId : modelId },
+            url: Self.params.reportOtherPerksAjax,
+            success: function(resp) {
+                if (resp.success == 'PASS') {
+                    elm.innerHTML = Self.params.reportOtherPerksThankYouTxt;
+                    MG_Utils.addClass(elm, 'notClickable');
+                    MG_Utils.addClass(elm, 'disabled');
+                } else if(resp.success == 'FAIL') {
+                    elm.innerHTML = resp.message;
+                    MG_Utils.addClass(elm, 'notClickable');
+                    MG_Utils.addClass(elm, 'disabled');
+                    MG_Utils.addClass(elm, 'error');
+                }
+            }
+        });
+    };
+
+    Self.handleLastDigitsAjax = function (parentDiv, lastDigits) {
+        // Reset error states
+        MG_Utils.removeClass(parentDiv.querySelector('.last_digits_error'), 'active');
+        parentDiv.querySelector('.last_digits_error').innerHTML = '';
+
+        var last4Data = {
+            last4 : lastDigits,
+            modelId : parentDiv.querySelector('.js_last_digits_submit').getAttribute('data-model_id')
+        };
+        if (Self.params.premiumUserInfo) {
+            last4Data.a = Self.params.premiumUserInfo;
+        }
+
+        MG_Utils.ajaxCall({
+            type: 'POST',
+            data: last4Data,
+            url: Self.params.lastDigitsAjax,
+            success: function(resp) {
+                if (resp.success == 'FAIL') {
+                    // Show error message
+                    MG_Utils.addClass(parentDiv.querySelector('.last_digits_error'), 'active');
+                    parentDiv.querySelector('.last_digits_error').innerHTML = resp.message;
+                } else {
+                    // go to probiller
+                    window.location.href = resp.redirectUrl;
+                }
+            }
+        });
+    };
+
+    Self.initScroll = function (container, width, height) {
+        MG_Scroll.init({
+            selector: container,
+            width: width, //content width, default 'auto'
+            height: height, //default 250px
+            color: '#F39000', //scroller color, default #000
+            railColor: '#2e2e2e', //rail color, default #333
+            railOpacity: '1',//rail opacity, default 0.2
+            opacity: '1', //scroller opacity, default 0.4
+            wrapperClass: "scrollContentWrapper" //parent div class name, default class 'scrollDiv'
+        });
+    };
+
+    Self.handleAfterLoginSignup = function(parentModal, data, last4Required, isAlreadyFan) {
+        last4Required = (typeof last4Required != "undefined") ? last4Required : false;
+        isAlreadyFan = (typeof isAlreadyFan != "undefined") ? isAlreadyFan : false;
+
+        if(last4Required) {
+            // Opens the Last Digits Modal and set relevant information
+            purchaseFlow_Utils.openSelectedModal('.last_digits_modal', parentModal);
+            var lastDigitsModal = parentModal.querySelector('.last_digits_modal');
+            lastDigitsModal.querySelector('.last_digits_avatar').setAttribute('src', data.thumbnail);
+            lastDigitsModal.querySelector('.last_digits_top_username').innerHTML =  data.username;
+            if (typeof data.dismissUrl != 'undefined') {
+                Self.params.dismissUrl = data.dismissUrl;
+            }
+            // For premium users
+            if (typeof data.responseData != 'undefined' && typeof data.responseData.autoLoginParameter != 'undefined' ) {
+                Self.params.premiumUserInfo = data.responseData.autoLoginParameter;
+            }
+
+            // Adds specific class so that leave confirmation modal can be triggered when trying to exit flow after this point
+            MG_Utils.addClass(parentModal, 'leave_confirmation');
+
+            // Making sure if they ever leave the purchase flow, the page will reload
+            MG_Utils.addClass(parentModal.querySelector('.js_confirm_leave_modal'), 'reload_on_close');
+
+        } else if (isAlreadyFan) {
+            // Opens the Already A Fan Modal
+            purchaseFlow_Utils.openSelectedModal('.already_fan_modal', parentModal);
+            parentModal.querySelector('.already_fan_send_tip').setAttribute('data-url' , data.tipUrl);
+
+            // To allow closing the modal and refresh on closing modal
+            MG_Utils.removeClass(parentModal, 'leave_confirmation');
+            MG_Utils.addClass(parentModal, 'reload_on_close');
+
+            if (typeof data.dismissUrl != 'undefined') {
+                Self.params.dismissUrl = data.dismissUrl;
+            }
+            // For premium users
+            if (typeof data.responseData != 'undefined' && typeof data.responseData.autoLoginParameter != 'undefined' ) {
+                Self.params.premiumUserInfo = data.responseData.autoLoginParameter;
+            }
+
+        } else {
+            if (typeof data.redirectUrl != 'undefined') {
+                window.location.href = data.redirectUrl;
+            }
+
+        }
+
+    };
+};
+
+try{
+    var fanclubPurchaseFlow = new FanclubPurchaseFlow();
+    fanclubPurchaseFlow.init(typeof fanclubPurchaseFlowParams !== 'undefined' ? fanclubPurchaseFlowParams : {});
+
+}catch(e){
+    console.log("ERROR === Fanclub Purchase Flow ===");
+    console.log(e);
+}

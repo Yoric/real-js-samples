@@ -1,0 +1,159 @@
+(function (global) {
+	var oCpf = global.ru.mail.cpf;
+	var basic = oCpf.Basic;
+	var typeOf = basic.typeOf;
+	var extend = basic.Extend;
+	extend(global.getNameSpace('fest._helpers'), {
+		classNamesFor: (function () {
+			var classNameParamsList = ['mix', 'mods'];
+			return function classNamesFor (blockName, blockParams) {
+				var classNames = [blockName];
+				if (typeof blockParams === 'object') {
+					for (var paramVal, paramNo = classNameParamsList.length; paramNo--;) {
+						if (Array.isArray(paramVal = blockParams[classNameParamsList[paramNo]])) {
+							if (paramNo === 1) {
+								blockName += '_';
+
+								for (var modNo = 0; modNo < paramVal.length; modNo++) {
+									classNames.push(blockName + paramVal[modNo]);
+								}
+							} else {
+								classNames = classNames.concat(paramVal);
+							}
+						}
+					}
+				}
+				return classNames.join(' ');
+			};
+		}()),
+		getByPath: basic.getByPath,
+		mergeTopParams: (function () {
+			var PARAMS = ['mix', 'mods', 'attrs'];
+			return function () {
+				return Array.prototype.slice.apply(arguments).reduce(function (result, source) {
+					if (typeOf(source, 'object')) {
+						PARAMS.forEach(function (propName) {
+							var sourceVal = source[propName];
+							if (Array.isArray(source[propName])) {
+								result[propName] = result[propName] || [];
+								Array.prototype.push.apply(result[propName], sourceVal);
+							} else if (typeOf(sourceVal, 'object')) {
+								result[propName] = result[propName] || {};
+								for (var sourceProp in sourceVal) {
+									if (sourceVal.hasOwnProperty(sourceProp)) {
+										result[propName][sourceProp] = sourceVal[sourceProp];
+									}
+								}
+							}
+						});
+					}
+					return result;
+				}, {});
+			}
+		}()),
+		mergeParams: (function () {
+			var PARAMS_FOR_EXTEND = ['mix', 'mods', 'attrs'];
+			var REWRITE_KEY = '_rewrite';
+			var CHILDREN_KEY = '_children';
+			function mergeAllParams (target, modifier) {
+				for (var blockName in modifier) {
+					if (modifier.hasOwnProperty(blockName)) {
+						var targetBlock = target[blockName];
+						var modifierBlock = modifier[blockName];
+						if (typeOf(modifierBlock, 'object') && (typeOf(targetBlock, 'object') || (typeOf(targetBlock, 'undefined')))) {
+							target[blockName] = mergeParams(targetBlock, modifierBlock);
+						}
+					}
+				}
+			}
+			function mergeChildrenParams (target, modifier) {
+				var targetChildren = (target[CHILDREN_KEY] = target[CHILDREN_KEY] || {});
+				var modifierChildren = modifier[CHILDREN_KEY];
+
+				for (var blockName in modifierChildren) {
+					if (modifierChildren.hasOwnProperty(blockName)) {
+						targetChildren[blockName] = mergeParams(
+							targetChildren[blockName],
+							modifierChildren[blockName]
+						);
+					}
+				}
+			}
+			function mergeParams () {
+				var argsList = Array.prototype.slice.apply(arguments);
+				var deep = true;
+				var target, modifier, rewrite, targetVal, modifierVal, rewriteProp;
+				if (typeOf(argsList[0], 'boolean')) {
+					deep = argsList.shift();
+				}
+				if (argsList.length < 2) {
+					return;
+				}
+				target = argsList.shift();
+				if (!typeOf(target, 'object')) {
+					target = {};
+				}
+
+				for (var mdfNo = 0; mdfNo < argsList.length; mdfNo += 1) {
+					modifier = argsList[mdfNo];
+					rewrite = modifier && modifier[REWRITE_KEY];
+					if (modifier != null) {
+						for (var propName, propNo = PARAMS_FOR_EXTEND.length; propNo--;) {
+							propName = PARAMS_FOR_EXTEND[propNo];
+							if (
+								(
+									modifier.hasOwnProperty(propName) ||
+									(rewriteProp = rewrite && rewrite.hasOwnProperty(propName))
+								) &&
+								modifier[propName] !== target
+							) {
+								targetVal = target[propName];
+								modifierVal = modifier[propName];
+								if (rewriteProp) {
+									targetVal = rewrite[propName];
+								} else if (modifierVal) {
+									if (Array.isArray(targetVal) || Array.isArray(modifierVal)) {
+										targetVal = targetVal ? targetVal.concat(modifierVal) : modifierVal;
+									} else if (
+										typeOf(modifierVal, 'object') &&
+										(!targetVal || typeOf(target, 'object'))
+									) {
+										targetVal = targetVal ? extend(true, {}, targetVal, modifierVal) : modifierVal;
+									}
+								}
+								target[propName] = targetVal;
+							}
+						}
+						if (deep) {
+							mergeAllParams(target, modifier);
+						} else if (modifier.hasOwnProperty(CHILDREN_KEY)) {
+							mergeChildrenParams(target, modifier);
+						}
+					}
+				}
+				return target;
+			}
+			return mergeParams;
+		}()),
+		/**
+		 * Аватар пользователя
+		 * @param  {Object} params          Параметры
+		 * @param  {string} params.email    Email пользователя
+		 * @param  {string} params.name     Имя пользователя
+		 * @param  {number} [params.width]  Размер аватара, по умолчанию 45px
+		 * @return {string}                 Полный путь до аватары
+		 */
+		avatar: function (params) {
+			params = params || {};
+			if ('width' in params) {
+				params.height = params.width;
+			}
+			return '//cp-filin.mail.ru/pic?' + ['email', 'name', 'width', 'height'].reduce(function(list, param) {
+				if (params[param]) {
+					list.push(param + '=' + encodeURI(params[param]));
+				}
+				return list;
+			}, []).join('&');
+		}
+	});
+}(new Function('return this')()));

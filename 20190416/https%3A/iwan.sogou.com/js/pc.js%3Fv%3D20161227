@@ -1,0 +1,567 @@
+var $s = (function () {
+    var a = "0.1.0",
+        f = {}, b = {};
+    f.ext_js = "/js/sext.v.1.js";
+    var c = f.$d = document,
+        e = {};
+ 
+    function d(l, j, m) {
+        var h = this;
+        var g = Array.prototype.slice.call(arguments, 3);
+        if (typeof window[l] == "function") {
+            if (e[j] == "1") {
+                e[j] = "2";
+                if (typeof m == "function") {
+                    m.apply(h, g)
+                }
+            } else {
+                if (e[j] == "2") {
+                    if (typeof m == "function") {
+                        m.apply(h, g)
+                    }
+                }
+            }
+            window[l].apply(h, g)
+        } else {
+            if (!e[j]) {
+                var k = c.createElement("script");
+                e[j] = "1";
+                k.type = "text/javascript";
+                k.charset = "gbk";
+                k.src = j;
+                if ($s.ua && $s.ua.ie6) {
+                    setTimeout(function () {
+                        $s.$h().appendChild(k)
+                    }, 50)
+                } else {
+                    $s.$h().appendChild(k)
+                }
+            }
+            g = Array.prototype.slice.call(arguments, 0);
+            setTimeout(function () {
+                d.apply(h, g)
+            }, 50)
+        }
+    }
+    f.cjs = d;
+    f.$ = function (g) {
+        return c.getElementById(g)
+    };
+    f.$$ = function (g, h) {
+        if (g) {
+            return g.getElementsByTagName(h)
+        } else {
+            return c.getElementsByTagName(h)
+        }
+    };
+    f.$b = function (k, g, h, l) {
+        if (k) {
+            if (l && typeof l != "undefined" && h.length == 1) {
+                setTimeout(function () {
+                    var m = f.viewport;
+                    f.viewport = function () {
+                        return {
+                            width: 1400
+                        }
+                    };
+                    h[0]();
+                    f.viewport = m
+                }, 1);
+                return
+            }
+            for (var j in g) {
+                if (window.attachEvent) {
+                    k.attachEvent("on" + g[j], h[j])
+                } else {
+                    k.addEventListener(g[j], h[j], false)
+                }
+            }
+        }
+    };
+    f.$c = function (l, k, h, g, m) {
+        var j = c.createElement(l);
+        if (g) {
+            j.type = "text/javascript";
+            if (m) {
+                j.charset = m
+            }
+            j.src = g
+        }
+        if (k) {
+            k.appendChild(j)
+        }
+        if (h) {
+            j.className = h
+        }
+        return j
+    };
+    f.$h = function () {
+        return f.$$(c, "head")[0]
+    };
+    f.t = function () {
+        return (new Date()).getTime()
+    };
+    f.ua = (function () {
+        var g = window.navigator.userAgent.toLowerCase();
+        var j = {};
+        if (window.opera) {
+            j.opera = true
+        } else {
+            if (g.indexOf("msie") != -1) {
+                j.ie = true;
+                var h = /msie\s+(.)/.exec(g);
+                if (h) {
+                    j["ie" + h[1]] = true
+                }
+            } else {
+                if (g.indexOf("webkit") != -1) {
+                    j.webkit = true;
+                    if (g.indexOf("chrome") != -1) {
+                        j.chrome = true
+                    } else {
+                        if (g.indexOf("ipad") != -1) {
+                            j.ipad = true;
+                            j.ios = true
+                        } else {
+                            if (g.indexOf("safari") != -1) {
+                                j.safari = true
+                            }
+                        }
+                    }
+                } else {
+                    if (g.indexOf("gecko") != -1) {
+                        j.gecko = true;
+                        if (g.indexOf("firefox") != -1) {
+                            j.firefox = true
+                        }
+                    }
+                }
+            }
+        } if (g.indexOf("se 2.x") != -1) {
+            j.se = true
+        }
+        if (g.indexOf("android") != -1) {
+            j.and = true
+        }
+        if (g.indexOf("iphone") != -1) {
+            j.ios = true
+        }
+        return j
+    })();
+    f.wait = function (g, j, h) {
+        var k = $s.$(g);
+        if (k) {
+            return j(k)
+        }
+        if (typeof h == "undefined") {
+            h = 1000
+        } else {
+            h = h - 1
+        } if (h) {
+            setTimeout(function () {
+                f.wait(g, j, h)
+            }, 100)
+        }
+    };
+    f.preload = function (j) {
+        if ($s.ua.ie || $s.ua.opera) {
+            var g = new Image();
+            g.src = j
+        } else {
+            if ("undefined" === typeof (c.body) || !c.body) {
+                setTimeout("$s.preload('" + j + "')", 50);
+                return
+            }
+            var h = c.createElement("object");
+            h.data = j;
+            h.width = 0;
+            h.height = 0;
+            c.body.appendChild(h)
+        }
+    };
+    f.extend = function (g) {
+        d("$s_ext", $s.ext_js, g)
+    };
+    f.cls = function (k, g, h) {
+        if (k) {
+            var j = k.className;
+            j = j.replace(g, "");
+            if (h) {
+                j = j + " " + g
+            }
+            k.className = j.replace(/\s+/g, " ")
+        }
+    };
+    f.viewport = function () {
+        var h = window,
+            g = "inner";
+        if (!("innerWidth" in window)) {
+            g = "client";
+            h = c.documentElement || c.body
+        }
+        return {
+            width: h[g + "Width"],
+            height: h[g + "Height"]
+        }
+    };
+    f.cookie = function (h, l, j, k) {
+        if (typeof l != "undefined") {
+            var m = new Date(),
+                g = [h, "=", l];
+            if (j) {
+                m.setTime(m.getTime() + j);
+                g.push(";expires=" + m.toGMTString())
+            }
+            g.push("; path=/");
+            if (k) {
+                g.push("; domain=" + k)
+            }
+            c.cookie = g.join("")
+        } else {
+            return (c.cookie.match("(^|; )" + h + "=([^;]*)") || 0)[2]
+        }
+    };
+    f.ajax = function (j) {
+        var h = j || {};
+        if (typeof h.url != "string" || h.url == "") {
+            return
+        }
+        var n, l = k();
+        if (l == null) {
+            return
+        }!h.method || h.method.toUpperCase() != "POST" ? h.method = "GET" : 0;
+        typeof h.async != "boolean" ? h.async = true : 0;
+        if (typeof h.timeout == "number") {
+            n = setTimeout(function () {
+                l.abort();
+                typeof h.error == "function" && h.error({
+                    xhr: l,
+                    message: "timeout"
+                })
+            }, h.timeout)
+        }
+        l.onreadystatechange = function () {
+            if (l.readyState == 4 && l.status == 200) {
+                clearTimeout(n);
+                if (typeof h.success == "function") {
+                    if (h.dataType == "xml") {
+                        h.success(l.responseXML)
+                    } else {
+                        h.success(l.responseText)
+                    }
+                }
+            } else {
+                if (l.readyState == 4) {
+                    clearTimeout(n);
+                    typeof h.error == "function" && h.error({
+                        xhr: l,
+                        message: "failure"
+                    })
+                }
+            }
+        };
+        l.open(h.method, h.url, h.async);
+        var m = "";
+        if (h.method.toUpperCase() == "POST") {
+            l.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+            if (typeof h.data == "string") {
+                m = h.data
+            } else {
+                if (typeof h.data == "object") {
+                    for (var g in h.data) {
+                        m += g + "=" + h.data[g] + "&"
+                    }
+                    if (m != "") {
+                        m = m.substr(0, m.length - 1)
+                    }
+                }
+            }
+        }
+        l.send(m);
+ 
+        function k() {
+            var p = null;
+            if (typeof XMLHttpRequest != "undefined") {
+                p = new XMLHttpRequest()
+            } else {
+                if (typeof ActiveXObject != "undefined") {
+                    try {
+                        p = new ActiveXObject("Msxml2.XMLHTTP")
+                    } catch (o) {
+                        try {
+                            p = new ActiveXObject("Microsoft.XMLHTTP")
+                        } catch (o) {}
+                    }
+                }
+            }
+            return p
+        }
+    };
+    f.httpsUtil = (function () {
+        var n = location.protocol.toLowerCase() == "https:";
+ 
+        function j(r) {
+            var q = 0;
+            if (r.length == 0) {
+                return q
+            }
+            var o;
+            for (var p = 0; p < r.length; p++) {
+                o = r.charCodeAt(p);
+                q = ((q << 5) - q) + o;
+                q = q & q
+            }
+            return q
+        }
+        function l(x) {
+            if (!x) {
+                return ""
+            }
+            if (!n || x.indexOf("http://") == -1 || x.indexOf("https://") == 0) {
+                return x
+            }
+            var v = Math.abs(j(x) % 4) + 1;
+            var p = "https://img0" + v + ".sogoucdn.com",
+                w = /^\s*http:\/\/www\.sogou\.com/g,
+                u = /^\s*http:\/\/img\d*\.sogoucdn\.com/g,
+                t = /^\s*http:\/\/img\d*\.store\.sogou\.com/g,
+                r = /^\s*http:\/\/imgstore\d*\.cdn\.sogou\.com/g,
+                q = /^\s*http:\/\/cmc\.imgstore\.cdn\.sogou\.com/g,
+                o = /^\s*http:\/\/pic\d*\.sogoucdn\.com/g;
+            if (w.test(x)) {
+                return x.replace(w, "")
+            } else {
+                if (u.test(x)) {
+                    return x.replace(u, p)
+                } else {
+                    if (t.test(x)) {
+                        return x.replace(t, p)
+                    } else {
+                        if (r.test(x)) {
+                            return x.replace(r, p)
+                        } else {
+                            if (q.test(x)) {
+                                return x.replace(q, p)
+                            } else {
+                                if (o.test(x)) {
+                                    return x.replace(o, p)
+                                } else {
+                                    return p + "/v2/thumb?t=2&url=" + encodeURIComponent(x) + "&appid=200580"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        function m() {
+            if (n) {
+                return "https://pb.sogou.com"
+            } else {
+                return "http://pb.sogou.com"
+            }
+        }
+        function k() {
+            if (n) {
+                return "https://dlweb.sogoucdn.com"
+            } else {
+                return "http://dl.web.sogoucdn.com"
+            }
+        }
+        function h(p) {
+            var o = p;
+            if (p) {
+                var r = document.createElement("a");
+                r.href = p;
+                o = r.href;
+                var q = /https?:/i;
+                o = o.replace(q, location.protocol.toLowerCase());
+                r = null
+            }
+            return o
+        }
+        function g() {
+            var o = ["/reventondc/transform?key=" + window.encodeURIComponent(window.oldQuery), "uuid=" + window.uuid,
+                    "type=2"];
+            var q, r, p, t;
+            var u = {};
+            for (q = 0; q < arguments.length; q++) {
+                r = arguments[q];
+                if (typeof r == "string") {
+                    q == 0 && (u.objid = r);
+                    q == 1 && (u.userarea = r);
+                    q == 2 && (u.url = r);
+                    q == 3 && (u.charset = r)
+                } else {
+                    if (typeof r == "object") {
+                        for (p in r) {
+                            u[p] = r[p]
+                        }
+                    }
+                }
+            }
+            if (!n) {
+                return u.url
+            }
+            for (p in u) {
+                t = u[p];
+                o.push(p + "=" + (t ? window.encodeURIComponent(t) : t))
+            }
+            return o.join("&")
+        }
+        return {
+            isHttps: n,
+            getCdnImgLink: l,
+            getPingbackHost: m,
+            getWebCdnHost: k,
+            getUrl: h,
+            transformUrl: g
+        }
+    })();
+    return f
+})();
+/*
+广告点击相关js
+广告反作弊需要的信息：将鼠标移动事件通过参数传递到计费服务器。所有的广告连接上都需要此参数。
+*/
+(function (){
+	var mopos=[9999,9999], mdpos=[9999,9999], onmouseover_time=0, onmousedown_time=0, alllinks, adlinks, i, scroller=0, docEl = document, leftPos = [-1,-1], rightPos = [-1,-1],mouseinlefttime = 0,mouseinrighttime = 0;
+	if (typeof docEl.clientWidth != "number"){
+		docEl = docEl.documentElement;
+		if (!docEl || docEl.clientHeight === 0){
+			docEl = document.body;
+		}
+	}
+	
+	$s.$b(window, ["scroll"], [function(){scroller++}]);
+	
+	//event handler
+	function mouseoverfunc(ev){
+		onmouseover_time = $s.t();
+		mopos = [ev.clientX, ev.clientY];
+	}
+	function mousedownfunc(ev){
+		onmousedown_time = $s.t()-onmouseover_time;
+		mdpos = [ev.clientX, ev.clientY];
+	}
+	
+	function mouseoverLeft(ev){
+		if(mouseinlefttime == 0){
+			leftPos = [ev.clientX, ev.clientY];
+			mouseinlefttime = 1;
+		}
+
+	}
+	
+	function mouseoverRight(ev){
+		if(mouseinrighttime == 0){
+			rightPos = [ev.clientX, ev.clientY];
+			mouseinrighttime = 1;
+		}
+
+	}
+	
+	//event attacher
+   window.regALink = function(domele){
+       alllinks = $s.$$(domele, "a");
+       for (var i = 0; i < alllinks.length; i++){
+           if (alllinks[i].href && (alllinks[i].href.indexOf("www.sogou.com/bill_") > 0 || alllinks[i].href.indexOf("www.sogou.com/brand_") > 0 )){
+        	   //console.log(alllinks[i].href);
+               $s.$b(alllinks[i], ["mouseover", "mousedown"], [function(i){mouseoverfunc(i)}, function(i){mousedownfunc(i)}]);
+           }
+       }
+   }
+   regALink(document.body);
+	
+	//redefine adclick
+	function replaceHref(node_addr, k, v){
+		if(node_addr.indexOf("&"+k+"=")==-1){
+			if(node_addr.indexOf("?")==-1){
+				node_addr+="?"+k+"="+v;
+			}else{
+				node_addr+="&"+k+"="+v;
+			}
+		}else{
+			var reg = new RegExp("&"+k+"=[0-9,]*");
+			node_addr=node_addr.replace(reg,"&"+k+"="+v)
+		}
+		return node_addr;
+	}
+	
+	$s.$b($s.$("promotion_adv_container"), ["mouseover"], [function(i){mouseoverLeft(i)}]);
+	$s.$b($s.$("right"), ["mouseover"], [function(i){mouseoverRight(i)}]);
+	
+	window.sogou_adclk = function(evt, ele) {
+		var t = 0,
+           isLowIE = "0"==0.9.toFixed(0); // ie678
+		if (typeof sogou_last_mousedown_time != "undefined")
+			t = sogou_last_mousedown_time;
+		if (typeof (uigs_para) != "undefined" && ele.href) {
+			var tmp = ele.href;
+			try{
+				if (tmp && (tmp.indexOf("www.sogou.com/bill_") > 0 || tmp.indexOf("www.sogou.com/brand_") > 0 )){
+					tmp = replaceHref(tmp, "ml", uigs_para['mml']);
+					tmp = replaceHref(tmp, "mc", (new Date().getTime() - t));
+					tmp = replaceHref(tmp, "ma", [onmousedown_time, scroller, mopos[0], mopos[1], mdpos[0], mdpos[1], docEl.clientWidth, docEl.clientHeight].join(","));
+					tmp = replaceHref(tmp, "block", [leftPos[0], leftPos[1],rightPos[0],rightPos[1] ].join(","));
+					// 兼容ie678修改href导致标签内容变为href值
+					// 触发原因，在ie678中重新设置a标签新的href值时，如果连接文字含有http://、@，则其innerHTML将显示成设置的href属性值
+					ele.href = isLowIE ? ' '+ tmp : tmp;
+				}
+			}catch(E){
+				
+			}			
+		}
+		
+		return true;
+	}	
+})();
+var rflag = 0;
+$s.wait("right", function(b) {
+	var a = $s.$("main");
+	if (a) {
+		a.parentNode.insertBefore(b, a);
+		b.style.display = "";
+		rflag = 1;
+		if (typeof(kmap_rsong_pos) != "undefined") {
+			if (kmap_rsong_pos > 22) {
+				$s.$("kmap_song_scroll").scrollTop = kmap_rsong_pos
+			}
+		}
+	}
+});
+var adContent = document.getElementById("adContent");
+var foldSpan = document.getElementById("sogou_abtest_ad");
+
+function displayOrNot() {
+	var a = adContent.style.display;
+	if (a == "none") {
+		isShow = false
+	} else {
+		isShow = true
+	}
+	if (isShow) {
+		adContent.style.display = "none";
+		ori = foldSpan.innerHTML;
+		foldSpan.innerHTML = "展开" + ori.substr(2)
+	} else {
+		adContent.style.display = "";
+		ori = foldSpan.innerHTML;
+		foldSpan.innerHTML = "收起" + ori.substr(2)
+	}
+	return false
+};;;
+var SugPara = {
+	'idc': "tc",
+	"domain": "w.sugg.sogou.com",
+	productId: "web",
+	inputid: "upquery",
+	suggestRid: "01025001",
+	normalRid: "01029901",
+	abtestid: "0",
+	ipn: "true",
+	useParent: 1,
+	oms: 1
+};
+//kmap pb
+if (typeof(kmapLeft) != 'undefined' && kmapLeft) kmap.kmapPB('left', '&pvarg=' + encodeURIComponent(kmap_properties.left.pvtype) + '&showarg=' + kmap_properties.left.showarg);

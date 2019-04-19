@@ -1,0 +1,1 @@
+function showMessage(n){alert(n)}require(["jquery","document","domReady!"],function(n,t){n(t).on("click",".helloworld",function(){var t=n(this);showMessage("<"+t[0].tagName+' class="'+t.attr("class")+'"> clicked')})})

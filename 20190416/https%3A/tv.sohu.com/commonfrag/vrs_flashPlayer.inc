@@ -1,0 +1,1 @@
+vrs_player = "//tv.sohu.com/upload/swf/20181031/Main.swf";

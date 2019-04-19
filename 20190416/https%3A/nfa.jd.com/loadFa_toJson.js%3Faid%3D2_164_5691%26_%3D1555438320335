@@ -1,0 +1,37 @@
+(function(cfg, doc, el) {
+    var result;
+    var data = [
+        
+        {
+            width: 180,
+            height: 240,
+            href: "//c-nfa.jd.com/adclick?keyStr=z5AXFoIimt1jiDK32+w4mVVq6gqsgI569130hP08o2ataMBEI3iDfVYhwVpnRIVI7NA1LUGkB1COrCgo7nRRo51pm1MWlIcpM6fq7M9Xsw5a4eG9P+LQ+i7XDdn0nvJz5AOLdiGjdub5DFEj0whHxlmWJu/o9TBkKV3rUdKtbS13QWDAlRcZW2UVCoo+2fdt+fJ71UerpGpfY/FDlAAe119njlZugViYC/kk8BH+0xsYUVCTtUs2zfYIRBhVwe3/dHgHAnMbeP2mKV3JVougMuJGWLRE/aADTjE5NMA7LSs=&cv=2.0&url=//chaoshi.jd.com",
+            alt: "",
+            src: "//img12.360buyimg.com/da/jfs/t4660/102/1440632443/49043/52325983/58de32a7Na72a9d46.jpg",
+            widthB: 180,
+            heightB: 260,
+            srcB: ""
+        }
+        ,
+        {
+            width: 180,
+            height: 240,
+            href: "//c-nfa.jd.com/adclick?keyStr=z5AXFoIimt1jiDK32+w4mVVq6gqsgI569130hP08o2ataMBEI3iDfVYhwVpnRIVI6odUrw+uS356ZHfFFBSO8vQ7HKNDDnsm3Rz0sMNMU8Na4eG9P+LQ+i7XDdn0nvJz5AOLdiGjdub5DFEj0whHxlmWJu/o9TBkKV3rUdKtbS13QWDAlRcZW2UVCoo+2fdt+fJ71UerpGpfY/FDlAAe119njlZugViYC/kk8BH+0xsYUVCTtUs2zfYIRBhVwe3/dHgHAnMbeP2mKV3JVougMuJGWLRE/aADTjE5NMA7LSs=&cv=2.0&url=//chaoshi.jd.com",
+            alt: "",
+            src: "//img12.360buyimg.com/da/jfs/t4996/58/289103053/49243/e6acdadd/58de3342Na3c2f0b0.jpg",
+            widthB: 180,
+            heightB: 260,
+            srcB: ""
+        }
+    ];
+
+    result = pageConfig.FN_GetRandomData(data);
+    var TPL = ''
+        +'<a href="'+ result.href +'" target="_blank" title="'+ result.alt +'">'
+        +'<img src="'+ result.src +'" width="'+ result.width +'"  height="'+ result.height+'" />'
+        +'</a>';
+    if ( doc.getElementById(el) ) {
+        doc.getElementById(el).innerHTML = TPL;
+    }
+    
+})(pageConfig, document, 'miaozhen8148');

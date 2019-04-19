@@ -1,0 +1,3250 @@
+SVK.register("common.channel.widget", function($) {
+    return $.listener("common.channel.widget", [ "onVisibleReady", "onStart", "onComplete" ]);
+});;
+
+
+
+
+SVK.register("common.extra.lazyload", function($) {
+    (function($) {
+        var isBind, timer, lazyloadEvent = $.Callbacks("memory");
+        function lazyload(node, callback, threshold) {
+            if (!isBind) {
+                isBind = true;
+                $(window).on("scroll", fn);
+                $(window).on("resize", fn);
+            }
+            if (inVisibleArea(node, threshold)) {
+                try {
+                    callback.apply(node);
+                } catch (e) {}
+            } else {
+                lazyloadEvent.add(function() {
+                    if (inVisibleArea(node, threshold)) {
+                        try {
+                            callback.apply(node);
+                        } catch (e) {
+                            console.error(e);
+                        }
+                        lazyloadEvent.remove(arguments.callee);
+                    }
+                });
+            }
+            return this;
+        }
+        function fn() {
+            clearTimeout(timer);
+            timer = setTimeout(function() {
+                fire();
+            }, 150);
+        }
+        function fire() {
+            lazyloadEvent.fire();
+        }
+        function destroy() {
+            if (isBind) {
+                isBind = false;
+                $(window).off("scroll", fn);
+                $(window).off("resize", fn);
+            }
+        }
+        function inVisibleArea(target, threshold) {
+            var node, winNode, winNodeY, nodeY;
+            node = $(target);
+            winNode = $(window);
+            nodeY = node.offset().top;
+            winNodeY = winNode.scrollTop();
+            return nodeY <= winNodeY + winNode.height() - (threshold || 0);
+        }
+        lazyload.fire = fire;
+        lazyload.inVisibleArea = inVisibleArea;
+        lazyload.destroy = destroy;
+        $.lazyload = lazyload;
+        $.fn.lazyload = function(callback, threshold) {
+            return $.each($(this), function(key, node) {
+                return lazyload(node, callback, threshold);
+            });
+        };
+    })(jQuery);
+    return $.lazyload;
+});;
+
+
+jQuery.ajaxSetup({
+    accepts: {
+        linkstyle: "text/css"
+    }
+});
+
+jQuery.ajaxPrefilter("linkstyle", function(s) {
+    if (s.cache === undefined) {
+        s.cache = false;
+    }
+    s.type = "GET";
+});
+
+jQuery.ajaxTransport("linkstyle", function(s) {
+    var linkNode, callback;
+    var isOldWebKit = navigator.userAgent.replace(/.*AppleWebKit\/(\d+)\..*/, "$1") * 1 < 536;
+    return {
+        send: function(_, complete) {
+            var isReady, fn;
+            fn = function(type) {
+                type = type || 200;
+                if (!isReady) {
+                    isReady = true;
+                    fn = function() {};
+                    complete(type);
+                }
+            };
+            linkNode = jQuery("<link>").prop({
+                rel: "stylesheet",
+                charset: s.styleCharset,
+                href: s.url
+            }).on("load error", callback = function(evt) {
+                callback = null;
+                if (evt) {
+                    fn(evt.type === "error" ? 404 : 200, evt.type);
+                }
+            });
+            (function() {
+                var _sheet = linkNode.get(0).sheet, args = arguments;
+                if (isOldWebKit && _sheet) {
+                    fn();
+                    return;
+                }
+                try {
+                    if (_sheet.cssRules) {
+                        fn();
+                    }
+                } catch (e) {
+                    if (e.name == "NS_ERROR_DOM_SECURITY_ERR") {
+                        fn();
+                    } else {
+                        setTimeout(function() {
+                            args.callee();
+                        }, 10);
+                    }
+                }
+            })();
+            document.getElementsByTagName("head")[0].appendChild(linkNode[0]);
+        },
+        abort: function() {
+            if (callback) {
+                callback();
+            }
+        }
+    };
+});
+
+jQuery.getLinkStyle = function(url, callback) {
+    return jQuery.get(url, undefined, callback, "linkstyle");
+};;
+
+
+SVK.register("common.extra.loader", function($) {
+    (function($) {
+        function loader(params, Opts) {
+            var len, params = $.isArray(params) ? params : [ params ], Opts = Opts || {}, deferred = $.Deferred();
+            len = params.length;
+            $.when.apply($, $.map(params, function(value) {
+                return $.ajax(value);
+            })).done(function() {
+                var doneCount = 0, _args = len == 1 ? [ arguments ] : arguments;
+                $.each(_args, function(key, args) {
+                    args = args || [];
+                    if (/success/i.test(args[1])) {
+                        ++doneCount;
+                    }
+                });
+                if (doneCount == len) {
+                    deferred["resolveWith"](deferred, _args);
+                }
+            }).fail(function() {
+                deferred["rejectWith"](deferred, arguments);
+            });
+            deferred.done(function() {
+                if ($.isFunction(Opts.success)) {
+                    Opts.success.apply($, arguments);
+                }
+            }).fail(function() {
+                if ($.isFunction(Opts.error)) {
+                    Opts.error.apply($, arguments);
+                }
+            });
+            return deferred.promise();
+        }
+        $.widget = $.widget || {};
+        $.widget.loader = loader;
+    })(jQuery);
+    return $.widget.loader;
+});;
+
+
+SVK.register("common.widget.loader", function($) {
+    var $widgetChannel = $.common.channel.widget;
+    (function() {
+        var widgetStack = [], visibleWidgetStack = [], jsRequestCache = [], loadEventHash = {}, widgetLoadingStack = [], IS_CSS = /\.css(?:\?|$)/gi, IS_URL = /(http|https):\/\/[\w\-_]+(\.[\w\-_]+)+([\w\-\.,@?^=%&amp;:/~\+#]*[\w\-\@?^=%&amp;/~\+#])?/, $widgetPath = {
+            js: "//sjs0.sinajs.cn/video/snake_video/js/",
+            css: "//sjs0.sinajs.cn/video/snake_video/css/"
+        }, $widgetVersion = {};
+        function Widget(params) {
+            params = $.extend({
+                id: "",
+                require: [],
+                rate: 0,
+                exports: function() {},
+                isDepend: false,
+                initialize: false,
+                requireParams: [],
+                loadTime: null
+            }, params);
+            params.node = params.id ? $("#" + params.id) : null;
+            params.isVisible = params.node ? $.lazyload.inVisibleArea(params.node) : false;
+            params.rate += !!params.isVisible;
+            return params;
+        }
+        function startLoadWidget() {
+            widgetStack.sort(function(a, b) {
+                return a.rate - b.rate < 0;
+            });
+            $.each(widgetStack, function(key, widget) {
+                if (typeof widget == "object" && $.inArray(widget, widgetLoadingStack) == -1) {
+                    if (widget.isVisible) {
+                        visibleWidgetStack.push(widget);
+                    } else {
+                        if (widget.node) {
+                            $.lazyload(widget.node, function() {
+                                loadWidget(widget);
+                            });
+                        }
+                    }
+                    if (widget.loadTime) {
+                        $.addLoadEvent(widget.loadTime, function() {
+                            loadWidget(widget);
+                        });
+                    }
+                }
+            });
+            (function() {
+                var _v, _obj, args = arguments;
+                $.each(visibleWidgetStack, function(key, v) {
+                    if (v && v.async) {
+                        loadWidget(v);
+                    }
+                });
+                if (visibleWidgetStack.length && (_v = visibleWidgetStack.shift())) {
+                    loadWidget(_v, args.callee);
+                } else {
+                    $widgetChannel["onVisibleReady"].fire();
+                }
+            })();
+        }
+        function loadWidget(widget, callback) {
+            var require = widget.require, require = $.isArray(require) ? require : [ require ], node = widget.node, evalVars = [], fn;
+            if ($.inArray(widget, widgetLoadingStack) != -1) {
+                if ($.isFunction(callback)) {
+                    callback();
+                }
+                return;
+            }
+            widgetLoadingStack.push(widget);
+            require = $.map(require, function(value, key) {
+                var ret, _params;
+                if (value) {
+                    ret = getParamsByStr(value);
+                    if (_params = widget.requireParams[key]) {
+                        var _data = ret.data;
+                        $.extend(ret, _params);
+                        $.extend(ret.data, _data);
+                    }
+                    return ret;
+                }
+            });
+            evalVars = $.map(require, function(value) {
+                if (value && value._evalVar_) {
+                    return value._evalVar_;
+                }
+            });
+            require = $.map(require, function(value) {
+                if ($.inArray(value.url, jsRequestCache) == -1) {
+                    return value;
+                }
+            });
+            require = $.map(require, function(value) {
+                if (!getObjByStr(value._evalVar_)) {
+                    return value;
+                }
+            });
+            fn = function() {
+                if ($.isFunction(callback)) {
+                    callback();
+                }
+                if ($.isFunction(widget.exports)) {
+                    widget.exports.apply(node || $, [ node, widget ]);
+                }
+                $.each(require, function(key, value) {
+                    if (value._fileType_ == "js" && value.url) {
+                        jsRequestCache.push(value.url);
+                    }
+                });
+                if (widget.initialize) {
+                    (function() {
+                        var evalVar, obj;
+                        if (evalVars.length && (evalVar = evalVars.shift()) && (obj = getObjByStr(evalVar)) && $.isFunction(obj.init)) {
+                            try {
+                                obj.init.apply($, [ node, widget ]);
+                            } catch (e) {}
+                        }
+                    })();
+                }
+                if ($.isReady) {
+                    $(document).ready(function() {
+                        try {
+                            var evt = document.createEvent("HTMLEvents");
+                            evt.initEvent("DOMContentLoaded", true, true);
+                            document.dispatchEvent(evt);
+                        } catch (e) {}
+                    });
+                }
+                $widgetChannel["onComplete"].fire(widget);
+            };
+            $widgetChannel["onStart"].fire(widget);
+            if (require.length) {
+                if (widget.isDepend) {
+                    var arr = [].concat(require);
+                    (function() {
+                        var req;
+                        if (arr.length && (req = arr.shift())) {
+                            $.widget.loader(req).done(arguments.callee).fail(arguments.callee);
+                        } else {
+                            setTimeout(fn, 0);
+                        }
+                    })();
+                } else {
+                    $.widget.loader(require).done(fn).fail(fn);
+                }
+            } else {
+                fn();
+            }
+        }
+        function getURLType(url) {
+            return IS_CSS.test(url) ? "css" : "js";
+        }
+        function getParamsByStr(str) {
+            var ret, fileType, versionData, evalVar;
+            fileType = getURLType(str);
+            if (!IS_URL.test(str)) {
+                ret = str.replace(/\./g, "/") + "." + fileType;
+                ret = $widgetPath[fileType] + ret;
+                if (fileType == "js") {
+                    evalVar = str;
+                }
+            } else {
+                ret = str;
+            }
+            return {
+                url: ret,
+                _fileType_: fileType,
+                _evalVar_: evalVar,
+                cache: true,
+                data: $widgetVersion[fileType] && evalVar ? {
+                    v: $widgetVersion[fileType]
+                } : {},
+                dataType: {
+                    js: "script",
+                    css: "linkstyle"
+                }[fileType]
+            };
+        }
+        function getObjByStr(str) {
+            var _n, _f, arrStr, parentObj = SVK;
+            str = $.trim(str) || "";
+            arrStr = str.split(".");
+            while (arrStr.length && (_n = arrStr.shift())) {
+                if (parentObj[_n]) {
+                    parentObj = parentObj[_n];
+                    if (arrStr.length == 0) {
+                        _f = true;
+                    }
+                }
+            }
+            return _f ? parentObj : false;
+        }
+        $.addLoadEvent = function(type, callback) {
+            var evt;
+            if ($.type(type) == "string") {
+                evt = loadEventHash[type] || (loadEventHash[type] = $.Callbacks("once memory"));
+                if ($.isFunction(callback)) {
+                    if (type == "DOMContentLoaded") {
+                        $(document).ready(callback);
+                    } else {
+                        evt.add(callback);
+                    }
+                }
+            }
+        };
+        $.fireLoadEvent = function(type) {
+            var evt;
+            if ($.type(type) == "string" && (evt = loadEventHash[type])) {
+                evt.fire();
+            }
+        };
+        $.startLoadWidget = function(Opts) {
+            var $widget;
+            Opts = Opts || {};
+            $widget = $.isArray(Opts.widget) ? Opts.widget : [ Opts.widget ];
+            $.extend($widgetPath, Opts.path);
+            $.extend($widgetVersion, Opts.version);
+            $.each($widget, function(key, value) {
+                if (value) {
+                    widgetStack.push(new Widget(value));
+                }
+            });
+            startLoadWidget();
+        };
+    })(jQuery);
+    $(document).ready(function() {
+        $.fireLoadEvent("DOMContentLoaded");
+    });
+    $widgetChannel["onVisibleReady"].add(function() {
+        $.fireLoadEvent("onVisibleReady");
+    });
+    $(window).on("load", function() {
+        $.fireLoadEvent("onload");
+    });
+    return {
+        startLoadWidget: $.startLoadWidget,
+        fireLoadEvent: $.fireLoadEvent,
+        addLoadEvent: $.addLoadEvent
+    };
+});;
+
+
+SVK.register("common.channel.shijiao.player", function($) {
+    return $.listener("common.channel.shijiao.player", window.$PlayerCallNameArr);
+});;
+
+
+SVK.register("common.channel.player", function($) {
+    var evtList = [ "flashInitCompleted", "playCompleted", "getPlayer", "playStart", "toWide", "toNarrow", "lightOff", "lightOn", "setLight", "pIaskError", "pIAskEd", "pAdPlayStart", "pLoadStreamTime", "firstView", "setFactoryValue", "setPlayerSize", "adComplete" ];
+    return $.listener("common.chanel.player", evtList);
+});;
+
+
+SVK.register("common.userInfo.userLogin", function($) {
+    var getOwnPic = function(uid, size) {
+        if (!uid) {
+            return "";
+        }
+        if (!size) {
+            size = 30;
+        }
+        var x = Number(uid) % 8 + 1;
+        return "//portrait" + x + ".sinaimg.cn/" + uid + "/blog/" + size + "/" + (new Date).getTime();
+    };
+    var getUser = function() {
+        var cookie = $.trim($.cookie.get("SUP"));
+        var result = {};
+        if (cookie) {
+            result = $.queryToJson(unescape(cookie), true);
+            result.ownurl = "//you.video.sina.com.cn/m/" + result.uid;
+            result.pic = getOwnPic(result.uid);
+        }
+        return result;
+    };
+    return {
+        getUser: function() {
+            return getUser();
+        },
+        islogin: function() {
+            var user = getUser();
+            if (user && user.uid) {
+                return true;
+            } else {
+                return false;
+            }
+        },
+        logoutURL: function() {
+            return "//login.sina.com.cn/cgi/login/logout.php?r=" + encodeURIComponent(location.href);
+        },
+        getOwnURL: function(uid) {
+            return "//you.video.sina.com.cn/m/" + uid;
+        },
+        getOwnPic: getOwnPic
+    };
+});;
+
+
+SVK.register("common.channel.brgLoginChannel", function($) {
+    return $.listener("common.channel.brgLoginChannel", [ "login", "loginMsg", "showLogin", "showCallback", "hideCallback", "hide", "toggle" ]);
+});;
+
+
+SVK.register("common.channel.shijiao.playerPage", function($) {
+    return $.listener("common.channel.shijiao.playerPage", [ "loadWidgetPlayer" ]);
+});;
+
+
+
+
+
+
+SVK.register("tpl.brgLoginLayer", function($) {
+    return [ '<div class="hd">', '<a href="javascript:void(0);" class="cls" action-type="close"></a>', '<div class="tl">登录发送弹幕</div>', '<div class="erro" node-type="msg"></div>', "</div>", '<ul class="login_item">', '<li><input type="text" name="username" class="log_ipt" placeholder="微博/邮箱/手机号" enter="true" errormsg="请输入用户名" verify="require=true"></li>', '<li><input type="password" name="password" class="log_ipt" placeholder="输入密码" errormsg="请输入密码" enter="true" verify="require=true"></li>', "<li>", '<a href="javascript:void(0);" class="login_btn" action-type="submit">登录</a>', '<div class="plus">', '<a href="//login.sina.com.cn/signup/signup?entry=vblog&r=http://v.sina.com.cn/" target="_blank">我要注册</a>', '<a href="//login.sina.com.cn/member/getpwd/getpwd0.php?entry=vblog" target="_blank">忘记密码</a>', "</div>", "</li>", "</ul>" ].join("");
+});;
+
+
+
+
+
+
+SVK.register("comp.user.brgLoginTrans", function($) {
+    var $brgLoginChannel = $.common.channel.brgLoginChannel;
+    var sendMessage = function(uName, password) {
+        if (!sinaSSOController) {
+            return;
+        }
+        sinaSSOController.entry = "vblog";
+        sinaSSOController.pageCharset = "UTF-8";
+        sinaSSOController.customLoginCallBack = function(result) {
+            if (!result.result) {
+                $brgLoginChannel.loginMsg.fire(result);
+                return;
+            }
+            $brgLoginChannel.login.fire();
+            try {
+                $.common.userInfo.userControl.resetLogin();
+                $.common.channel.loginChannel.login.fire();
+            } catch (e) {}
+        };
+        sinaSSOController.login(uName, password, 30);
+    };
+    var that = {};
+    that.send = function(user, pass) {
+        sendMessage(user, pass);
+    };
+    return that;
+});;
+
+
+SVK.register("comp.user.brgLoginVal", function($) {
+    var $verifydata = $.common.verify.verifydata;
+    var $brgLoginTrans = $.comp.user.brgLoginTrans;
+    var $textDefault = $.common.extra.textDefault;
+    var $bindEnter = $.common.extra.bindEnter;
+    var $brgLoginChannel = $.common.channel.brgLoginChannel;
+    var msgHTML = function(type, msg) {
+        var msgInfo = "";
+        switch (type) {
+          case "fail":
+            msg = msg || "登录失败";
+            msgInfo = msg;
+            break;
+        }
+        return msgInfo;
+    };
+    return function(opt) {
+        var root = opt.node;
+        var msgNode = $(opt.msgNode, root);
+        var obj = {};
+        var sending = false;
+        var $submitBtn = root.find('[action-type="submit"]');
+        var $inputNodes = root.find("[name]");
+        var $close = $(opt.close, root);
+        var that = {};
+        var domEvtFun = {
+            submit: function() {
+                if (sending) {
+                    return;
+                }
+                that.clearMsg();
+                var verifyResult = obj.verify.verify();
+                if (!verifyResult.result) {
+                    msgNode.html(msgHTML("fail", verifyResult.msg)).show();
+                    return;
+                }
+                $submitBtn.html(opt.msgLogining);
+                sending = true;
+                $brgLoginTrans.send($.trim($('[name="username"]', root).val()), $.trim($('[name="password"]', root).val()));
+            }
+        };
+        that.clearMsg = function() {
+            msgNode.html("").hide();
+        };
+        var bindEvt = function() {
+            $submitBtn.on("click", function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                domEvtFun.submit();
+            });
+            $inputNodes.each(function() {
+                var node = $(this);
+                $textDefault(node);
+            });
+            $bindEnter.bind(root.find('[enter="true"]'), function() {
+                domEvtFun.submit();
+            });
+            $brgLoginChannel.loginMsg.add(function(data) {
+                msgNode.html(msgHTML("fail", data.reason)).show();
+                sending = false;
+                $submitBtn.html(opt.msgLogin);
+            });
+            $brgLoginChannel.login.add(function() {
+                sending = false;
+                that.clearMsg();
+                $submitBtn.html(opt.msgLogin);
+                $inputNodes.each(function() {
+                    $(this).val("");
+                });
+            });
+            $close.on("click", function() {
+                $brgLoginChannel.hide.fire();
+            });
+        };
+        var init = function() {
+            if (!root || root.length == 0) {
+                return;
+            }
+            obj.verify = $verifydata(root);
+            bindEvt();
+        };
+        init();
+        return that;
+    };
+});;
+
+
+SVK.register("comp.user.brgLoginLayer", function($) {
+    var $brgLoginChannel = $.common.channel.brgLoginChannel;
+    var $mutexLayer = $.ui.mutexLayer;
+    var $brgLoginVal = $.comp.user.brgLoginVal;
+    return function(opt) {
+        var brgLoginVal = null;
+        var that = {};
+        var conf = {
+            node: null,
+            mname: "head"
+        };
+        var bindEvent = function() {
+            that.showCallback.add(function() {
+                brgLoginVal.clearMsg();
+            });
+            $brgLoginChannel.login.add(function() {
+                that.hide();
+            });
+        };
+        var init = function() {
+            $.extend(conf, opt || {});
+            var node = conf.node;
+            if (!node) {
+                return;
+            }
+            that = $mutexLayer(conf);
+            node.html($.tpl.brgLoginLayer);
+            brgLoginVal = $brgLoginVal(opt);
+            bindEvent();
+        };
+        init();
+        return that;
+    };
+});;
+
+
+SVK.register("comp.user.loginControl", function($) {
+    var $brgLoginChannel = $.common.channel.brgLoginChannel;
+    var $brgLoginLayer = $.comp.user.brgLoginLayer;
+    var $brgMask = $('<div action-type="brgMask" style="display:none;position:absolute;left:0;top:0;width:640px;height:516px; background:rgb(0,0,0); opacity:.5;filter:Alpha(Opacity=50);"></div>');
+    $(".playBox").prepend($brgMask);
+    var brgLoginLayer = $brgLoginLayer({
+        node: $("#brg_loginLayer"),
+        msgNode: '[node-type="msg"]',
+        msgLogining: '登录中<em class="loging"></em>',
+        msgLogin: "登录",
+        close: '[action-type="close"]'
+    });
+    brgLoginLayer.showCallback.add(function() {
+        $brgMask.show();
+        $brgLoginChannel.showCallback.fire();
+    });
+    brgLoginLayer.hideCallback.add(function() {
+        $brgMask.hide();
+        $brgLoginChannel.hideCallback.fire();
+    });
+    $brgLoginChannel.showLogin.add(function() {
+        brgLoginLayer.show();
+    });
+    $brgLoginChannel.hide.add(function() {
+        brgLoginLayer.hide();
+    });
+    $brgLoginChannel.toggle.add(function() {
+        brgLoginLayer.toggle();
+    });
+});;
+
+
+(function($) {
+    var $userLogin = $.common.userInfo.userLogin;
+    var $brgLoginChannel = $.common.channel.brgLoginChannel;
+    var $playerChannel = $.common.channel.shijiao.player;
+    var $playerPageChannel = $.common.channel.shijiao.playerPage;
+    window.console = window.console || {};
+    window.console.log = window.console.log || function() {};
+    $.common.channel.widget["onVisibleReady"].add(function() {
+        if (window.timing) {
+            timing.tick("visibleReady");
+        }
+    });
+    $playerPageChannel.loadWidgetPlayer.add(function() {
+        $.common.channel.player.firstView.fire();
+        $.fireLoadEvent("firstView");
+    });
+    $playerChannel.playStart.add(function() {
+        $.fireLoadEvent("playStart");
+    });
+    window.getUserInfo = function(arg) {
+        var user = $userLogin.getUser();
+        if (user && user.uid) {
+            return user.uid;
+        } else {
+            if (arg) {
+                $brgLoginChannel.showLogin.fire();
+            }
+            return "";
+        }
+    };
+    $("#" + $FlashConfig.container).bind("click", function(e) {
+        e.stopPropagation();
+    });
+    $(document).ready(function() {
+        if (window.timing) {
+            try {
+                timing.tick("domReady");
+            } catch (e) {}
+        }
+        $.common.widget.loader.startLoadWidget({
+            widget: window.$widget,
+            path: {
+                js: $SCOPE["jsPath"],
+                css: $SCOPE["cssPath"]
+            },
+            version: {
+                js: $SCOPE["jsVersion"],
+                css: $SCOPE["cssVersion"]
+            }
+        });
+    });
+})(SVK);;
+
+
+
+
+
+
+SVK.register("pages.play.acVideo", function($) {
+    var _vendor = function() {
+        var elementStyle = document.createElement("div").style;
+        var vendors = [ "t", "webkitT", "MozT", "msT", "OT" ];
+        var transform;
+        for (var i in vendors) {
+            transform = vendors[i] + "ransform";
+            if (transform in elementStyle) {
+                return vendors[i].substr(0, vendors[i].length - 1);
+            }
+        }
+    }();
+    function _prefixStyle(style) {
+        if (!_vendor) {
+            return style;
+        }
+        return _vendor + style.charAt(0).toUpperCase() + style.substr(1);
+    }
+    function ACVideo() {
+        this.isLowIE = !document.addEventListener;
+        if (this.isLowIE) {
+            return;
+        }
+        this.playerEle = $("#myMovie");
+        this.acVideo = $("#acVideo");
+        this.flashBox = $("#myflashBox");
+        this.dragPlay = document.getElementById("dragPlay");
+        this.vd_playBox = this.flashBox.parent().parent();
+        this.scrollerStyle = this.acVideo.get(0).style;
+        this.tmpScrollerStyle = $.extend({}, this.scrollerStyle);
+        this.playSize = {
+            width: this.flashBox.width(),
+            height: this.flashBox.height()
+        };
+        this.MIN_WIDTH = 950;
+        this.acPlayParam = {
+            width: 300,
+            height: 169,
+            intervalTop: 5,
+            intervalBottom: 5,
+            intervalLeft: 5,
+            intervalRight: 5,
+            left: 0,
+            right: 0,
+            bottom: $(window).height() - 169 - 5 - 5,
+            topAside: false,
+            bottomAside: false
+        };
+        this._transform = _prefixStyle("transform");
+        this.clientWidth = $(window).width();
+        this.clientHeight = $(window).height();
+        this.acVideoInitW = this.acPlayParam.width + this.acPlayParam.intervalLeft;
+        this.acVideoInitH = this.acPlayParam.height + this.acPlayParam.intervalTop + this.acPlayParam.intervalBottom + this.acPlayParam.bottom;
+        if (this.clientWidth < this.MIN_WIDTH) {
+            this.standardDistanceX = this.acVideoInitW - this.clientWidth;
+            this.threshold = {
+                top: this.acVideoInitH - this.clientHeight,
+                right: 0,
+                bottom: this.acPlayParam.bottom,
+                left: this.acPlayParam.width + this.acPlayParam.intervalLeft - this.clientWidth
+            };
+            this.marginLeft = 0;
+        } else {
+            this.standardDistanceX = this.acVideoInitW - this.MIN_WIDTH;
+            this.threshold = {
+                top: this.acVideoInitH - this.clientHeight,
+                right: Math.floor((this.clientWidth - this.MIN_WIDTH) / 2) - this.acPlayParam.intervalRight,
+                bottom: this.acPlayParam.bottom,
+                left: Math.round((this.clientWidth + this.MIN_WIDTH) / 2 - this.acPlayParam.width - this.acPlayParam.intervalLeft)
+            };
+            this.marginLeft = Math.round((this.clientWidth - this.MIN_WIDTH) / 2);
+        }
+        this.x = 0;
+        this.y = 0;
+        this.pageX = 0;
+        this.pageY = 0;
+        this.display = false;
+        this.thresholdAC = 700;
+        this.memoryPos = {
+            thresholdLeft: this.threshold.left,
+            top: 0,
+            left: 0,
+            clientWidth: this.clientWidth,
+            offsetX: -this.standardDistanceX,
+            offsetY: this.clientHeight - this.acVideoInitH
+        };
+        this.pressed = false;
+        this.resizing = false;
+        this._init();
+    }
+    ACVideo.prototype = {
+        _init: function() {
+            this.vd_playBox.height(this.flashBox.height());
+            this._initEvent();
+        },
+        _bindEvent: function(el, type, fn, capture) {
+            el.addEventListener(type, fn, !!capture);
+        },
+        _initEvent: function() {
+            this._bindEvent(window, "scroll", this);
+            this._bindEvent(window, "resize", this);
+            this._bindEvent(this.dragPlay, "mousedown", this);
+            this._bindEvent(window, "mousemove", this);
+            this._bindEvent(window, "mouseup", this);
+        },
+        _resetPosition: function() {
+            var newX, newY;
+            this.clientWidth = $(window).width();
+            this.clientHeight = $(window).height();
+            if (this.clientWidth < this.MIN_WIDTH) {
+                this.acPlayParam.left = this.clientWidth - this.acVideoInitW - this.acPlayParam.intervalRight;
+                this.acPlayParam.right = 0;
+                this.threshold.left = this.acVideoInitW + this.acPlayParam.intervalRight - this.clientWidth;
+                this.threshold.right = 0;
+                newX = this.acVideoInitW - this.clientWidth + this.memoryPos.offsetX + this.acPlayParam.intervalRight;
+            } else {
+                this.acPlayParam.intervalLeft = parseInt(this.acVideo.css("padding-left"), 10);
+                this.acPlayParam.left = Math.round((this.clientWidth + this.MIN_WIDTH) / 2 - this.acPlayParam.width - this.acPlayParam.intervalLeft);
+                this.acPlayParam.right = "auto";
+                this.threshold.left = -this.acPlayParam.left;
+                this.threshold.right = Math.floor((this.clientWidth - this.MIN_WIDTH) / 2) - this.acPlayParam.intervalRight;
+                newX = this.standardDistanceX + this.memoryPos.offsetX;
+            }
+            newY = this.acVideoInitH - this.clientHeight + this.memoryPos.offsetY;
+            this.threshold.top = this.acVideoInitH - this.clientHeight;
+            this.acVideo.css({
+                left: this.acPlayParam.left,
+                right: this.acPlayParam.right,
+                bottom: this.acPlayParam.bottom,
+                overflow: "hidden"
+            });
+            this.baseLeft = this.acPlayParam.left;
+            this.baseBottom = this.acPlayParam.bottom;
+            this.x = this._thresholdX(newX);
+            this.y = this._thresholdY(newY);
+            this._translate(this.x, this.y);
+        },
+        _scroll: function(e) {
+            this.pressed = false;
+            if (!this.display) {
+                return;
+            }
+            if ($(document).scrollTop() > this.thresholdAC) {
+                if (!this.acVideo.hasClass("SM_acvideo")) {
+                    this.acVideo.addClass("SM_acvideo");
+                    this._resetPosition();
+                    this.flashBox.css({
+                        width: this.acPlayParam.width,
+                        height: this.acPlayParam.height
+                    });
+                    this.playerEle.css({
+                        width: this.acPlayParam.width,
+                        height: this.acPlayParam.height
+                    });
+                    this.scrollerStyle[this._transform] = this.tmpScrollerStyle[this._transform];
+                    this.playerEle.get(0).hideAllController(true);
+                }
+            } else {
+                if (this.acVideo.hasClass("SM_acvideo")) {
+                    this.tmpScrollerStyle[this._transform] = this.scrollerStyle[this._transform];
+                    this.acVideo.removeClass("SM_acvideo");
+                    this.flashBox.css({
+                        width: this.playSize.width,
+                        height: this.playSize.height
+                    });
+                    this.playerEle.css({
+                        width: this.playSize.width,
+                        height: this.playSize.height
+                    });
+                    this.scrollerStyle[this._transform] = "translate(0, 0)";
+                    this.playerEle.get(0).hideAllController(false);
+                }
+            }
+        },
+        _start: function(e) {
+            if (e.type === "mousedown" && e.button !== 0) {
+                return;
+            }
+            e.preventDefault();
+            this.pressed = true;
+            this.pageX = e.pageX;
+            this.pageY = e.pageY;
+        },
+        _move: function(e) {
+            if (!this.pressed) {
+                return;
+            }
+            var newX, newY;
+            this.deltaX = e.pageX - this.pageX;
+            this.deltaY = e.pageY - this.pageY;
+            this.pageX = e.pageX;
+            this.pageY = e.pageY;
+            newX = this.x + this.deltaX;
+            newY = this.y + this.deltaY;
+            newX = this._thresholdX(newX);
+            newY = this._thresholdY(newY);
+            this._translate(newX, newY);
+        },
+        _end: function(e) {
+            this.pressed = false;
+            this.clientWidth = $(window).width();
+            this.clientHeight = $(window).height();
+            this.memoryPos.offsetX = this.x - this.standardDistanceX;
+            this.memoryPos.offsetY = this.y - (this.acVideoInitH - this.clientHeight);
+        },
+        _thresholdX: function(x) {
+            var newX = x;
+            if ((this.pressed || this.resizing) && newX < this.threshold.left) {
+                newX = this.threshold.left;
+            } else if ((this.pressed || this.resizing) && newX > this.threshold.right) {
+                newX = this.threshold.right;
+            }
+            return newX;
+        },
+        _thresholdY: function(y) {
+            var newY = y;
+            if ((this.pressed || this.resizing) && newY < this.threshold.top) {
+                this.acPlayParam.topAside = true;
+                this.acPlayParam.bottomAside = false;
+                newY = this.threshold.top;
+            } else if ((this.pressed || this.resizing) && newY > this.threshold.bottom) {
+                this.acPlayParam.bottomAside = true;
+                this.acPlayParam.topAside = false;
+                newY = this.threshold.bottom;
+            } else {
+                this.acPlayParam.topAside = false;
+                this.acPlayParam.bottomAside = false;
+            }
+            return newY;
+        },
+        _resize: function(e) {
+            if ($(document).scrollTop() > this.thresholdAC) {
+                this.resizing = true;
+                this._resetPosition();
+                this.memoryPos.clientWidth = this.clientWidth;
+                this.resizing = false;
+            }
+        },
+        _translate: function(x, y) {
+            this.scrollerStyle.left = this.baseLeft + x + "px";
+            this.scrollerStyle.bottom = this.baseBottom - y + "px";
+            this.x = x;
+            this.y = y;
+        },
+        handleEvent: function(e) {
+            switch (e.type) {
+              case "scroll":
+                this._scroll(e);
+                break;
+              case "mousedown":
+                this._start(e);
+                break;
+              case "mousemove":
+                this._move(e);
+                break;
+              case "mouseup":
+                this._end(e);
+                break;
+              case "resize":
+                this._resize(e);
+                break;
+              default:
+                break;
+            }
+        },
+        setDisplay: function(display) {
+            this.display = true;
+            this._scroll();
+        }
+    };
+    return new ACVideo;
+});;
+
+
+SVK.register("pages.play_s", function() {
+    var $channel = $.common.channel.shijiao.player;
+    var $acVideo = $.pages.play.acVideo;
+    $channel.playComplete.add(function() {
+        var playerobj = window.$SINAPLAYEROBJ;
+        playerobj.player.playVideo(-1);
+    });
+    $channel.adComplete.add(function(display) {
+        $acVideo.setDisplay(display);
+    });
+    $(document).ready(function() {
+        var scope = $SCOPE["video"];
+        var $shareArrow = $("#shareArrow");
+        var blogUrl = "videoTitle=" + encodeURIComponent(scope.title) + "&videoUrl=" + scope.url + "&pic=" + scope.pic + "&time=" + (new Date).getTime();
+        $("#locationUrlTxt").attr("placeholder", scope.url);
+        $("#swfUrlTxt").attr("placeholder", scope.swfOutsideUrl);
+        $("#blog").attr("href", "//control.blog.sina.com.cn/admin/article/article_add.php?" + blogUrl);
+        $(".share .shareBox span").css("float", "left");
+    });
+});
+
+
+
+SVK.register("comp.shijiao.config", function($) {
+    return {
+        interdomain: "//video.sina.com.cn/shijiao",
+        interdomain1: "//s.video.sina.com.cn",
+        pagedomain: "//video.sina.com.cn/"
+    };
+});;
+
+
+SVK.register("comp.shijiao.logSystem", function($) {
+    (function($) {
+        if (!window.timing) return;
+        var $timing = window.timing;
+        var baseTiming = {
+            tick: $timing.tick,
+            info: $timing.info
+        }, evt = {
+            tick: $.Callbacks(),
+            info: $.Callbacks()
+        };
+        $.each([ "tick", "info" ], function(key, type) {
+            $timing[type] = function(label, value) {
+                if (type == "tick") {
+                    value = value || (new Date).getTime();
+                }
+                baseTiming[type](label, value);
+                evt[type].fire({
+                    label: label,
+                    value: value
+                });
+            };
+        });
+        function logSystem(Opts) {
+            var that = {}, Opts = Opts || {}, init, url, data, defaultData, dataType, getRequestData, winUnload, hasValue, baseArgs, request, bindEvent, destroy;
+            url = Opts.url;
+            baseArgs = Opts.baseArgs || "";
+            dataType = Opts.dataType || "tick";
+            data = Opts.data || [];
+            defaultData = $.type(Opts.defaultData) != "undefiend" ? Opts.defaultData : -1;
+            getRequestData = function(all) {
+                if (typeof all != "boolean") {
+                    all = true;
+                }
+                var timingData = $timing.data[dataType], ret = {};
+                $.each(data, function(key, value) {
+                    if (timingData.hasOwnProperty(value)) {
+                        ret[value] = timingData[value];
+                    } else {
+                        if (all) {
+                            ret[value] = -1;
+                        }
+                    }
+                });
+                return ret;
+            };
+            request = function(args) {
+                var img = new Image;
+                img.onload = img.onerror = function() {
+                    return true;
+                };
+                img.src = url + "?" + encodeURIComponent(args);
+                img = null;
+            };
+            var keyrequest = function(args, isextend, newurl, seg) {
+                var cururl = url;
+                if (newurl) {
+                    cururl = newurl;
+                }
+                var img = new Image, _args;
+                if (typeof isextend != "boolean") {
+                    isextend = true;
+                }
+                if (isextend) {
+                    _args = $.extend(getRequestData(), args);
+                } else {
+                    _args = args;
+                }
+                img.onload = img.onerror = function() {
+                    return true;
+                };
+                if (typeof seg != "string") {
+                    seg = "?";
+                }
+                img.src = cururl + seg + $.param(_args);
+                img = null;
+            };
+            winUnload = function(callback) {
+                var ua = navigator.userAgent.toLowerCase(), isIE = /msie/.test(ua), isIE6 = /msie 6/.test(ua), isMOZ = /gecko/.test(ua) && !/(compatible|webkit)/.test(ua);
+                var eventType = isMOZ || !("onbeforeunload" in window) || isIE ? "unload" : "beforeunload";
+                $(window).on(eventType, function() {
+                    try {
+                        callback();
+                    } catch (e) {}
+                    $(window).off(eventType, arguments.callee);
+                });
+            };
+            hasValue = function(label) {
+                var timingData = $timing.data[dataType];
+                return timingData[label] != defaultData;
+            };
+            that.getRequestData = getRequestData;
+            that.evt = evt[dataType];
+            that.evt.unload = winUnload;
+            that.hasValue = hasValue;
+            that.request = request;
+            that.keyrequest = keyrequest;
+            return that;
+        }
+        $.logSystem = logSystem;
+    })(jQuery);
+    return $.logSystem;
+});;
+
+
+SVK.register("comp.shijiao.stat", function($) {
+    var isFlashPlayer = function() {
+        return window.$SINAPlayer.player.init && window.$SINAPlayer.player.type == 1;
+    }();
+    var video = $SCOPE.video;
+    var flashversion = function() {
+        var version = "";
+        try {
+            if (navigator.plugins && navigator.plugins["Shockwave Flash"]) {
+                var swf = navigator.plugins["Shockwave Flash"];
+                version = swf.version || swf.description;
+            } else if (new ActiveXObject("ShockwaveFlash.ShockwaveFlash")) {
+                var flashIE = new ActiveXObject("ShockwaveFlash.ShockwaveFlash");
+                version = flashIE.GetVariable("$version");
+            }
+        } catch (e) {}
+        return version;
+    }();
+    var counter_browser = function() {
+        var ua = navigator.userAgent.toLowerCase();
+        var match = /(chrome)[ \/]([\w.]+)/.exec(ua) || /(safari)[ \/]([\w.]+)/.exec(ua) || /(firefox)[ \/]([\w.]+)/.exec(ua) || /(opera)(?:.*version)?[ \/]([\w.]+)/.exec(ua) || /(msie) ([\w.]+)/.exec(ua) || !/compatible/.test(ua) && /(mozilla)(?:.*? rv:([\w.]+))?/.exec(ua) || [];
+        if (match[1] && match[1] === "msie") {
+            var rubbish = /(360se)/.exec(ua) || /(maxthon)/.exec(ua) || /(tencenttraveler)/.exec(ua) || null;
+            if (rubbish && rubbish[1]) {
+                return rubbish[1];
+            }
+            return match[1] + (match[2] || "");
+        }
+        return match[1] || "unknown";
+    }(), counter_platform = function() {
+        var platform = navigator.platform.toLowerCase();
+        if (platform.match(/win/)) {
+            var ua = navigator.userAgent.split(";");
+            if (ua[2]) {
+                switch (ua[2]) {
+                  case " Windows4.0":
+                    return "Win95";
+                  case " Windows 98":
+                    return "Win98";
+                  case " Windows NT 5.0":
+                    return "Win2000";
+                  case " Windows NT 5.1":
+                    return "WinXP";
+                  case " Windows NT 5.2":
+                    return "Win2003";
+                  case " Windows NT 6.0":
+                    return "WinVista";
+                  case " Windows NT 6.1":
+                    return "Win7";
+                }
+            }
+        }
+        return platform;
+    }();
+    var params = [ "firstOpenTime", "domReady", "mainJSReady", "startInitPlayFlash", "playerInitComplete", "pMainInitedTime", "pSkinSt", "pSkinEd", "pIAskSt", "pIAskEd", "pNoticeJsTime", "pJsPlayTime", "pVideoSt", "pVideoEd", "pLoadStreamTime", "pStreamReadyTime", "pFirstBufferFull", "pHasAd", "pAdSt", "pAdEd", "pAdContentSt", "pAdContentEd", "pAdPlayStart", "pAdPlayStop", "pAdVaError", "pAdError", "pAdComplete", "pPlayBegan" ];
+    var sendppo = false;
+    var ppoargs = {};
+    var videoLog = SVK.comp.shijiao.logSystem({
+        url: "//log.ivideo.sina.com.cn/b.gif",
+        data: params
+    });
+    var baseRequest = videoLog.request;
+    var that = videoLog;
+    that.sendPPO = function() {
+        if (!sendppo && isFlashPlayer) {
+            sendppo = true;
+            var data = videoLog.getRequestData();
+            var args = {
+                lid: 1,
+                app: "video",
+                pid: video.pid,
+                fot: data.firstOpenTime,
+                drt: data.domReady,
+                jrt: data.mainJSReady,
+                sipt: data.startInitPlayFlash,
+                br: counter_browser,
+                dis: screen.width + "*" + screen.height,
+                os: counter_platform,
+                ts: (new Date).getTime()
+            };
+            if (window.$SCOPE && $SCOPE.user && $SCOPE.user.uid) {
+                args.uid = $SCOPE.user.uid;
+            }
+            $.extend(args, ppoargs);
+            args.fpv = args.fpv || flashversion;
+            videoLog.keyrequest(args, false);
+            videoLog.keyrequest(args, false, "//beacon.sina.com.cn/l.gif?video", "&");
+        }
+    };
+    that.setPPOArgs = function(key, value) {
+        ppoargs[key] = value;
+    };
+    videoLog.evt.unload(function() {
+        that.sendPPO();
+    });
+    return that;
+});;
+
+
+
+
+SVK.register("comp.player.playerCallFun", function($) {
+    var $channel = $.common.channel.shijiao.player;
+    var $getPlayer = window.$SINAPlayer.getPlayer;
+    var $config = $.comp.shijiao.config;
+    var $stat = $.comp.shijiao.stat;
+    var $user = $.common.userInfo.userLogin;
+    var open = false;
+    $channel.playStart.add(function() {
+        $stat.sendPPO();
+    });
+    $channel.playComplete.add(function() {});
+    $channel.flashInitCompleted.add(function(playerid, time) {
+        timing.tick("playInitComplete", time);
+        var playero = $getPlayer.getPlayer(playerid);
+        var player = playero.dom;
+        if (window.$SINAPlayer.player.init && window.$SINAPlayer.player.type == 1 && $.common.channel.loginChannel) {
+            var $loginchannel = $.common.channel.loginChannel;
+            $loginchannel.login.add(function() {
+                var user = $user.getUser();
+                if (user && user.uid) {
+                    player.setLogin(user.uid);
+                }
+            });
+        }
+    });
+    $channel.playOutside.add(function(playerid) {
+        if (open) {
+            return;
+        }
+        var playero = $getPlayer.getPlayer(playerid);
+        var player = playero.dom;
+        if (!playero) {
+            return;
+        }
+        var video = $SCOPE.video;
+        var args = {};
+        args.pid = video.pid;
+        args.video_id = video.video_id;
+        args.title = video.title;
+        args.url = video.url;
+        args.swfOutsideUrl = video.swfOutsideUrl;
+        var url = "//video.sina.com.cn/watch/outPlayerNew.php?";
+        url += $.core.json.jsonToQuery(args, true);
+        var width = player.offsetWidth;
+        var height = player.offsetHeight;
+        var top = parseInt((window.screen.availHeight - height) / 2);
+        var left = parseInt((window.screen.availWidth - width) / 2);
+        window.open(url, "_blank", "width=" + width + ",height=" + height + ",top=" + top + ",left=" + left + ",scrollbars=no,menubar=no,resizable=yes");
+        playero.obj.pause();
+        open = true;
+        setTimeout(function() {
+            open = false;
+        }, 5e3);
+    });
+    $channel.recordValue.add(function(key, value, playerid) {
+        if (key && value) {
+            $stat.setPPOArgs(key, value);
+        }
+    });
+});;
+
+
+
+
+
+
+SVK.register("module.setPosition", function($) {
+    var canFix = !("undefined" == typeof document.body.style.maxHeight || document.compatMode !== "CSS1Compat" && /msie/.test(navigator.userAgent.toLowerCase()));
+    var typeReg = /^(c|lt|lb|rt|rb)$/;
+    function visible(node) {
+        return $(node).css("display") != "none";
+    }
+    function createOffset(offset) {
+        offset = $.isArray(offset) ? offset : [ 0, 0 ];
+        for (var i = 0; i < 2; i++) {
+            if (typeof offset[i] != "number") offset[i] = 0;
+        }
+        return offset;
+    }
+    function draw(node, type, offset, fixed) {
+        if (!visible(node)) return;
+        var position = "";
+        var top, left, right, bottom;
+        var width = $(node).width(), height = $(node).height();
+        var winSize = {
+            width: $(window).width(),
+            height: $(window).height()
+        };
+        var limitTop = 0, limitLeft = 0;
+        if (fixed && canFix) {
+            position = "fixed";
+            top = bottom = offset[1];
+            left = right = offset[0];
+            switch (type) {
+              case "lt":
+                bottom = right = "";
+                break;
+              case "lb":
+                top = right = "";
+                break;
+              case "rt":
+                left = bottom = "";
+                break;
+              case "rb":
+                top = left = "";
+                break;
+              case "c":
+              default:
+                top = (winSize.height - height) / 2 + offset[1];
+                left = (winSize.width - width) / 2 + offset[0];
+                bottom = right = "";
+            }
+        } else {
+            position = "absolute";
+            limitTop = top = $(document).scrollTop();
+            limitLeft = left = $(document).scrollLeft();
+            switch (type) {
+              case "lt":
+                top += offset[1];
+                left += offset[0];
+                break;
+              case "lb":
+                top += winSize.height - height - offset[1];
+                left += offset[0];
+                break;
+              case "rt":
+                top += offset[1];
+                left += winSize.width - width - offset[0];
+                break;
+              case "rb":
+                top += winSize.height - height - offset[1];
+                left += winSize.width - width - offset[0];
+                break;
+              case "c":
+              default:
+                top += (winSize.height - height) / 2 + offset[1];
+                left += (winSize.width - width) / 2 + offset[0];
+            }
+            right = bottom = "";
+        }
+        if (type == "c") {
+            if (top < limitTop) top = limitTop;
+            if (left < limitLeft) left = limitLeft;
+        }
+        $(node).css({
+            position: position,
+            top: top,
+            left: left,
+            right: right,
+            bottom: bottom
+        });
+        return {
+            position: position,
+            top: top,
+            left: left,
+            right: right,
+            bottom: bottom,
+            width: width,
+            height: height
+        };
+    }
+    return function(node, type, offset, fixed) {
+        var that = {};
+        that.callbacks = $.Callbacks();
+        if (typeReg.test(type)) {
+            function evtFun() {
+                if (fixed && !canFix) {
+                    var pos = draw(node, type, offset, fixed);
+                    that.callbacks.fire({
+                        type: "setPosAfter",
+                        data: pos
+                    });
+                }
+            }
+            function resizeEvtFun() {
+                that.callbacks.fire("resizeBefore");
+                if (type == "c") {
+                    var pos = draw(node, type, offset, fixed);
+                    that.callbacks.fire({
+                        type: "setPosAfter",
+                        data: pos
+                    });
+                }
+            }
+            var init = function() {
+                if (!canFix) {
+                    $(window).scroll(evtFun);
+                }
+                $(window).resize(resizeEvtFun);
+            };
+            that.getNode = function() {
+                return node;
+            };
+            that.isFixed = function() {
+                return fixed;
+            };
+            that.setAlign = function(param) {
+                if (!param) {
+                    return;
+                }
+                $.extend({
+                    type: type,
+                    offset: offset,
+                    fixed: fixed
+                }, param);
+                if (typeReg.test(param.type)) {
+                    type = param.type;
+                    offset = createOffset(param.offset);
+                    fixed = param.fixed;
+                    if (typeof fixed != "boolean") {
+                        fixed = true;
+                    }
+                    var pos = draw(node, type, offset, fixed);
+                    that.callbacks.fire({
+                        type: "setPosAfter",
+                        data: pos
+                    });
+                }
+            };
+            that.destroy = function() {
+                if (!canFix) {
+                    $(window).off("scroll", evtFun);
+                }
+                that.callbacks.empty();
+            };
+            init();
+            that.setAlign({
+                type: type,
+                offset: offset,
+                fixed: fixed
+            });
+        }
+        return that;
+    };
+});;
+
+
+SVK.register("module.mask", function($) {
+    var $setPosition = $.module.setPosition;
+    var bodyMaskId = "STK-Mask-Key-body";
+    return function(spec) {
+        var defaultArgs = {
+            box: document.body,
+            color: "#000",
+            opacity: .5,
+            zIndex: 9999
+        };
+        var conf = {};
+        var that = {};
+        that.callbacks = $.Callbacks();
+        var maskNode = null;
+        var showStatus = false;
+        var obj = {
+            setPos: null
+        };
+        var createIframe = function() {
+            var html = [ '<iframe src="" style="display:block;z-index:0;border:0 none;', "opacity:0;filter:Alpha(Opacity=0);", "width:100%;", 'height:100%;">', "</iframe>" ].join("");
+            return html;
+        };
+        var getPosSize = function() {
+            var opt = {
+                top: 0,
+                left: 0,
+                width: 0,
+                height: 0
+            };
+            if (conf.box == document.body) {
+                opt.width = $(window).width();
+                opt.height = $(window).height();
+            } else {
+                var pos = $(conf.box).position();
+                opt.width = $(conf.box).width();
+                opt.height = $(conf.box).height();
+                opt.top = pos.top;
+                opt.left = pos.left;
+            }
+            return opt;
+        };
+        var setPosSize = function(mask, opt) {
+            var opt = opt || getPosSize();
+            $(mask).css({
+                position: "absolute",
+                width: "100%",
+                height: "100%",
+                top: opt.top,
+                left: opt.left
+            });
+        };
+        var createMaskNode = function() {
+            var node = $("<div>");
+            var opt = getPosSize();
+            if ("undefined" == typeof document.body.style.maxHeight) {
+                node.html(createIframe());
+            }
+            node.css({
+                "background-color": conf.color,
+                opacity: conf.opacity,
+                zIndex: conf.zIndex,
+                display: "none"
+            });
+            $(document.body).append(node);
+            maskNode = node;
+            showStatus = false;
+            if (conf.box == document.body) {
+                $(node).attr("id", bodyMaskId);
+                custEvtFun.resetMaskSize();
+            } else {
+                setPosSize(maskNode, opt);
+            }
+        };
+        var custEvtFun = {
+            resetMaskSize: function() {
+                var opt = getPosSize();
+                $(maskNode).height("100%");
+                $(maskNode).width("100%");
+            }
+        };
+        var create = function() {
+            if (conf.box == document.body) {
+                if ($("#" + bodyMaskId).length) {
+                    maskNode = $("#" + bodyMaskId);
+                    return;
+                } else {
+                    createMaskNode();
+                }
+            } else {
+                createMaskNode();
+            }
+        };
+        var removePos = function() {
+            if (obj.setPos) {
+                obj.setPos.destroy();
+                delete obj.setPos;
+            }
+        };
+        var init = function() {
+            conf = $.extend(defaultArgs, spec || {});
+            create();
+        };
+        init();
+        that.show = function() {
+            that.callbacks.fire("maskShowBefore");
+            if (!maskNode.length) {
+                init();
+            }
+            if (conf.box == document.body && !$("#" + bodyMaskId).length) {
+                removePos();
+                create();
+            }
+            $(maskNode).css({
+                opacity: conf.opacity,
+                zIndex: conf.zIndex,
+                display: ""
+            });
+            showStatus = true;
+            if (conf.box == document.body) {
+                if (obj.setPos) {
+                    obj.setPos.setAlign({});
+                } else {
+                    obj.setPos = $setPosition(maskNode, "lt", [ 0, 0 ], true);
+                    obj.setPos.callbacks.add(function(type) {
+                        if (type == "resizeBefore") custEvtFun.resetMaskSize();
+                    });
+                }
+            }
+        };
+        that.hide = function() {
+            that.callbacks.fire("maskHideBefore");
+            $(maskNode).css("display", "none");
+            showStatus = false;
+        };
+        that.getMaskNode = function() {
+            return maskNode;
+        };
+        that.destroy = function() {
+            $(maskNode).remove();
+            maskNode = null;
+            that.callbacks.empty();
+            removePos();
+            showStatus = false;
+        };
+        return that;
+    };
+});;
+
+
+SVK.register("comp.shijiao.pagePlayerFun", function($) {
+    var $playerChannel = $.common.channel.shijiao.player;
+    var $playerPageChannel = $.common.channel.shijiao.playerPage;
+    var $getPlayer = window.$SINAPlayer.getPlayer;
+    var timer = null;
+    var timeout = 6e3;
+    var $mask = null;
+    var nodes = {
+        playbox: $(".vd_playBox"),
+        playerbox: $("#" + $FlashConfig.container)
+    };
+    nodes.eplaybox = $(".playBox");
+    nodes.light = $("[node-type='openLight']");
+    var isLightOn = true;
+    var getPlayer = function(playerid) {
+        var playero = $getPlayer.getPlayer(playerid);
+        return playero;
+    };
+    var getMask = function() {
+        if (!$mask) {
+            $mask = $.module.mask({
+                zIndex: 1800,
+                opacity: 1
+            });
+        }
+        return $mask;
+    };
+    function lighton(playerid) {
+        if (isLightOn) {
+            return;
+        }
+        nodes.light.hide();
+        getPlayer(playerid).dom.setLight(1);
+        getMask().hide();
+        nodes.eplaybox.css("zIndex", 1400);
+        isLightOn = true;
+    }
+    function lightoff(playerid) {
+        nodes.eplaybox.css("zIndex", 1e4);
+        getMask().show();
+        nodes.light.show();
+        getPlayer(playerid).dom.setLight(0);
+        isLightOn = false;
+    }
+    $playerChannel.toWide.add(function(playerid) {
+        nodes.playbox.addClass("vd_fullPlayBox");
+        var dom = getPlayer(playerid).dom;
+        dom.width = 950;
+        dom.toWide();
+    });
+    $playerChannel.toNarrow.add(function(playerid) {
+        nodes.playbox.removeClass("vd_fullPlayBox");
+        var dom = getPlayer(playerid).dom;
+        dom.width = 640;
+        dom.toNarrow();
+    });
+    $playerChannel.setLight.add(function(type, playerid) {
+        if (type == 0) {
+            lightoff(playerid);
+        } else if (type == 1) {
+            lighton(playerid);
+        }
+    });
+    var loadWidgetPlayer = function() {
+        $playerPageChannel.loadWidgetPlayer.fire();
+        loadWidgetPlayer = $.noop;
+    };
+    $playerChannel.playStart.add(function() {
+        loadWidgetPlayer();
+    });
+    $playerChannel.videoError.add(function() {
+        loadWidgetPlayer();
+    });
+    nodes.light.click(function(evt) {
+        lighton($FlashConfig.id);
+    });
+    var starttime = window.$SINAPlayer.time.initPlayerStart || (new Date).getTime();
+    var alreadytime = (new Date).getTime() - starttime;
+    if (alreadytime >= timeout) {
+        setTimeout(function() {
+            loadWidgetPlayer();
+        }, 0);
+    } else {
+        timer = setTimeout(function() {
+            loadWidgetPlayer();
+        }, timeout - alreadytime);
+    }
+});;
+
+
+
+
+SVK.register("comp.shijiao.resetPlayerCallJs", function($) {
+    var $channel = $.common.channel.shijiao.player;
+    var $getPlayer = window.$SINAPlayer.getPlayer;
+    var cache = window.$SINAPlayer.cacheFuns;
+    var isinit = false;
+    cache.forExec(function(name, data) {
+        if (name == "flashInitCompleted") {
+            isinit = true;
+        }
+        setTimeout(function() {
+            var listener = $channel[name];
+            listener.fire.apply(listener, data);
+        }, 0);
+    });
+    cache.clear();
+    for (var i = 0, len = window.$PlayerCallNameArr.length; i < len; i++) {
+        (function() {
+            var name = window.$PlayerCallNameArr[i];
+            $PlayerCallJs[name] = function() {
+                if (arguments.length == 0) {
+                    throw new Error("播放器回调js方法必须传入播放器id");
+                }
+                if (name == "flashInitCompleted" && !isinit) {
+                    window.$SINAPlayer.player.load = true;
+                    isinit = true;
+                    if (typeof $SCOPE == "object" && typeof $SCOPE.video == "object") {
+                        var player = $getPlayer.getPlayer(arguments[arguments.length - 1]);
+                        player && player.obj.playVideo($SCOPE.video);
+                    }
+                }
+                var args = Array.prototype.slice.call(arguments, 0);
+                args.push((new Date).getTime());
+                setTimeout(function() {
+                    var listener = $channel[name];
+                    listener.fire.apply(listener, args);
+                }, 0);
+            };
+        })();
+    }
+});;
+;
+
+
+SVK.register("common.extra.logSystem", function($) {
+    (function($) {
+        if (!window.timing) return;
+        var $timing = window.timing;
+        var baseTiming = {
+            tick: $timing.tick,
+            info: $timing.info
+        }, evt = {
+            tick: $.Callbacks(),
+            info: $.Callbacks()
+        };
+        $.each([ "tick", "info" ], function(key, type) {
+            $timing[type] = function(label, value) {
+                if (type == "tick") {
+                    value = value || (new Date).getTime();
+                }
+                baseTiming[type](label, value);
+                evt[type].fire({
+                    label: label,
+                    value: value
+                });
+            };
+        });
+        function logSystem(Opts) {
+            var that = {}, Opts = Opts || {}, init, url, data, defaultData, dataType, getRequestData, winUnload, hasValue, request, bindEvent, destroy;
+            url = Opts.url;
+            data = Opts.data || [];
+            dataType = Opts.dataType || "tick";
+            defaultData = $.type(Opts.defaultData) != "undefiend" ? Opts.defaultData : -1;
+            getRequestData = function() {
+                var timingData = $timing.data[dataType], ret = {};
+                $.each(data, function(key, value) {
+                    ret[value] = timingData.hasOwnProperty(value) ? timingData[value] : -1;
+                });
+                return ret;
+            };
+            request = function(args) {
+                var img = new Image, _args;
+                _args = $.extend(getRequestData(), args);
+                _args._t = (new Date).getTime();
+                img.onload = img.onerror = function() {
+                    return true;
+                };
+                img.src = url + "?" + $.param(_args);
+                img = null;
+            };
+            winUnload = function(callback) {
+                var ua = navigator.userAgent.toLowerCase(), isIE = /msie/.test(ua), isIE6 = /msie 6/.test(ua), isMOZ = /gecko/.test(ua) && !/(compatible|webkit)/.test(ua);
+                var eventType = isMOZ || !("onbeforeunload" in window) || isIE ? "unload" : "beforeunload";
+                $(window).on(eventType, function() {
+                    try {
+                        callback();
+                    } catch (e) {}
+                    $(window).off(eventType, arguments.callee);
+                });
+            };
+            hasValue = function(label) {
+                var timingData = $timing.data[dataType];
+                return timingData[label] != defaultData;
+            };
+            that.getRequestData = getRequestData;
+            that.evt = evt[dataType];
+            that.evt.unload = winUnload;
+            that.hasValue = hasValue;
+            that.request = request;
+            return that;
+        }
+        $.logSystem = logSystem;
+    })(jQuery);
+    return $.logSystem;
+});;
+
+
+SVK.register("pl.ad", function($) {
+    function createAdNode(Opts) {
+        var box = Opts.box || $("#" + Opts.id);
+        if (!box[0]) return;
+        if (Opts.html) {
+            box.html(Opts.html);
+        } else if (Opts.pdps) {
+            var ins = document.createElement("ins");
+            $(ins).attr("data-ad-pdps", Opts.pdps).addClass("sinaads");
+            box.append(ins);
+            try {
+                (sinaads = window.sinaads || []).push(Opts.args || {});
+            } catch (e) {}
+        }
+    }
+    function init() {
+        if ($adWidget) {
+            $.map($adWidget, function(ad) {
+                try {
+                    createAdNode(ad);
+                } catch (e) {}
+            });
+        }
+    }
+    init();
+});;
+
+
+SVK.register("common.switchover.base", function($) {
+    (function($) {
+        function switchEvent(switchType) {
+            return {
+                evt: $.Callbacks(),
+                type: switchType || "switch"
+            };
+        }
+        function switchClass(Opts, switchType) {
+            var that = {}, Opts = Opts || {}, init, getEvent, sEvent, fire, activeIndex, maxIndex, setMaxIndex, getMaxIndex, getActiveIndex, getConfig, getLength, go, back, add, remove, destroy;
+            sEvent = switchEvent(switchType);
+            maxIndex = Opts.maxIndex;
+            activeIndex = Opts.firstLoadIndex || 0;
+            add = function(fn) {
+                var evt = getEvent();
+                evt.evt.add(fn);
+                return that;
+            };
+            remove = function(fn) {
+                var evt = getEvent();
+                evt.evt.remove(fn);
+                return that;
+            };
+            fire = function(index, data) {
+                var eData = {}, index = $.isNumeric(index) ? index : 0, lastIndex = activeIndex || 0, evt = getEvent(), data = data || {};
+                eData.index = activeIndex = index;
+                eData.lastIndex = lastIndex;
+                eData.maxIndex = maxIndex;
+                eData.data = data;
+                eData.evt = evt;
+                evt.evt.fire(eData);
+                return that;
+            };
+            go = function(data, isForce) {
+                if (activeIndex + 1 <= maxIndex) {
+                    var index = activeIndex;
+                    that.fire(++index, data);
+                } else if (isForce) {
+                    that.fire(index = 0, data);
+                }
+                return that;
+            };
+            back = function(data, isForce) {
+                if (activeIndex - 1 >= 0) {
+                    var index = activeIndex;
+                    that.fire(--index, data);
+                } else if (isForce) {
+                    that.fire(index = maxIndex, data);
+                }
+                return that;
+            };
+            getLength = function() {
+                return maxIndex + 1;
+            };
+            setMaxIndex = function(len) {
+                return maxIndex = parseInt(len) || maxIndex;
+            };
+            getMaxIndex = function() {
+                return maxIndex;
+            };
+            getActiveIndex = function() {
+                return activeIndex;
+            };
+            getEvent = function() {
+                return sEvent;
+            };
+            getConfig = function() {
+                return Opts;
+            };
+            destroy = function() {
+                if (sEvent && sEvent.evt) {
+                    sEvent.evt.empty();
+                    sEvent.evt = null;
+                }
+            };
+            init = function() {};
+            that.add = add;
+            that.fire = fire;
+            that.remove = remove;
+            that.go = go;
+            that.back = back;
+            that.setMaxIndex = setMaxIndex;
+            that.getMaxIndex = getMaxIndex;
+            that.getActiveIndex = getActiveIndex;
+            that.getConfig = getConfig;
+            that.getLength = getLength;
+            that.getEvent = getEvent;
+            that.destroy = destroy;
+            init();
+            return that;
+        }
+        $.switchover = $.switchover || {};
+        $.switchover.core = switchClass;
+    })(jQuery);
+    return $.switchover.core;
+});;
+
+
+SVK.register("common.switchover.tabs", function($) {
+    (function($) {
+        function switchTabs(box, Opts) {
+            var that, Opts = Opts || {}, init, bindEvent, selector, panels, fire, firstLoadIndex, _selectorSize, eventHandler, maxIndex, eventType, eventCallback, activeClass, getBox, getRealIndex, getRealNode, getSelectors, getPanels, disable, enable, isUsable, sEvt = {}, nodeCache = {}, baseFire, baseDestroy, destroy;
+            eventType = Opts.eventType = Opts.eventType || "click";
+            var showPageEvt = Opts.showPageEvt || eventType;
+            selector = Opts.selector = Opts.selector || "*[role=tab]";
+            panels = Opts.panels = Opts.panels || "*[role=tabpanel]";
+            activeClass = Opts.activeClass;
+            _selectorSize = $(selector, box).size();
+            Opts.switchType = Opts.switchType || "tab";
+            Opts.maxIndex = Opts.maxIndex || (_selectorSize ? _selectorSize - 1 : 0);
+            firstLoadIndex = Opts.firstLoadIndex = Opts.firstLoadIndex || 0;
+            sEvt.onBefore = $.Callbacks();
+            sEvt.onAfter = $.Callbacks();
+            that = $.switchover.core(Opts, Opts.switchType);
+            baseDestroy = that.destroy;
+            baseFire = that.fire;
+            bindEvent = function() {
+                $(box).delegate(selector, eventType, eventHandler);
+                if (showPageEvt != eventType) {
+                    $(box).delegate(selector, showPageEvt, eventHandler);
+                }
+                that.add(function(evt) {
+                    var index = evt.index;
+                    sEvt.onBefore.fire(evt);
+                    if (activeClass) {
+                        $.each(that.getSelectors(true), function(key, node) {
+                            var rKey = that.getRealIndex(node);
+                            key = $.isNumeric(rKey) ? rKey : key;
+                            $(node)[key == index ? "addClass" : "removeClass"](activeClass);
+                        });
+                    }
+                    $.each(that.getPanels(true), function(key, node) {
+                        $(node).css("display", key == index ? "" : "none");
+                    });
+                    sEvt.onAfter.fire(evt);
+                });
+                sEvt.onBefore.add(function(evt) {
+                    if ($.isFunction(Opts.onSwitchBefore)) {
+                        Opts.onSwitchBefore.call(that, evt);
+                    }
+                });
+                sEvt.onAfter.add(function(evt) {
+                    if ($.isFunction(Opts.onSwitchAfter)) {
+                        if (Opts.onSwitch) {
+                            Opts.onSwitch.call(that, evt);
+                        } else {
+                            Opts.onSwitchAfter.call(that, evt);
+                        }
+                    }
+                });
+            };
+            eventHandler = function(e) {
+                var index = $(this).attr("role-index");
+                that.fire(typeof index != "undefined" ? index : $(this), {
+                    evtType: e.type
+                });
+                return e.preventDefault();
+            };
+            disable = function(node) {
+                $(node).attr("role-disable", "true");
+            };
+            enable = function(node) {
+                $(node).removeAttr("role-disable");
+            };
+            isUsable = function(node) {
+                return typeof $(node).attr("role-disable") == "undefined";
+            };
+            getBox = function() {
+                return box;
+            };
+            getSelectors = function(flag) {
+                return !nodeCache.selector || flag ? nodeCache.selector = $(selector, box) : nodeCache.selector;
+            };
+            getPanels = function(flag) {
+                return !nodeCache.panels || flag ? nodeCache.panels = $(panels, box) : nodeCache.panels;
+            };
+            getRealIndex = function(node, nodeType) {
+                var nKey = parseInt($.trim($(node).attr("role-index"))), key = $.isNumeric(nKey) ? nKey : $.inArray($(node).get(0), nodeType == panels ? that.getPanels() : that.getSelectors());
+                return key == -1 ? 0 : key;
+            };
+            getRealNode = function(key, nodeType) {
+                var realNode, nodes = nodeType == panels ? that.getPanels() : that.getSelectors();
+                $.each(nodes, function(k, node) {
+                    if ($(node).attr("role-index") == key) {
+                        realNode = node;
+                    }
+                });
+                if (typeof realNode == "undefined") {
+                    realNode = nodes.eq(key);
+                }
+                return realNode;
+            };
+            fire = function(target, data) {
+                var index;
+                index = $.isNumeric(target) ? target : that.getRealIndex(target, selector);
+                return index + 1 && that.isUsable(that.getRealNode(index)) ? baseFire(index, data) : that;
+            };
+            destroy = function() {
+                box.undelegate(selector, eventType, eventHandler);
+                $.each(sEvt, function(k, obj) {
+                    try {
+                        obj.empty();
+                    } catch (e) {}
+                });
+                nodeCache = null;
+                baseDestroy();
+            };
+            init = function() {
+                bindEvent();
+                that.fire(firstLoadIndex);
+            };
+            that.fire = fire;
+            that.switchEvent = sEvt;
+            that.getBox = getBox;
+            that.destroy = destroy;
+            that.getPanels = getPanels;
+            that.getSelectors = getSelectors;
+            that.getRealIndex = getRealIndex;
+            that.getRealNode = getRealNode;
+            that.disable = disable;
+            that.enable = enable;
+            that.isUsable = isUsable;
+            init();
+            return that;
+        }
+        $.tabs = switchTabs;
+        $.fn.tabs = function(Opts) {
+            var ret = [];
+            $.each($(this), function(key, node) {
+                ret.push($.tabs($(node), Opts));
+            });
+            return ret;
+        };
+    })(jQuery);
+    return $.tabs;
+});;
+
+
+SVK.register("common.switchover.paging", function($) {
+    (function($) {
+        function paging(box, Opts) {
+            var that, init, bindEvent, Opts = Opts || {}, offset = Opts.offset || 1, $template = Opts.templateRequire || $.easyTemplate, pageCount = Opts.pageCount || 0, sBefore = Opts.onSwitchBefore, sAfter = Opts.onSwitchAfter, pageBox = Opts.pageBox || box, ellipseText = $.type(Opts.ellipseText) == "boolean" ? Opts.ellipseText : true;
+            Opts.maxIndex = pageCount - 1;
+            Opts.switchType = Opts.switchType || "pagination";
+            var showPageEvt = Opts.showPageEvt || Opts.eventType || "click";
+            Opts.onSwitchBefore = function(data) {
+                if (data.data && data.data.evtType && data.data.evtType != showPageEvt) {
+                    return;
+                }
+                renderTemplate.call(this, data);
+                if ($.isFunction(sBefore)) {
+                    sBefore.call(this, data);
+                }
+            };
+            that = $.tabs(box, Opts);
+            function getPagingConfig() {
+                return {
+                    pageCount: pageCount,
+                    tempalte: Opts.template,
+                    alwaysDisplayCount: alwaysDisplayCount,
+                    ellipseText: ellipseText
+                };
+            }
+            function renderTemplate(data) {
+                var _temp = $template(Opts.template, getRenderList(data)).toString();
+                $(pageBox).html(_temp);
+            }
+            function getRenderList(data) {
+                var ret = [], i = 0, _l, _r, cur = data.index, max = data.maxIndex;
+                for (; i <= max; i++) {
+                    (function(i) {
+                        var text = i;
+                        if (ellipseText && i > 0 && i < max) {
+                            if (Math.abs(cur - i) <= offset * (cur == 0 || cur == max ? 2 : 1)) {
+                                text = i;
+                            } else if (!_l && cur - i <= 0 && (_l = 1) || !_r && cur - i >= 0 && (_r = 1)) {
+                                text = "...";
+                            } else {
+                                return;
+                            }
+                        }
+                        ret.push({
+                            index: i,
+                            text: $.isNumeric(text) ? ++text : text
+                        });
+                    })(i);
+                }
+                return {
+                    list: ret,
+                    data: data
+                };
+            }
+            that.showPage = function(page) {
+                that.fire(page - 1);
+            };
+            return that;
+        }
+        $.paging = paging;
+    })(jQuery);
+    return $.paging;
+});;
+
+
+
+
+SVK.register("tpl.likevideo", function($) {
+    return [ "<#et tpl data>", "<#list data as group>", '<ul class="vd_vedioplayLs" role="tabpanel">', "<#list group as list>", '<li video-id="${list.videoid}" data-type="like" log="${list.videoid}|${list.module}|${list.algorithm}|${list.expirement}">', '<dl class="vd_vedioplay">', "<dt>", '<a href="javascript:void(0)" node-url="${list.url||list.link}" class="videoLk" title="${list.title}"  log="${list.videoid}|${list.module}|${list.algorithm}|${list.expirement}">', '<img style="display: block; visibility: visible;" height="90" width="120" src="${list.imgurl||list.pic||list.thumb}">', '<span class="playTm"><em>${list.playtime}</em></span>', '<i class="V_icon V_icon9"></i>', "</a>", "</dt>", '<dd class="vedio_des">', '<a href="javascript:void(0)" node-url="${list.url||list.link}" title="${list.title}" log="${list.videoid}|${list.module}|${list.algorithm}|${list.expirement}">${list.title}</a>', "</dd>", "</li>", "</#list>", "</ul>", "</#list>", '<div class="V_pages S_lk2"></div>', "</#et>" ].join("");
+});;
+
+
+SVK.register("tpl.relatedvideo", function($) {
+    return [ "<#et tpl data>", "<#list data as group>", '<ul class="vd_vedioplayLs" role="tabpanel">', "<#list group as list>", '<li video-id="${list.videoid}" data-type="relation" log="${list.videoid}|${list.module}|${list.algorithm}|${list.expirement}">', '<dl class="vd_vedioplay">', "<dt>", '<a href="javascript:void(0)" node-url="${list.link||list.url}" class="videoLk" title="${list.title||list.name}"  log="${list.videoid}|${list.module}|${list.algorithm}|${list.expirement}">', '<img style="display: block; visibility: visible;" height="90" width="120" src="${list.imgurl||list.pic||list.thumb}">', '<span class="playTm"><em>${list.playtime}</em></span>', '<i class="V_icon V_icon9"></i>', "</a>", "</dt>", '<dd class="vedio_des">', '<a href="javascript:void(0)" node-url="${list.link||list.url}" title="${list.title}" log="${list.videoid}|${list.module}|${list.algorithm}|${list.expirement}">${list.name||list.title}</a>', "</dd>", "</li>", "</#list>", "</ul>", "</#list>", '<div class="V_pages S_lk2"></div>', "</#et>" ].join("");
+});;
+
+
+SVK.register("core.io.ajaxQueue", function($) {
+    return function(args) {
+        var conf, that, queue, current, lock;
+        args.error = args.onFail || args.onTimeout;
+        args.success = args.onComplete;
+        args.type = (args.method || "get").toUpperCase();
+        conf = $.extend({
+            url: "",
+            beforeSend: function(jqXHR, settings) {},
+            complete: function(jqXHR, textStatus) {},
+            dataType: "json",
+            error: function(jqXHR, textStatus, errorThrown) {},
+            global: true,
+            success: function(data, textStatus, jqXHR) {},
+            timeout: 30 * 1e3,
+            type: "GET",
+            isEncode: true
+        }, args);
+        conf.complete = function(jqXHR, textStatus) {
+            lock = false;
+            if (typeof args.complete == "function") {
+                args.complete(jqXHR, textStatus);
+            }
+            setTimeout(nextRequest, 0);
+        };
+        queue = [];
+        current = null;
+        lock = false;
+        var nextRequest = function() {
+            if (!queue.length) {
+                return;
+            }
+            if (lock === true) {
+                return;
+            }
+            lock = true;
+            conf.data = queue.shift();
+            current = $.ajax(conf);
+        };
+        var abort = function(params) {
+            while (queue.length) {
+                queue.shift();
+            }
+            lock = false;
+            if (current) {
+                try {
+                    current.abort();
+                } catch (exp) {}
+            }
+            current = null;
+        };
+        that = {};
+        that.request = function(params) {
+            if (!params) {
+                params = {};
+            }
+            if (args["noQueue"]) {
+                abort();
+            }
+            if (!args["uniqueRequest"] || !current) {
+                if (conf.isEncode && conf.type == "GET") {
+                    $.each(params, function(key, value) {
+                        params[key] = encodeURIComponent(value);
+                    });
+                }
+                queue.push(params);
+                nextRequest();
+            }
+        };
+        that.abort = abort;
+        return that;
+    };
+});;
+
+
+SVK.register("core.util.getUniqueKey", function($) {
+    var _loadTime = (new Date).getTime().toString(), _i = 1;
+    return function() {
+        return _loadTime + _i++;
+    };
+});;
+
+
+SVK.register("core.util.templet", function($) {
+    return function(template, data) {
+        return template.replace(/#\{(.+?)\}/ig, function() {
+            var key = arguments[1].replace(/\s/ig, "");
+            var ret = arguments[0];
+            var list = key.split("||");
+            for (var i = 0, len = list.length; i < len; i += 1) {
+                if (/^default:.*$/.test(list[i])) {
+                    ret = list[i].replace(/^default:/, "");
+                    break;
+                } else if (data[list[i]] !== undefined) {
+                    ret = data[list[i]];
+                    break;
+                }
+            }
+            return ret;
+        });
+    };
+});;
+
+
+SVK.register("core.util.hideContainer", function($) {
+    var hideDiv;
+    var initDiv = function() {
+        if (hideDiv) return;
+        hideDiv = $.C("div");
+        hideDiv.style.cssText = "position:absolute;top:-9999px;left:-9999px;";
+        document.getElementsByTagName("head")[0].appendChild(hideDiv);
+    };
+    var that = {
+        appendChild: function(el) {
+            initDiv();
+            hideDiv.appendChild(el);
+        },
+        removeChild: function(el) {
+            hideDiv && hideDiv.removeChild(el);
+        }
+    };
+    return that;
+});;
+
+
+SVK.register("core.io.getIframeTrans", function($) {
+    var TEMP = '<iframe id="#{id}" name="#{id}" height="0" width="0" frameborder="no"></iframe>';
+    return function(spec) {
+        var box, conf, that;
+        conf = $.extend({
+            id: "STK_iframe_" + $.core.util.getUniqueKey()
+        }, spec);
+        that = {};
+        box = $.C("DIV");
+        box.innerHTML = $.core.util.templet(TEMP, conf);
+        $.core.util.hideContainer.appendChild(box);
+        that.getId = function() {
+            return conf["id"];
+        };
+        that.destroy = function() {
+            box.innerHTML = "";
+            try {
+                box.getElementsByTagName("iframe")[0].src = "about:blank";
+            } catch (exp) {}
+            $.core.util.hideContainer.removeChild(box);
+            box = null;
+        };
+        return that;
+    };
+});;
+
+
+
+
+SVK.register("core.str.parseURL", function($) {
+    return function(url) {
+        var parse_url = /^(?:([A-Za-z]+):(\/{0,3}))?([0-9.\-A-Za-z]+\.[0-9A-Za-z]+)?(?::(\d+))?(?:\/([^?#]*))?(?:\?([^#]*))?(?:#(.*))?$/;
+        var names = [ "url", "scheme", "slash", "host", "port", "path", "query", "hash" ];
+        var results = parse_url.exec(url);
+        var that = {};
+        for (var i = 0, len = names.length; i < len; i += 1) {
+            that[names[i]] = results[i] || "";
+        }
+        return that;
+    };
+});;
+
+
+SVK.register("core.json.queryToJson", function($) {
+    return function(QS, isDecode) {
+        var _Qlist = $.trim(QS).split("&");
+        var _json = {};
+        var _fData = function(data) {
+            if (isDecode) {
+                return decodeURIComponent(data);
+            } else {
+                return data;
+            }
+        };
+        for (var i = 0, len = _Qlist.length; i < len; i++) {
+            if (_Qlist[i]) {
+                var _hsh = _Qlist[i].split("=");
+                var _key = _hsh[0];
+                var _value = _hsh[1];
+                if (_hsh.length < 2) {
+                    _value = _key;
+                    _key = "$nullName";
+                }
+                if (!_json[_key]) {
+                    _json[_key] = _fData(_value);
+                } else {
+                    if ($.isArray(_json[_key]) != true) {
+                        _json[_key] = [ _json[_key] ];
+                    }
+                    _json[_key].push(_fData(_value));
+                }
+            }
+        }
+        return _json;
+    };
+});;
+
+
+SVK.register("core.json.jsonToQuery", function($) {
+    var _fdata = function(data, isEncode) {
+        data = data == null ? "" : data;
+        data = $.trim(data.toString());
+        if (isEncode) {
+            return encodeURIComponent(data);
+        }
+        return data;
+    };
+    return function(JSON, isEncode) {
+        var _Qstring = [];
+        if (typeof JSON == "object") {
+            for (var k in JSON) {
+                if (k === "$nullName") {
+                    _Qstring = _Qstring.concat(JSON[k]);
+                    continue;
+                }
+                if (JSON[k] instanceof Array) {
+                    for (var i = 0, len = JSON[k].length; i < len; i++) {
+                        _Qstring.push(k + "=" + _fdata(JSON[k][i], isEncode));
+                    }
+                } else {
+                    if (typeof JSON[k] != "function") {
+                        _Qstring.push(k + "=" + _fdata(JSON[k], isEncode));
+                    }
+                }
+            }
+        }
+        if (_Qstring.length) {
+            return _Qstring.join("&");
+        }
+        return "";
+    };
+});;
+
+
+SVK.register("core.util.URL", function($) {
+    return function(sURL, args) {
+        var opts = $.extend({
+            isEncodeQuery: false,
+            isEncodeHash: false
+        }, args || {});
+        var that = {};
+        var url_json = $.core.str.parseURL(sURL);
+        var query_json = $.core.json.queryToJson(url_json.query);
+        var hash_json = $.core.json.queryToJson(url_json.hash);
+        that.setParam = function(sKey, sValue) {
+            query_json[sKey] = sValue;
+            return this;
+        };
+        that.getParam = function(sKey) {
+            return query_json[sKey];
+        };
+        that.setParams = function(oJson) {
+            for (var key in oJson) {
+                that.setParam(key, oJson[key]);
+            }
+            return this;
+        };
+        that.setHash = function(sKey, sValue) {
+            hash_json[sKey] = sValue;
+            return this;
+        };
+        that.getHash = function(sKey) {
+            return hash_json[sKey];
+        };
+        that.valueOf = that.toString = function() {
+            var url = [];
+            var query = $.core.json.jsonToQuery(query_json, opts.isEncodeQuery);
+            var hash = $.core.json.jsonToQuery(hash_json, opts.isEncodeQuery);
+            if (url_json.scheme != "") {
+                url.push(url_json.scheme + ":");
+                url.push(url_json.slash);
+            }
+            if (url_json.host != "") {
+                url.push(url_json.host);
+                if (url_json.port != "") {
+                    url.push(":");
+                    url.push(url_json.port);
+                }
+            }
+            url.push("/");
+            url.push(url_json.path);
+            if (query != "") {
+                url.push("?" + query);
+            }
+            if (hash != "") {
+                url.push("#" + hash);
+            }
+            return url.join("");
+        };
+        return that;
+    };
+});;
+
+
+SVK.register("core.io.ijax", function($) {
+    return function(spec) {
+        var conf, trans, uniqueID, timer, destroy, getData, that;
+        conf = $.extend({
+            url: "",
+            form: null,
+            args: {},
+            uniqueID: null,
+            timeout: 30 * 1e3,
+            onComplete: $.noop(),
+            onTimeout: $.noop(),
+            onFail: $.noop(),
+            asynchronous: true,
+            isEncode: true,
+            abaurl: null,
+            responseName: null,
+            varkey: "callback",
+            abakey: "callback"
+        }, spec);
+        that = {};
+        if (conf.url == "") {
+            throw "ijax need url in parameters object";
+        }
+        if (!conf.form) {
+            throw "ijax need form in parameters object";
+        }
+        trans = $.core.io.getIframeTrans();
+        uniqueID = conf.responseName || "STK_ijax_" + $.core.util.getUniqueKey();
+        getData = {};
+        getData[conf["varkey"]] = uniqueID;
+        if (conf.abaurl) {
+            conf.abaurl = $.core.util.URL(conf.abaurl).setParams(getData);
+            getData = {};
+            getData[conf["abakey"]] = conf.abaurl.toString();
+        }
+        conf.url = $.core.util.URL(conf.url, {
+            isEncodeQuery: conf["isEncode"]
+        }).setParams(getData).setParams(conf.args);
+        destroy = function() {
+            window[uniqueID] = null;
+            trans.destroy();
+            trans = null;
+            clearTimeout(timer);
+        };
+        timer = setTimeout(function() {
+            try {
+                conf.onTimeout();
+                conf.onFail();
+            } catch (exp) {} finally {
+                destroy();
+            }
+        }, conf.timeout);
+        window[uniqueID] = function(oResult, query) {
+            try {
+                conf.onComplete(oResult, query);
+            } catch (exp) {} finally {
+                destroy();
+            }
+        };
+        conf.form.action = conf.url.toString();
+        conf.form.target = trans.getId();
+        conf.form.submit();
+        that.abort = destroy;
+        return that;
+    };
+});;
+
+
+SVK.register("core.io.ijaxQueue", function($) {
+    var $ijax = $.core.io.ijax;
+    var insertFormData = function(form, args) {
+        for (var oItem in args) {
+            var oInput = document.createElement("input");
+            oInput.type = "hidden";
+            oInput.name = oItem;
+            oInput.value = args[oItem];
+            form.appendChild(oInput);
+        }
+    };
+    return function(args) {
+        var conf, that, queue, current, lock, onComplete, onFail;
+        conf = $.extend({
+            url: "",
+            timeout: 30 * 1e3,
+            isEncode: true,
+            abaurl: null,
+            responseName: null,
+            onTimeout: $.noop(),
+            varkey: "callback",
+            abakey: "callback",
+            method: "post"
+        }, args);
+        onComplete = function(res, query) {
+            lock = false;
+            args.onComplete(res, conf.form, query);
+            conf.form = null;
+            conf.args = null;
+            setTimeout(nextRequest, 0);
+            $(that.form).remove();
+        };
+        onFail = function(res, query) {
+            lock = false;
+            args.onFail(res, conf.form, query);
+            conf.form = null;
+            conf.args = null;
+            setTimeout(nextRequest, 0);
+            $(that.form).remove();
+        };
+        queue = [];
+        current = null;
+        lock = false;
+        conf.onComplete = onComplete;
+        conf.onFail = onFail;
+        var nextRequest = function() {
+            var curArgs;
+            if (!queue.length) {
+                return;
+            }
+            if (lock === true) {
+                return;
+            }
+            lock = true;
+            curArgs = queue.shift();
+            conf.args = curArgs["args"];
+            conf.form = curArgs["form"];
+            current = $ijax(conf);
+        };
+        var abort = function(params) {
+            while (queue.length) {
+                queue.shift();
+            }
+            lock = false;
+            if (current) {
+                try {
+                    current.abort();
+                } catch (exp) {}
+            }
+            current = null;
+        };
+        that = {};
+        that.form = null;
+        that.request = function(params, form) {
+            if (!form) {
+                form = document.createElement("form");
+                document.body.appendChild(form);
+            }
+            that.form = form;
+            if (!params) {
+                params = {};
+            }
+            if (args["noQueue"]) {
+                abort();
+            }
+            form.method = conf.method;
+            insertFormData(form, params);
+            queue.push({
+                form: form,
+                args: {}
+            });
+            nextRequest();
+        };
+        that.abort = abort;
+        return that;
+    };
+});;
+
+
+
+
+SVK.register("core.io.inter", function($) {
+    return function() {
+        var that, argsList, hookList, liveArgs;
+        that = {};
+        argsList = {};
+        liveArgs = {};
+        hookList = {};
+        that.register = function(name, args) {
+            if (argsList[name] !== undefined) {
+                throw name + " interface has been registered";
+            }
+            argsList[name] = args;
+            hookList[name] = {};
+            liveArgs[name] = {};
+        };
+        that.addLiveParam = function(name, args) {
+            if (name) {
+                liveArgs[name] = $.extend(liveArgs[name], args);
+            } else {
+                for (var a in argsList) {
+                    liveArgs[a] = $.extend(liveArgs[a], args);
+                }
+            }
+        };
+        that.hookComplete = function(name, func) {
+            var key = $.core.util.getUniqueKey();
+            hookList[name][key] = func;
+            return key;
+        };
+        that.removeHook = function(name, key) {
+            if (hookList[name] && hookList[name][key]) {
+                delete hookList[name][key];
+            }
+        };
+        that.getTrans = function(name, spec) {
+            var conf = $.extend(argsList[name], spec);
+            conf.onComplete = function(req, params) {
+                try {
+                    spec.onComplete(req, params);
+                } catch (exp) {}
+                if (req["code"] === "A0001" || req["code"] == "1") {
+                    try {
+                        spec.onSuccess(req, params);
+                    } catch (exp) {}
+                } else {
+                    try {
+                        if (req["code"] === "A0003") {
+                            window.location.href = "//weibo.com/login.php?url=" + encodeURIComponent(location.href);
+                            return;
+                        }
+                        spec.onError(req, params);
+                    } catch (exp) {}
+                }
+                for (var k in hookList[name]) {
+                    try {
+                        hookList[name][k](req, params);
+                    } catch (exp) {}
+                }
+            };
+            var request = {};
+            if (argsList[name]["requestMode"] === "jsonp") {
+                conf.dataType = "jsonp";
+                conf.crossDomain = true;
+                request = $.core.io.ajaxQueue(conf);
+            } else if (argsList[name]["requestMode"] === "ijax") {
+                request = $.core.io.ijaxQueue(conf);
+            } else {
+                request = $.core.io.ajaxQueue(conf);
+            }
+            var cacheRequest = request.request;
+            request.request = function(param) {
+                cacheRequest($.extend(liveArgs[name], param));
+            };
+            return request;
+        };
+        return that;
+    };
+});;
+
+
+SVK.register("common.trans.video", function($) {
+    var t = $.core.io.inter();
+    var g = t.register;
+    var url = window.location.href.replace("test", "v");
+    g("getRelationVideo", {
+        url: "//cre.mix.sina.com.cn/api/v3/get?dedup=32&cre=videopagepc&mod=r&merge=3&statics=1&this_page=1&rfunc=105&offset=0&length=18&pageurl=" + url,
+        method: "get",
+        requestMode: "jsonp"
+    });
+    g("getGuessVideo", {
+        url: "//cre.mix.sina.com.cn/api/v3/get?cateid=sina_all&offset=0&length=18&cre=mppagepc&mod=g&statics=1&merge=3&port=3602",
+        method: "get",
+        requestMode: "jsonp"
+    });
+    return t;
+});;
+
+
+
+
+SVK.register("common.trans.playNum", function($) {
+    var t = $.core.io.inter();
+    var g = t.register;
+    g("playNum", {
+        url: "//count.video.sina.com.cn/getVideoView",
+        method: "get",
+        requestMode: "jsonp",
+        jsonp: "jsonp"
+    });
+    return t;
+});;
+
+
+SVK.register("common.channel.playNum", function($) {
+    var eventList = [ "resetPlayNum" ];
+    return $.listener("common.channel.playNum", eventList);
+});;
+
+
+
+
+SVK.register("comp.epgInfor.playNum", function($) {
+    var $trans = $.common.trans.playNum;
+    var $channel = $.common.channel.playNum;
+    return function(spec) {
+        var conf = $.extend({
+            success: $.noop,
+            fail: $.noop
+        }, spec || {});
+        var that = {};
+        var getPlayNum = function(videoIds) {
+            var videoIds = videoIds.join(",");
+            $trans.getTrans("playNum", {
+                onSuccess: function(result) {
+                    conf.success(result);
+                },
+                onError: function() {
+                    conf.fail();
+                },
+                onFail: function() {
+                    conf.fail();
+                }
+            }).request({
+                video_ids: videoIds
+            });
+        };
+        that.getPlayNum = function(videoIds) {
+            $.common.channel.player.firstView.add(function() {
+                console.log(videoIds,'one');
+                getPlayNum(videoIds);
+
+            });
+           
+        };
+         
+         return that;
+
+    };
+
+});;
+
+
+SVK.register("module.numFormater", function($) {
+    var numFormater = {
+        getZeroPrefixedNum: function(num, digits) {
+            var zeroStr = [];
+            num = typeof num == "undefined" ? "" : num;
+            for (var i = 0; i < digits; ++i) {
+                zeroStr.push(0);
+            }
+            return zeroStr.join("").substr(0, digits - num.toString().length) + num;
+        },
+        getSeparatedNum: function(str, separator) {
+            str = (typeof str == "undefined" ? "" : str) + "";
+            separator = separator || ",";
+            return str.replace(/(\d+)(\.\d+)?/g, function(num, a, b) {
+                return (a.length > 3 ? a.indexOf(separator) < 0 || a.indexOf(separator) > 3 ? arguments.callee(null, a.replace(/(\d+)(\d{3})/, "$1" + separator + "$2")) : a : a) + (b || "");
+            });
+        },
+        showShortNum: function(num) {
+            var numStr = Number(num).toString();
+            var numLength = numStr.length;
+            if (numLength > 8) {
+                numStr = numStr.substring(0, numLength - 7);
+                return numStr / 10 + "亿";
+            } else if (numLength > 4) {
+                numStr = numStr.substring(0, numLength - 3);
+                return numStr / 10 + "万";
+            }
+            return numStr;
+        }
+    };
+    return numFormater;
+});;
+
+
+
+
+SVK.register("comp.playNum", function($) {
+    var $getPlayNum = $.comp.epgInfor.playNum, $channel = $.common.channel.playNum;
+    function getVideoData(box) {
+        var videoNodes = {}, videoIds = [];
+        $.each($("[video-id]", box), function(key, node) {
+            var videoId;
+            if (videoId = $.trim($(node).attr("video-id"))) {
+                videoIds.push(videoId);
+                videoNodes[key + "_" + videoId] = $(node);
+            }
+        })
+        return {
+            videoNodes: videoNodes,
+            videoIds: videoIds
+        };
+    }
+
+    function _render(nodelist, res) {
+        
+        var data = res.data.video_id;
+        $.each(nodelist, function(key, node) {
+            var videoId = key.split("_")[1], _count = $.module.numFormater.getSeparatedNum(data[videoId]);
+            
+            try {
+                $('*[node-type="video.count"]', node).text(_count);
+            } catch (e) {}
+        });
+    }
+    return function(box) {
+        var videoData = getVideoData(box);
+        if (videoData.videoIds.length) {
+            $getPlayNum({
+                success: function(res) {
+                    _render(videoData.videoNodes, res);
+                }
+            }).getPlayNum(videoData.videoIds);
+        }
+    };
+});;
+
+
+
+
+SVK.register("common.extra.imgLoad", function($) {
+    return function(container) {
+        var execFun = function() {
+            $("img[_src]", container).lazyload(function() {
+                $(this).attr("src", $(this).attr("_src")).removeAttr("_src").css({
+                    visibility: "visible",
+                    display: "block"
+                }).on("error", function() {
+                    $(this).css({
+                        visibility: "hidden",
+                        display: "none"
+                    });
+                });
+            });
+        };
+        execFun();
+        $.each([ "DOMMouseScroll", "mousewheel" ], function(i, a) {
+            $(container).on(a, function(e) {
+                if ($("img[_src]", container).length > 0) {
+                    execFun();
+                } else {
+                    $(container).off(a, arguments.callee);
+                }
+            });
+        });
+    };
+});;
+
+
+SVK.register("pl.likeVideoList", function($) {
+    function formatCount(count) {
+        var countStr = count + "", result = [], arr = countStr.split("").reverse();
+        $.each(arr, function(i, v) {
+            if ((i + 1) % 3 == 0 && i < arr.length - 1) {
+                result.push(v);
+                result.push(",");
+            } else {
+                result.push(v);
+            }
+        });
+        return result.reverse().join("");
+    }
+    function getSID() {
+        var sid = $.core.util.cookie.get("sid"), now = new Date;
+        if (!sid) {
+            sid = $SCOPE["video"].vid + "_" + $SCOPE["video"].log_user_id + "_" + Math.floor(Math.random() * 1e4) + "_" + now.getTime();
+            $.core.util.cookie.set("sid", sid);
+        }
+        return sid;
+    }
+    function formatVideoLength(time) {
+        var hour = 60 * 60 * 1e3, minutes = 60 * 1e3, h = Math.floor(time / hour), m = Math.floor(time % hour / minutes), s = Math.floor(time % minutes / 1e3), result = "";
+        result = (h < 10 ? "0" + h : h) + ":" + (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
+        return result;
+    }
+    var fetchData, render, isRelationFirstShow, basicInfo = {
+        logId: 11,
+        lid: 11,
+        vid: $SCOPE["video"].vid || "",
+        app: "video",
+        userid: $SCOPE["video"].log_user_id,
+        sid: getSID(),
+        videoid: $SCOPE["video"].video_id
+    };
+    fetchRelationData = function(box) {
+        var data = [], result = [], video = $SCOPE.video, reg = $.common.trans.video.getTrans("getRelationVideo", {
+            onComplete: function(json) {
+                var length = json && json.length;
+                if (length == 0) {
+                    console.log("fail");
+                }
+                renderRelation(json, box);
+                $.comp.playNum(box);
+            },
+            onTimeout: function(json) {
+                console.log("timeout");
+            },
+            onFail: function() {
+                console.log("fail");
+            },
+            jsonp: "callback",
+            cache: true
+        }), param = {}, demp = [];
+        reg.request(param);
+    };
+    fetchLikeData = function(box) {
+        var data = [], result = [], video = $SCOPE.video, reg = $.common.trans.video.getTrans("getGuessVideo", {
+            onComplete: function(json) {
+                console.log(json);
+                var length = json && json.length;
+                if (length == 0) {
+                    console.log("fail");
+                }
+                renderLike(json, box);
+                $.comp.playNum(box);
+            },
+            onTimeout: function(json) {
+                console.log("timeout");
+            },
+            onFail: function() {
+                console.log("fail");
+            },
+            jsonp: "callback",
+            cache: true
+        }), param = {}, demp = [];
+        reg.request(param);
+    };
+    renderRelation = function(data, box) {
+        var demp = [], videos = [], data = data.data;
+        data && data.length && $.each(data, function(i, v) {
+            v.playtime = formatVideoLength(v.playtime || v.time_length);
+            v.vid = $.trim(v.vid);
+            if (!v.name) v.name = v.title;
+            v.name = v.name.length > 16 ? v.name.substring(0, 16) + "..." : v.name;
+            demp.push(v);
+            if ((i + 1) % 6 == 0) {
+                demp.length && videos.push(demp);
+                demp = [];
+            }
+        });
+        demp.length && videos.push(demp);
+        console.log(videos,'hello');
+        var template = $.easyTemplate($.tpl.relatedvideo, videos);
+        box.html(template.toString());
+        var pagingObj = $.common.switchover.paging(box, {
+            pageCount: $('[role="tabpanel"]', $(box)).length,
+            pageBox: $(".V_pages", $(box)),
+            selector: "*[role=pageTable]",
+            activeClass: "cur",
+            showPageEvt: "click",
+            eventType: "mouseover",
+            template: $("#pageTemplate").val(),
+            onSwitchAfter: function(evt) {
+                var node = this.getPanels().get(evt.index);
+                if (node) {
+                    $.common.extra.imgLoad(node);
+                }
+                var now = new Date, log = {
+                    evt: "exposure",
+                    sid: "123",
+                    ts: now.getTime()
+                }, url, param, qs, lis, vids = [];
+                lis = $(node).find("li");
+                lis.length && $.each(lis, function(i, v) {
+                    var liEl = $(v), vid = liEl.attr("log");
+                    vids.push(vid);
+                });
+                log.info = encodeURIComponent(vids.join(","));
+                log.bt = isRelationFirstShow / 1;
+                param = $.extend(true, log, basicInfo);
+                qs = $.core.json.jsonToQuery(param);
+            }
+        });
+    };
+    renderLike = function(data, box) {
+        var demp = [], videos = [], data = data.data;
+        data && data.length && $.each(data, function(i, v) {
+            if (i == 18) {
+                return false;
+            }
+            v.vid = $.trim(v.vid);
+            v.vids += (i == 0 ? "" : "x") + v.vid + "-" + v.vid;
+            v.title = v.title.length > 16 ? v.title.substring(0, 16) + "..." : v.title;
+            v.playtime = formatVideoLength(v.playtime || v.time_length);
+            demp.push(v);
+            if ((i + 1) % 6 == 0) {
+                demp.length && videos.push(demp);
+                demp = [];
+            }
+        });
+        demp.length && videos.push(demp);
+        var template = $.easyTemplate($.tpl.likevideo, videos);
+        box.html(template.toString());
+        var pagingObj = $.common.switchover.paging(box, {
+            pageCount: $('[role="tabpanel"]', $(box)).length,
+            pageBox: $(".V_pages", $(box)),
+            selector: "*[role=pageTable]",
+            activeClass: "cur",
+            showPageEvt: "click",
+            eventType: "mouseover",
+            template: $("#pageTemplate").val(),
+            onSwitchAfter: function(evt) {
+                var node = this.getPanels().get(evt.index);
+                if (node) {
+                    $.common.extra.imgLoad(node);
+                }
+                var now = new Date, log = {
+                    evt: "exposure",
+                    sid: "123",
+                    ts: now.getTime()
+                }, url, param, qs, lis, vids = [];
+                lis = $(node).find("li");
+                lis.length && $.each(lis, function(i, v) {
+                    var liEl = $(v), vid = liEl.attr("log");
+                    vids.push(vid);
+                });
+                log.info = encodeURIComponent(vids.join(","));
+                log.bt = !isRelationFirstShow / 1;
+                param = $.extend(true, log, basicInfo);
+                qs = $.core.json.jsonToQuery(param);
+            }
+        });
+    };
+    return function(box, relationFirst, bt) {
+        isRelationFirstShow = relationFirst;
+        if (relationFirst != bt) {
+            fetchLikeData(box);
+        } else {
+            fetchRelationData(box);
+        }
+    };
+});;
+
+
+SVK.register("pl.relatedList", function($) {
+    var relationFirst = true, now = new Date, bindEvent = function(box) {
+        var tabs = $("[node-type='tab']", $(box));
+        tabs.on("click", function() {
+            var node = $(this), nodeTarget = node.attr("node-target"), targetPanel = $("#" + nodeTarget);
+            node.siblings("h3").removeClass("cur");
+            node.addClass("cur");
+            targetPanel.siblings(".relatedVido").hide();
+            targetPanel.show();
+            var children = targetPanel.children();
+            if (children.length == 0) {
+                $.pl.likeVideoList(targetPanel, relationFirst, node.attr("bt"));
+            }
+        });
+        box.delegate("a", "click", function(e) {
+            var href = $(this).attr("node-url") || $(this).attr("href"), log = $(this).attr("log"), type = $(this).parents("li").attr("data-type"), bt = relationFirst / 1;
+            if (type == "like") {
+                bt = !relationFirst / 1;
+            }
+            sendClickLog(log, bt);
+            e.preventDefault();
+            setTimeout(function() {
+                window.location.href = href;
+            }, 200);
+        });
+    }, randomShow = function() {
+        var likeNode = $("[node-target='likeVideoPanel']"), relationNode = $("[node-target='relatedVideoPanel']");
+        relationFirst = true;
+        likeNode.attr("bt", 0);
+        relationNode.attr("bt", 1);
+        relationNode.click();
+    }, getSID = function() {
+        var sid = $.core.util.cookie.get("sid"), now = new Date;
+        if (!sid) {
+            sid = $SCOPE["video"].vid + "_" + $SCOPE["video"].log_user_id + "_" + Math.floor(Math.random() * 1e4) + "_" + now.getTime();
+            $.core.util.cookie.set("sid", sid);
+        }
+        return sid;
+    }, basicInfo = {
+        lid: 11,
+        vid: $SCOPE["video"].vid || "",
+        app: "video",
+        userid: $SCOPE["video"].log_user_id,
+        sid: getSID(),
+        videoid: $SCOPE["video"].video_id
+    }, sendClickLog = function(log, bt) {
+        var now = new Date, param, qs;
+        var clickInfo = {
+            evt: "click",
+            ts: now.getTime(),
+            sid: "123",
+            info: encodeURIComponent(log),
+            bt: bt
+        };
+        param = $.extend(true, clickInfo, basicInfo);
+        qs = $.core.json.jsonToQuery(param);
+    };
+    return {
+        init: function(box) {
+            bindEvent(box);
+            randomShow();
+        }
+    };
+});;
+
+
+
+
+SVK.register("pl.relateVideoListPage", function($) {
+    var $relatedList = $.pl.relatedList, $tabs = $.common.switchover.tabs;
+    return {
+        init: function(box) {
+            var conTabls = $tabs(box, {
+                selector: '*[role="pageTable"]',
+                panels: '*[role="tabpanel"]',
+                activeClass: "cur",
+                onSwitchAfter: function(evt) {
+                    var panel = this.getPanels().get(evt.index);
+                    var initValue = $(panel).attr("init");
+                    if (initValue) {
+                        $.pl[initValue].init(panel);
+                        $(panel).attr("init", "");
+                    }
+                }
+            });
+            var listObj = $('*[list="true"]', box);
+            if (listObj.length) {
+                var pageBox = $relatedList.init(listObj);
+                var curLi = $("li.cur", listObj);
+                if (curLi.length) {
+                    var liList = $("li", listObj);
+                    var index = liList.index(curLi);
+                    var perPage = $("ul", listObj).first().children().length;
+                    if (index >= 0) {
+                        var curPage = (index + perPage) / perPage;
+                        pageBox.showPage(Math.floor(curPage));
+                    }
+                }
+                var usl = $("ul", listObj);
+                usl.css("height", usl.height() + "px");
+            }
+        }
+    };
+});;
+function getNum(){
+            var videoId = $('#pl_video_info [task="playNum"]').attr("video-id");
+            if(videoId!=""){
+                 $.ajax({
+                url: "//hpi.video.sina.com.cn/public/counter?appname=cms&applt=web&appver=1.2&type=video",
+                method: "get",
+                dataType: "jsonp",
+                jsonp: "jsonp",
+                data:{
+                    vpid:videoId
+                },
+                success:function(res){
+                    console.log(res.data[videoId]);
+                    if(res.code == 1){
+                        var d = getSeparatedNum(res.data[videoId]);
+                        $('#pl_video_info [task="playNum"]').html(d);
+                    }
+                }
+              })
+            }
+           
+    }
+    function getSeparatedNum(str, separator) {
+        str = (typeof(str) == 'undefined' ? '' : str) + '';
+        separator = separator || ',';
+
+        return str.replace(/(\d+)(\.\d+)?/g, function(num, a, b) {
+          return (a.length > 3 ? (a.indexOf(separator) < 0 || a.indexOf(separator) > 3 ? arguments.callee(null, a.replace(/(\d+)(\d{3})/, '$1' + separator + '$2')) : a) : a) + (b || '');
+        });
+      }
+        getNum();   

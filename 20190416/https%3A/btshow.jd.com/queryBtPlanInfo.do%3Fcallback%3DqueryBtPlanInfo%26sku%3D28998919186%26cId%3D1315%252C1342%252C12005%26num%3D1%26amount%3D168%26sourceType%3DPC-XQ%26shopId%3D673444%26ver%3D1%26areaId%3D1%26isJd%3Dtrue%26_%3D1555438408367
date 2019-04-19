@@ -1,0 +1,1 @@
+queryBtPlanInfo({"creditStatus":1,"isDiscountAll":false,"isShopAva":true,"isSkuAva":true,"isItemAva":true,"ver":"1","result":{"isSuccess":false,"code":"10000","info":"ref param is error"}})

@@ -1,0 +1,205 @@
+(function(window, console, undefined) {
+
+    if (!console || !$.isFunction(console.log)) {
+        console = {
+            log:   function(){},
+            error: function(){}
+        };
+    }
+
+    var Resizer = {
+        _sid: undefined,
+        _server: undefined,
+        _photos: undefined,
+        _photo: undefined,
+        _selection: undefined,
+        _callback: undefined,
+
+        init: function(sid, server) {
+            this._sid = sid;
+            this._server = server;
+            this.reset();
+        },
+
+        show: function(avatar) {
+            Resizer._avatar = avatar;
+            if (Resizer._photos.length > 1) {
+                Popup.show('Выберите фотографию для аватарки', $('#resizer-select'), {
+                    onOpen: Resizer._showSelect
+                });
+            }
+            else {
+                Resizer._photo = Resizer._photos[0];
+                Resizer.selectPhoto();
+            }
+        },
+
+        addCallback: function(callback) {
+            Resizer._callback = callback;
+        },
+
+        /*****************************
+         *
+         *  Photo selection
+         *
+         *****************************/
+
+        reset: function() {
+            Resizer._photo = undefined;
+            Resizer._photos = [];
+            Resizer._selection = {
+                x: 0,
+                y: 0,
+                width: 120
+            };
+        },
+
+        addFile: function(id, thumb, album, server) {
+            Resizer._photos.push({
+                id: id,
+                thumb: thumb,
+                album: album,
+                server: server
+            });
+        },
+
+        markPhoto: function(elem, i) {
+            Resizer._photo = Resizer._photos[i];
+            Popup.$('a.photo').removeClass('selected');
+            $(elem).toggleClass('selected');
+        },
+
+        _showSelect: function() {
+            var list = Popup.$('.resizer .select-photo');
+            for (var i = 0; i < Resizer._photos.length; i++) {
+                var url = Resizer._photos[i].thumb;
+                $('<a href="javascript:void(0)" class="photo" onclick="Resizer.markPhoto(this, '
+                    + i + '); return false" style="background-image: url(' + url + ');"/>')
+                    .appendTo(list);
+            }
+            list.find('.photo:first').click();
+        },
+
+        /*****************************
+         *
+         *  Photo resizer
+         *
+         *****************************/
+
+        showResize: function(id, album, avatar, server) {
+            Resizer.reset();
+            Resizer.addFile(id, null, album, server);
+            Resizer.show(avatar);
+        },
+
+        selectPhoto: function() {
+            var params = {
+                sid: Resizer._sid,
+                id: Resizer._photo.id
+            };
+            Resizer._request(Resizer._photo.server, '/avatar/create', params, Resizer._showResize);
+        },
+
+        _showResize: function(result) {
+            if (result.error) {
+                Popup.alert('Ошибка', result.error);
+            }
+            else if (result.url) {
+                // webkit absolute positioning while scrollTop fix
+                if ($.browser.webkit) {
+                    $(window).scrollTop(0);
+                }
+
+                Popup.show('Редактирование миниатюр', $('#resizer'), {
+                    onOpen: function() {
+                        Resizer._resizerCreated(result.url);
+                    },
+                    onClose: function() {
+                        $('#image-resizer').imgAreaSelect({disable: true, hide: true});
+                    }
+                });
+            }
+            else {
+                Profile.alertResponse(result, false);
+            }
+        },
+
+        resize: function() {
+            var params = $.extend(Resizer._selection, {
+                sid:    Resizer._sid,
+                id:     Resizer._photo.id,
+                album:  Resizer._photo.album,
+                avatar: Resizer._avatar ? 'true' : ''
+            });
+
+            Resizer._request(Resizer._photo.server, '/avatar/resize', params, function(result) {
+                if (result.error)
+                    alert(result.error);
+                else if ($.isFunction(Resizer._callback))
+                    Resizer._callback(Resizer._photo.id, Resizer._photo.album);
+                else
+                    document.location.href = '/profile';
+            });
+        },
+
+        _resizerCreated: function(url) {
+            $('#resize-medium-icon').attr('src', url);
+
+            var canvas = $('#image-resizer').attr('src', url);
+            Popup.$('.avatar-full').removeClass('hidden');
+
+            setTimeout(function() {
+                canvas.imgAreaSelect({
+                    show: true,
+                    handles: true,
+                    aspectRatio: '1:1',
+                    x1: 0,
+                    y1: 0,
+                    x2: 120,
+                    y2: 120,
+                    minHeight: 120,
+                    minWidth: 120,
+                    onInit: Resizer._selectionChange,
+                    onSelectChange: Resizer._selectionChange
+                });
+            }, 100);
+        },
+
+        _selectionChange: function(img, selection) {
+            if (!selection.width || !selection.height)
+                return;
+
+            if (selection.width < 120)
+                return;
+
+            Resizer._updatePreview('#resize-medium-icon', 120, selection);
+
+            Resizer._selection = {
+                x: selection.x1,
+                y: selection.y1,
+                width:  selection.width
+            };
+        },
+
+        _updatePreview: function(id, width, selection) {
+            var scaleX = width / selection.width;
+            var scaleY = width / selection.height;
+
+            $(id).css({
+                width: Math.round(scaleX * $('#image-resizer').width()),
+                height: Math.round(scaleY * $('#image-resizer').height()),
+                marginLeft: -Math.round(scaleX * selection.x1),
+                marginTop: -Math.round(scaleY * selection.y1)
+            });
+        },
+
+        _request: function(server, path, params, callback) {
+            if (!server)
+                server = Resizer._server;
+            $.getJSON(server + path + '?callback=?', params, callback);
+        }
+    };
+
+    window.Resizer = Resizer;
+
+})(window, window.console);

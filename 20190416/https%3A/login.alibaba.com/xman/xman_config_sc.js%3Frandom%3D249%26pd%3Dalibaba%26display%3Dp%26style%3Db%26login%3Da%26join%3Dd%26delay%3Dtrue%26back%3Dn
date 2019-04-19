@@ -1,0 +1,48 @@
+
+
+
+
+
+AE.define('AE.common.xman.xmanConfig',function(){
+  var xmanConfig = {
+    isNew:'$isNew',
+    mode:'$mode',
+    xloginPassport: "",
+    passportDomain: "",
+    getLoginTypeName : "",
+    getJoinTypeName : "",
+    intlHatchServer : "https://ushatch.alibaba.com",
+    needUMID : eval(""),
+    umidToken : "",
+    umidTimestamp: "",
+    umidServer: "${umidServer}",
+    getActionJsSslUrl : "",
+    uaOptToken : "$token",
+    tvsProxyDomainName : '',
+    currentXmanDomain : '$currentXmanDomain.getValue()',
+    imageSslUrl : '',
+    getForgotPasswordLink : '',
+    i18nLadingPlsWait : 'Loading, Please wait....',
+    // vmConfigs
+            xlogin_js_url : 'https://login.alibaba.com/xman/xlogin.js?pd=$tvsProxyDomain.name(%29&pageFrom=&u_token=',
+    xlogin_group_name : ['xloginPassportId','xloginPasswordId','xloginCheckTokenId'],
+    xbind_group_name : ['xbindPassport','xbindPasswordId','xbindCheckToken'],
+    xjoin_group_name : [''],
+    xjoin_js_url : 'https://login.alibaba.com/xman/xjoin.js?u_token=&pd=$tvsProxyDomain.name()&pageFrom=',
+    xjoinbind_js_url : 'https://login.alibaba.com/xman/xbind.js?event_method=xjoinbind&xbind_partner_name='+window._xman_partner_name+'&xbind_partner_userid='+window._xman_partner_userid+'&pageFrom=&bindingSource=',
+    xbind_js_url : 'https://login.alibaba.com/xman/xbind.js?event_method=xbind&xbind_partner_name='+window._xman_partner_name+'&xbind_partner_userid='+window._xman_partner_userid+'&bindingSource=',
+    currentServer : "https://login.alibaba.com",
+    countryNameByIP : "",
+    countryCodeByIP : "",
+	  localIp : "",
+    authorizeUrls : [],
+    isShowFacebook: '',
+    currentLocale: '',
+    enableEdm:,
+    edmCountryList : []  };
+
+  xmanConfig.xuidUrls = [];
+  
+  // 抛回模块化配置
+  this.exports = xmanConfig;
+});

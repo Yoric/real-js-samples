@@ -1,0 +1,1 @@
+topBannerCallback({"code":500,"message":"no data "});

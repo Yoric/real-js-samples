@@ -1,0 +1,1 @@
+console.log("// error: not match referer and domain param. code:102")

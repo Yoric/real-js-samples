@@ -1,0 +1,23 @@
+try {(function (){
+  var scripts = "<script>if (typeof reemo_aud_ids === 'undefined') var reemo_aud_ids = ['20f6eeab6039c845']; else reemo_aud_ids.push('20f6eeab6039c845');<\/script><script src='https:\/\/js.dsp.reemo-ad.jp\/aud-m.js'><\/script>\r\n<script>if (typeof reemo_aud_ids === 'undefined') var reemo_aud_ids = ['e7734e6d10c9cd58']; else reemo_aud_ids.push('e7734e6d10c9cd58');<\/script><script src='https:\/\/js.dsp.reemo-ad.jp\/aud-m.js'><\/script>\r\n";
+  var container = document.createElement("div");
+  document.body.appendChild(container);
+  container.innerHTML = scripts;
+  var cn = container.childNodes;
+  for (var j = 0; j < cn.length; j++) {
+    var child = cn[j];
+      if ((child.nodeName && child.nodeName.toLowerCase() === "script") &&
+        (!child.type || child.type.toLowerCase() === 'text/javascript')) {
+      var sc = document.createElement('script');
+      var attrs = child.attributes;
+      for (var i = 0; i < attrs.length; i++) {
+        sc.setAttribute(attrs[i].name, attrs[i].value);
+      }
+      if (!child.src) {
+        sc.type = 'text/javascript';
+        sc.textContent = child.textContent;
+      }
+      container.replaceChild(sc, child);
+    }
+  }
+})();}catch(e){}

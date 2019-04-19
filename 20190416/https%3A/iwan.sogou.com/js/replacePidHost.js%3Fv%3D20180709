@@ -1,0 +1,57 @@
+$(document).ready(function(){
+    var getParameter = function (name) {
+        var querystring  = window.location.search;
+        if(querystring == "") return "";
+        querystring = window.location.search.substring(1);
+        var obj = {};
+        if (querystring.indexOf(name) < 0) return "";
+        try {
+            var arr = querystring.split("&");
+            for(var i=0;i<arr.length;i++){
+                var paramap = arr[i].split("=");
+                obj[paramap[0]] = paramap[1];
+            }
+            return obj[name];
+        } catch(e){
+            return "";   
+        }       
+    };
+    var replaceAtrr = function(url,name,value){
+        var oldvalue;
+        if(url.match("(\\?|&)"+name+"=([^&]*)(&|$)")!= null){
+            oldvalue = url.match("(\\?|&)"+name+"=([^&]*)(&|$)")[2];
+            url = (value == "") ? url : url.replace(oldvalue,value);
+        }else if(url.indexOf("?") < 0){
+            url += "?"+name+"="+value;
+        }else{
+            url += "&"+name+"="+value;
+	}
+        return url;
+    };
+    var processHref = function (url) {
+        if(url.indexOf("http://")== 0 || url.indexOf("https://")==0){
+            return url;
+        }
+        url = (getParameter("pid") == "")? url :replaceAtrr(url,"pid",getParameter("pid"));
+        url = (getParameter("host") == "")? url :replaceAtrr(url,"host",getParameter("host"));
+        return url;
+        
+    }
+    var start =function () {
+        $("a").each(function(){
+            var href = $(this).attr("href");
+            $(this).attr("href" , processHref(href));
+        });
+	if($("#searchForm").length >0){
+		var action_href = $("#searchForm").attr("action")
+		$("#searchForm").attr("action",processHref(action_href));
+	}
+	/*
+	if($("#frame_content").length >0){
+		var src = $("#frame_content").attr("src")
+		$("#frame_content").attr("src",processHref(src));
+	}
+      	*/
+    };
+    start()
+});

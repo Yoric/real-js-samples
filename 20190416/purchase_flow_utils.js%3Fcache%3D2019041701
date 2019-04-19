@@ -1,0 +1,175 @@
+/* Purchase Flow Utils
+-------------------------
+ All platforms
+ Functions in this file are used by the following purchase flows:
+ - Fan Club
+ - Custom Video
+ - Tipping
+ - Video Purchase
+
+ ** Changes in this file may affect all the above mentioned purchase flows
+*/
+
+var PurchaseFlow_Utils = function() {
+    "use strict";
+    var Self = this;
+
+
+    // Returns the name of the currently opened modal
+    Self.getCurrentOpenedModal = function (parentModal) {
+        if (parentModal.querySelector('.active_modal')) {
+            return parentModal.querySelector('.active_modal').getAttribute('data-modal');
+        }
+        return '';
+    };
+
+
+    // Opens the desired modal
+    // Basically switches 'modals' without closing/opening the MG_Modal
+    Self.openSelectedModal = function (className, parentModal) {
+        if (parentModal.querySelector('.active_modal')) {
+            MG_Utils.removeClass(parentModal.querySelector('.active_modal'), 'active_modal');
+        }
+        MG_Utils.addClass(parentModal.querySelector(className), 'active_modal');
+    };
+
+    /* Adds listeners to handle closing the modal
+       Closing through the X/Close Button or clicking outside the modal
+       ----------------------------------------------------------------
+       Behaviours (when user tries to exit flow):
+       ---------
+       - leave_confirmation:
+           - Opens the Leave Confirmation Modal
+       - Default:  Just closes the modal
+       - reload_on_close :
+           - reloads the page after closing the modal
+       - redirect_on_close :
+           - redirects to given url after closing the modal
+    */
+    Self.addModalCloseListeners = function (parentModal, params, purchaseFlowModal, closeModalCallback) {
+        closeModalCallback = typeof closeModalCallback !== 'undefined' ? closeModalCallback : function () {};
+
+        var closeModalLogic = function (closeType) {
+
+            // Checks if Leave Confirmation Modal needs to be opened
+            if (MG_Utils.hasClass(parentModal, 'leave_confirmation')) {
+
+                var leaveModalCloseButton = (Self.getCurrentOpenedModal(parentModal) == 'leave_confirmation_modal') && (closeType === 'close_button');
+
+                // Checks if the currently opened modal is the Leave Confirmation Modal
+                // If it is not, then the Leave Confirmation Modal will be opened
+                if (Self.getCurrentOpenedModal(parentModal) != 'leave_confirmation_modal') {
+
+                    parentModal.querySelector('.leave_confirmation_modal .leave_confirmation_buttons').setAttribute('data-previousModal', Self.getCurrentOpenedModal(parentModal));
+                    Self.openSelectedModal('.leave_confirmation_modal', parentModal);
+
+                } else if (leaveModalCloseButton) {
+                    // If user tries to click on X Button of the Leave Confirmation Modal
+                    // then the previous modal will be opened
+                    // (Modal will not close, clicking X will bring user back to previous modal)
+
+                    var modalSelectorClass = parentModal.querySelector('.leave_confirmation_modal .leave_confirmation_buttons').getAttribute('data-previousModal');
+                    Self.openSelectedModal('.' + modalSelectorClass, parentModal);
+                }
+            } else {
+                purchaseFlowModal.closeModal(closeModalCallback);
+
+                // Reloads the page without cache (dismissUrl is special case for premium users)
+                if( MG_Utils.hasClass(parentModal, 'reload_on_close')) {
+                    if (params.dismissUrl) {
+                        window.location.href = params.dismissUrl;
+                    } else {
+                        window.location.reload(true);
+                    }
+
+                // Redirects to given url
+                } else if (MG_Utils.hasClass(parentModal, 'redirect_on_close') && params.redirectWithoutParamsUrl) {
+                    window.location.href = params.redirectWithoutParamsUrl;
+                }
+            }
+        };
+
+        // Listener for when user tries to exist modal by clicking out of the modal
+        var documentCloseHandler = function(e) {
+            if ((e.target && e.target.id || e.srcElement && e.srcElement.id) === 'modalWrapMTubes') {
+                closeModalLogic('outer_close');
+            }
+        };
+
+        // Listener for the X/Close Button (targets class 'js_close_modal')
+        MG_Utils.addEventHandler(document.querySelector('#modalWrapMTubes'), 'click', documentCloseHandler);
+        [].forEach.call(parentModal.querySelectorAll('.js_close_modal'), function (closeButton) {
+            MG_Utils.addEventHandler(closeButton, 'click', function() {
+                closeModalLogic('close_button');
+            });
+        });
+    };
+
+
+    // Adds listeners for the Leave Confirmation Modal
+    Self.addLeaveModalListeners = function (parentModal, params, purchaseFlowModal, closeModalCallback) {
+        closeModalCallback = typeof closeModalCallback !== 'undefined' ? closeModalCallback : function () {};
+
+        // Return to previously opened modal
+        MG_Utils.addEventHandler(parentModal.querySelector('.js_cancel_leave_modal'), 'click', function (e) {
+            var modalSelectorClass = e.target.parentElement.getAttribute('data-previousModal');
+            Self.openSelectedModal('.' + modalSelectorClass, parentModal);
+        });
+
+        // Closes MG Modal
+        MG_Utils.addEventHandler(parentModal.querySelector('.js_confirm_leave_modal'), 'click', function (e) {
+            purchaseFlowModal.closeModal(closeModalCallback);
+
+            // Checks if page needs to be reloaded
+            if (MG_Utils.hasClass(e.target, 'reload_on_close')) {
+
+                // dismissUrl is a special case for premium users
+                // if they log in through the flow on the Free Site, they need to be redirected to the Premium site
+                // dismissUrl comes from BE
+                if (params.dismissUrl) {
+                    window.location.href = params.dismissUrl;
+                } else {
+                    window.location.reload(true);
+                }
+            }
+        });
+    };
+
+    // Allows ?customvideo=1 or ?becomeafan=1 or #tip to work even if age modal is triggered
+    // Purchase flow will trigger after the age modal
+    Self.ageModal_triggerPurchaseFlow = function() {
+
+        // Fan Club
+        if (typeof fanclubPurchaseFlowParams !== "undefined" && fanclubPurchaseFlowParams.triggerPurchaseFlow && fanclubPurchaseFlowParams.modelId) {
+            fanclubPurchaseFlow.triggerPurchaseModal(fanclubPurchaseFlowParams.modelId);
+        }
+
+        // Custom Video
+        if (typeof customVideoPurchaseFlowParams !== "undefined" && customVideoPurchaseFlowParams.triggerCustomVideo && customVideoPurchaseFlowParams.modelId) {
+            customVideoPurchaseFlow.triggerPurchaseFlow(customVideoPurchaseFlowParams.modelId, true);
+        }
+
+        // Tip
+        if (typeof Tipping_PurchaseFlow_Params !== "undefined" && Tipping_PurchaseFlow_Params.isModelPage && window.location.hash === '#tip' && Tipping_PurchaseFlow_Params.modelUsername) {
+            tippingPurchaseFlow.triggerPurchaseFlow(Tipping_PurchaseFlow_Params.modelUsername);
+        }
+    };
+
+    // Check if age modal is supposed to show
+    // There 3 age modals: the normal (for France, etc.), VK Oauth (for Russia), another for Utah
+    Self.noAgeModal = function (params) {
+        var ageModal = document.getElementById('js-ageDisclaimerModal') && !getCookieAdvanced('accessAgeDisclaimerPH');
+        var vkAgeModal = params.vkOauth_ageModal;  // Age modal for Russia
+        var utahAgeModal = params.utah_ageModal && !getCookieAdvanced('accessPH');  // Age modal for Utah
+
+        return !ageModal && !vkAgeModal && !utahAgeModal;
+    }
+
+};
+
+try{
+    var purchaseFlow_Utils = new PurchaseFlow_Utils();
+}catch(e){
+    console.log("ERROR === Purchase Flow Utils ===");
+    console.log(e);
+}

@@ -1,0 +1,226 @@
+(function($, w){
+    var $window = $(window);
+    
+    function _commentsLazy(){ //商品实时评论数
+        /**
+         * 评论数据支持的字段包括以下cf包含的所有字段
+         * https://cf.jd.com/pages/viewpage.action?pageId=73841610
+         * 例如需要展示商品好评率则在节点上增加comments="GoodRate"即可
+         */
+        var _dom_class = 'J_skuComments', //需要展示评论相关的节点
+            _done_class = 'J_Completed', // 已经展示实时评论的class
+            _key_attr = 'comments', //需要展示评论字段的节点属性，默认好评率GoodRate
+            _sku_attr = 'data-skuid', //展示的商品SKU
+            _maxCount = 50, // 最大支持100个
+            _default_selector = '.d-goods-rate > .d-percentage', // 支持系统默认模板的选择器
+            selector = 'body .' + _dom_class + ', body ' + _default_selector,
+            $nodes = _getNodes(selector, '.' + _done_class);
+        
+        if($nodes.length > 0){
+            _getData();
+        }
+        function _getData(){
+            var len = Math.ceil($nodes.length / _maxCount);
+            //避免请求的sku数过多，采用分批请求的方式
+            for(var i = 0; i < len; i++ ){
+                var _skuIds = [],
+                $nodeFragment = $nodes.slice(i * _maxCount, Math.min($nodes.length, (i + 1) * _maxCount));
+                
+                for(var j = 0, jj = $nodeFragment.length; j < jj; j++ ){
+                    var $node = $($nodeFragment[j]).addClass(_done_class);
+                    var _skuId = $node.closest('[' + _sku_attr + ']').attr(_sku_attr);
+                    var $mode = $node.closest('[instanceid][modeid]');
+                    var _isBi = $mode.attr('isbi') === 'true'; //如果是BI模块的就不再发前端请求
+                    if(!_isBi && _skuId ){
+                        _skuIds.push(_skuId);
+                    }
+                }
+
+                if(_skuIds.length > 0){
+                    $.ajax({
+                        url: INTERFACE.comment.commentNum + '?referenceIds=' + _skuIds.join(','),
+                        dataType: 'jsonp',
+                        success: function(data){
+                            if(data && data.CommentsCount && data.CommentsCount.length > 0){
+                                _showSkuComment(data.CommentsCount);
+                            }
+                        },
+                        error: function(e){
+                            if(e && e.statusText === 'timeout'){
+                                for(var i = 0, ii = _skuIds.length; i < ii; i++){
+                                    var $node = $('[data-skuid=' + _skuIds[i] + ']');
+                                    if($node && $node.length > 0){
+                                        if(!$node.hasClass(_dom_class)){
+                                            $node = $node.find(_default_selector);
+                                        }
+                                        if($node.length > 0){
+                                            $node.removeClass(_done_class);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    })
+                }
+            }
+        }
+
+        function _showSkuComment(skuComment){
+            for(var k = 0, kk = skuComment.length; k < kk; k++){
+                var data = skuComment[k];
+                var $node = $('[data-skuid=' + data.ProductId + ']');
+                if($node && $node.length > 0){
+                    if(!$node.hasClass(_dom_class)){
+                        $node = $node.find(_default_selector);
+                    }
+                    if($node.length > 0){
+                        var _key = $node.addClass(_done_class).attr(_key_attr) || 'GoodRate';
+                        //默认展示商品好评率展示格式是 100% 类型
+                        if(_key === 'GoodRate'){
+                            var goodRate = data['GoodRate'] || 1;
+                            goodRate = Math.ceil(goodRate * 10000) / 100;
+                            $node.html(goodRate + '%');
+                        }else{// 其余字段直接展示
+                            $node.html(data[_key]);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    function _payBillInfo(){
+        /**
+         * 白条分期内容展示通过showtype添加你需要的模板，模板格式：
+         * showtype="¥{{payBillInfo.laterPay}}起×{{payBillInfo.plan}}期"
+         * 特别注意是数据都是在payBillInfo对象里面，千万不能和模板循环的数据混淆
+         * 支持的字段 https://cf.jd.com/pages/viewpage.action?pageId=156818421
+         */
+        var _dom_class = 'J_payBillInfo', //需要展示白条相关的节点
+            _done_class = 'J_Completed', // 已经展示白条的class
+            _show_attr = 'showtype', //需要展示内容的模板，模板格式:showtype="¥{{payBillInfo.laterPay}}起×{{payBillInfo.plan}}期"
+            _sku_attr = 'data-skuid', //展示的商品SKU
+            _maxCount = 50, // 最大支持100个
+            _default_selector = '.J-installment > span:last-child', // 支持系统默认模板的选择器
+            selector = 'body .' + _dom_class + ', body ' + _default_selector,
+            $nodes = _getNodes(selector, '.' + _done_class);
+        
+        if($nodes.length > 0){
+            _getData();
+        }
+        function _getData(){
+            var len = Math.ceil($nodes.length / _maxCount);
+            //避免请求的sku数过多，采用分批请求的方式
+            for(var i = 0; i < len; i++ ){
+                var _skuIds = [],
+                $nodeFragment = $nodes.slice(i * _maxCount, Math.min($nodes.length, (i + 1) * _maxCount));
+                
+                for(var j = 0, jj = $nodeFragment.length; j < jj; j++ ){
+                    var $node = $($nodeFragment[j]).addClass(_done_class);
+                    var _skuId = $node.closest('[' + _sku_attr + ']').attr(_sku_attr);
+                    var $mode = $node.closest('[instanceid][modeid]');
+                    var _isBi = $mode.attr('isbi') === 'true'; //如果是BI模块的就不再发前端请求
+                    if(!_isBi && _skuId){
+                        _skuIds.push(_skuId);
+                    }
+                }
+
+                if(_skuIds.length > 0){
+                    $.ajax({
+                        url: INTERFACE.zhongtai.service,
+                        dataType: 'jsonp',
+                        data: {
+                            functionId: 'skuExt',
+                            skuIds: _skuIds.join(','),
+                            platformId: 1,
+                            optionalFieldList: 'showInstallment'
+                        },
+                        success: function(data){
+                            if(data && data.data && data.data.length > 0){
+                                _showPayBillInfo(data.data);
+                            }
+                        },
+                        error: function(e){
+                            if(e && e.statusText === 'timeout'){
+                                for(var i = 0, ii = _skuIds.length; i < ii; i++){
+                                    var $node = $('[data-skuid=' + _skuIds[i] + ']');
+                                    if($node && $node.length > 0){
+                                        if(!$node.hasClass(_dom_class)){
+                                            $node = $node.find(_default_selector);
+                                        }
+                                        if($node.length > 0){
+                                            $node.removeClass(_done_class);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    })
+                }
+            }
+        }
+        function _showPayBillInfo(payBillInfo){
+            for(var k = 0, kk = payBillInfo.length; k < kk; k++){
+                var data = payBillInfo[k];
+                var $node = $('[data-skuid=' + data.goodsId + ']');
+                if($node && $node.length > 0){
+                    if(!$node.hasClass(_dom_class)){
+                        $node = $node.find(_default_selector);
+                    }
+                    if($node.length > 0){
+                        var _temp = $node.addClass(_done_class).attr(_show_attr);
+                        if(!_temp) _temp = "¥{{payBillInfo.laterPay}}起×{{payBillInfo.plan}}期";
+                        if(data.payBillInfo){
+                            var _str = '¥'+ data.payBillInfo.laterPay +'起×' + data.payBillInfo.plan + '期'
+                            if(template && template.render){
+                                _str = template.render(_temp, data);
+                            }
+                            $node.html(_str);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    /**
+     * 获取当前屏满足条件的节点
+     * @param {selector} __selector 满足条件的选择器
+     * @param {selector} __not 需要过滤掉的选择器
+     */
+    function _getNodes(__selector, __not){
+        var __scroll = $window.scrollTop(),
+        __winHeitht = $window.height(),
+        __min = __scroll ? __scroll - __winHeitht * 0.5 : 0, // 非首屏回退0.5屏
+        __top = __scroll ? __scroll + __winHeitht * 1.5 : __winHeitht, //非首屏滚动加载1.5屏
+        $nodes = $(__selector).not(__not).filter(function(){
+            var __thisTop = $(this).offset().top,
+                __thisBottom = __thisTop + $(this).height();
+            return (__thisTop <= __top &&  __thisTop >= __min) || (__thisBottom <= __top &&  __thisBottom >= __min);
+        });
+        return $nodes;
+    }
+    
+    function _runLazy(){
+        _commentsLazy();
+        _payBillInfo();
+    }
+    
+    function _start(){
+        _runLazy();
+        var timer = null, t_start;
+        $(window).bind('scroll resize', function(){
+            var t_curr = +new Date();
+            clearTimeout(timer);
+            if(!t_start){
+                t_start = t_curr;
+            }if(t_curr - t_start >= 100){//没100MS必须执行一次
+                _runLazy();
+                t_start = t_curr;
+            }else{//50MS内都不执行
+                timer = setTimeout(_runLazy, 50);
+            }
+        })
+    }
+    $(function(){
+        _start();
+    });
+})(jQuery, window);

@@ -1,0 +1,92 @@
+
+var GAME_GIFT = (function(){
+	var pid= "", pidparam = "";
+    if((pid=window.location.search.substr(1).match("(^|&)pid=([^&]*)(&|$)")) != null){
+        pidparam = pid[2];
+    }
+    var fpid = ImageUtil.getPidorHost("pid");
+    var host = ImageUtil.getPidorHost("host");
+    if(f == 'null' || f == '' || f == undefined){
+   	  f = '0';
+    }
+    var SERVER='http://game.galaxy.brand.sogou.com/giftpackage?pid='+fpid+'&fpid='+fpid+'&host='+host+'&f='+f+'&pos=20011';
+    var TPL={
+        "wrap":[
+
+                '<h3 class="game_headline clearfix">',
+                '<a href="/ranklist?tabId=gamegiftlist&pid={pid}&f={f}" target="_blank" uigs="item" class="fr_more">更多&gt;&gt;</a>',
+                '<span class="fl_icon">',
+                '<i class="ui_i gift_bag"></i>',
+                '</span>',
+                '<span>独家礼包</span>',
+                '</h3>',
+                '<div class="rank_wrap">',
+                '<table width="100%" border="0" cellspacing="0" cellpadding="0" class="rank_table">',
+                '<colgroup>',
+                '<col style="width: 40%;">',
+                '<col style="width: 40%;">',
+                '<col style="width: 20%;"></colgroup>',
+                '<tbody id="gamegift_sub_container">',
+                '</tbody>',
+                '</table>',
+                '</div>'
+        ].join(""),
+        "game_gift":[
+            '<tr class="{trclass}">',
+            '<td>',
+            '<a href="{clickurl}" onclick="return sogou_adclk(event,this)" target="_blank" uigs="item">{gamename}</a>',
+            '</td>',
+            '<td>',
+            '<a target="_blank" onclick="return sogou_adclk(event,this)" uigs="item" href="{clickurl}"><span class="fc9" title="{giftdesc}">{cutdesc}</span></a>',
+            '</td>',
+            '<td>',
+            '<a href="{clickurl}" onclick="return sogou_adclk(event,this)" target="_blank" uigs="item" class="but">领取</a>',
+            '</td>',
+            '</tr>'
+        ].join("")
+
+    };
+
+
+    function init(CONTAINER){
+        $(CONTAINER).html(TPL["wrap"].replace("{f}",f));
+        Util.getDataJsonP(SERVER,function(result){
+            if(result && result.data && result.data.datalist){
+                var template = TPL["game_gift"];
+                Util.renderHTML_INC("#gamegift_sub_container",result.data.datalist,template,function(obj){
+                    if(obj.index<=1){
+                        obj.ishowicon="block";
+                    }else{
+                        obj.ishowicon="none";
+                    }
+                    if(obj.index<=3){
+                        obj.trclass="front";
+                    }else{
+                        obj.trclass="";
+                    }
+                    if(obj.giftdesc && obj.giftdesc.length>5){
+                        obj.cutdesc = obj.giftdesc.substr(0,5)+"...";
+                    }else{
+                        obj.cutdesc = obj.giftdesc;
+                    }
+                    if(!obj.operator){
+                        obj.operator = obj.customer;
+                    }
+                    obj.tpltype="YY";
+                    return obj;
+                });
+                var callback = function(){
+        	    	if(typeof window.regALink === "function"){
+        	    		regALink(document.body);
+        	    	}else {
+        	    		setTimeout(callback, 10);
+        	    	}
+        	    }
+        	    callback();
+            }
+        });
+    }
+    return {
+        init:init
+    }
+}())

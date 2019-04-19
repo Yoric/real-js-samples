@@ -1,0 +1,573 @@
+// import from '../lib/polyfills/raf'
+// import {extend, debounce, getView} from '../lib/basic'
+// import {multi} from '../tools/tools.funcTools'
+
+;(function (window, $, cpf) {
+	'use strict';
+
+	var extend = cpf.Basic.Extend;
+	var multi = cpf.Tools.FuncTools.multi;
+
+	var ITEM_STATE = {
+		STATIC: 1,
+		FIXED: 2,
+		ABSOLUTE: 3
+	};
+
+	var $window = $(window);
+
+	function getScrollPosition () {
+		if ((typeof window.pageXOffset !== 'undefined') &&
+			(typeof window.pageYOffset !== 'undefined')) {
+			return {
+				left: window.pageXOffset,
+				top: window.pageYOffset
+			};
+		} else {
+			var el = (document.documentElement || document.body.parentNode || document.body);
+			return {
+				left: el.scrollLeft,
+				top: el.scrollTop
+			};
+		}
+	}
+
+	var SpringsGroup = (function () {
+		/**
+		 * @type {{notEmpty: function, minHeight: function, maxHeight: function}}
+		 * @private
+		 */
+		var _filters = (function () {
+			/**
+			 * @param {Array} nodes
+			 * @returns {Array} одобренные элементы
+			 */
+			function filterNotEmpty (nodes) {
+				return nodes.filter(function filterNotEmpty (item) {
+					var node = item.$;
+					return !!(node.children().length || $.trim(node.text()));
+				});
+			}
+
+			/**
+			 * @param {Array} nodes
+			 * @param {object} options
+			 * @returns {Array} одобренные элементы
+			 */
+			function filterMinHeight (nodes, options) {
+				return nodes.filter(function filterMinHeight (item) {
+					if (item.options.required) {
+						// Показываем required элементы всегда, независимо от высоты
+						return true;
+					}
+					var node = item.$;
+					var rect = node.get(0).getBoundingClientRect();
+					return rect.height > options.minHeight;
+				});
+			}
+
+			/**
+			 * @param {Array} nodes
+			 * @param {object} options
+			 * @returns {Array} одобренные элементы
+			 */
+			function filterMaxHeight (nodes, options) {
+				var maxHeight = options.height / (nodes.length || 1);
+				return nodes.filter(function filterMaxHeight (item) {
+					if (item.options.required) {
+						// Показываем required элементы всегда, независимо от высоты
+						return true;
+					}
+					var node = item.$;
+					var rect = node.get(0).getBoundingClientRect();
+					return rect.height < maxHeight;
+				});
+			}
+
+			return {
+				notEmpty: filterNotEmpty,
+				minHeight: filterMinHeight,
+				maxHeight: filterMaxHeight
+			};
+		}());
+
+		function applyFilters (nodes, options, itemOptions, state) {
+			var opts = {
+				minHeight: itemOptions.minHeight,
+				height: state.height
+			};
+
+			var validNodes = nodes.slice(0);
+			var filters = options.filters();
+
+			filters.forEach(function (filterName) {
+				if (!(filterName in _filters)) {
+					print('\'' + filterName + '\' not found in filters');
+					return;
+				}
+				var filter = _filters[filterName];
+				validNodes = filter(validNodes, opts);
+			});
+
+			return validNodes;
+		}
+
+		/**
+		 * Подготовка элементов, возвращает только те, которые решили показывать,
+		 * решение принимается в зависимости от настроек + при проверке фильтрами
+		 * @param {Array} nodes - список объектов типа {$: <jQuery>, options: <Object>}
+		 * @param {object} options
+		 * @param {object} itemOptions
+		 * @param {object} state
+		 * @returns {Array}
+		 */
+		function prepareNodes (nodes, options, itemOptions, state) {
+			if (!nodes.length) {
+				return [];
+			}
+
+			// всегда показываем первый элемент
+			if (options.alwaysShowFirst && nodes.length === 1) {
+				return nodes;
+			}
+
+			var result = applyFilters(nodes, options, itemOptions, state);
+			if (result.length > 0) {
+				return result;
+			}
+			return prepareNodes(nodes.slice(0, nodes.length - 1), options, itemOptions, state);
+		}
+
+		/**
+		 * Создает массив инстансов cpf.Modules.SpringItem
+		 * @param {Array} nodes
+		 * @param itemOptions
+		 * @returns {*}
+		 */
+		function createNodes (nodes, itemOptions) {
+			return nodes.map(function (item, i) {
+				var opts = extend({}, itemOptions, item.options, {position: i});
+				return new cpf.Modules.SpringsItem(opts, item.$);
+			});
+		}
+
+		/**
+		 * Разделяет элементы на "ленивые" и обычные
+		 * @param {Array} nodes
+		 * @returns {{regular: *, lazy: *}}
+		 */
+		function splitNodes (nodes) {
+			var lazyItems = nodes.filter(function (d) {
+				return d.options.lazy;
+			});
+			var regularItems = nodes.filter(function (d) {
+				return !d.options.lazy;
+			});
+
+			return {
+				regular: regularItems,
+				lazy: lazyItems
+			};
+		}
+
+		/**
+		 * Прячем банеры, которые не попали в список одобренных
+		 * @param  {Array} sources список "сырых" объектов
+		 * @param  {Array} nodes  список "одобренных" объектов
+		 */
+		function hideUseless (sources, nodes) {
+			sources.forEach(function (node) {
+				var matched = nodes.some(function (d) {
+					return d.index === node.index;
+				});
+				if (!matched) {
+					node.$.hide();
+				}
+			});
+		}
+
+		function getItemHeightSum (items) {
+			return (items || []).reduce(function (prev, curr) {
+				var rect = curr.getRect();
+				return prev + rect.height;
+			}, 0);
+		}
+
+		/**
+		 * Получение массива параметров для элементов
+		 * @param {number} height  Общая высота обертки
+		 * @returns {Array}
+		 */
+		var getItemParams = function (height) {
+			var opts = this._options;
+
+			var groupParams = opts.groupParams;
+			var limitedItems = Object.keys(groupParams);
+
+			var reservedHeight = limitedItems.reduce(function (acc, itemIndex) {
+				acc += +groupParams[itemIndex].limit || 0;
+				return acc;
+			}, 0);
+
+			var defaultHeight = (height - reservedHeight) / ((this._items.length || 1) - limitedItems.length);
+
+			var limitVal = 0;
+
+			return this._items.reduce(function (acc, item, index) {
+				var params = groupParams[index];
+				var isStatic = params ? params.staticMode : opts.staticMode;
+				var curItemParams = {
+					staticMode: isStatic,
+					top: 0
+				};
+
+				if (isStatic) {
+					curItemParams.top = limitVal;
+					limitVal += item.getRect().height + opts.itemPaddingBottom;
+					curItemParams.limit = limitVal;
+				} else if (opts.staticMode) {
+					limitVal += ((params && params.limit) || defaultHeight);
+					curItemParams.top = curItemParams.limit = limitVal;
+					limitVal += item.getRect().height + opts.itemPaddingBottom;
+				} else {
+					limitVal += ((params && params.limit) || defaultHeight);
+					curItemParams.limit = Math.min(limitVal, height);
+				}
+				return acc.concat(curItemParams);
+			}, []);
+		};
+
+		var _circumcision = function (items) {
+			if (items.length <= 1) {
+				return;
+			}
+			var totalHeight = getItemHeightSum(items);
+
+			if (totalHeight > (this._state.bottom - this._state.top)) {
+				var last = items.slice(-1)[0];
+				if (last) {
+					last.toggle(false).setState({position: ITEM_STATE.FIXED, coords: {top: -10000}});
+					_circumcision.call(this, items.slice(0, items.length - 1));
+				}
+			}
+		};
+
+		var _createState = function () {
+			var scroll = getScrollPosition();
+
+			var topRect = this._anchorTop.get(0).getBoundingClientRect();
+			var bottomRect = this._anchorBottom.get(0).getBoundingClientRect();
+
+			var lastItemHeight = 0;
+			var lastItem = this.lastItem();
+
+			if (lastItem) {
+				lastItemHeight = lastItem.getRect().height;
+			}
+
+			var top = topRect.top + scroll.top;
+			var bottom = bottomRect.top + scroll.top;
+			var height = bottom - top - lastItemHeight;
+			var itemHeight = height / (this._items.length || 1);
+
+			return {
+				top: top,
+				bottom: bottom,
+				height: height,
+				itemHeight: itemHeight,
+				itemParams: getItemParams.call(this, height),
+				dimensions: {
+					top: 0
+				}
+			};
+		};
+
+		/**
+		 * @param {Array} nodes - массив объектов вида {$: <jQuery>, options: <Object>}
+		 * @param options
+		 * @param itemOptions
+		 * @param anchors
+		 * @constructor
+		 */
+		function SpringsGroup (nodes, options, itemOptions, anchors) {
+			this._id = Math.random().toString(36).substr(2, 9);
+			this._nodes = nodes.map(function (node, i) {
+				node.index = i;
+				return node;
+			});
+			this._groupNode = anchors.groupNode;
+			this._anchorTop = anchors.top;
+			this._anchorBottom = anchors.bottom;
+			this._options = options;
+			this._itemOptions = itemOptions;
+			this._state = {};
+
+			this._items = [];
+		}
+
+		/**
+		 * Отложенная инициализация элементов
+		 */
+		SpringsGroup.prototype.initialize = function () {
+			var options = this._options;
+			var items = splitNodes(this._nodes);
+
+			// "ленивые" элементы еще не в DOM. Врапаем в template и аппендим к родителю
+			var lazyItems = items.lazy.map(function (item) {
+				var html = options.itemWrapTemplate(item.$);
+				options.parentNode.append(html);
+				return {
+					$: html,
+					options: item.options
+				};
+			});
+
+			// Ждем окончания загрузки элементов
+			this._timer = setTimeout(function deferredUpdate () {
+				var state = _createState.call(this);
+				var nodes = [];
+
+				if (items.regular.length) {
+					if (this._options.alwaysShowFirst && this._state.isFirstGroup) {
+						nodes = [items.regular[0]];
+						nodes = nodes.concat(prepareNodes(items.regular.slice(1), options, this._itemOptions, state));
+					} else {
+						nodes = nodes.concat(prepareNodes(items.regular, options, this._itemOptions, state));
+					}
+				}
+				if (lazyItems.length) {
+					nodes = nodes.concat(prepareNodes(lazyItems, options, this._itemOptions, state));
+				}
+
+				hideUseless(items.regular.concat(lazyItems), nodes);
+
+				this._items = createNodes(nodes, this._itemOptions);
+
+				this._handleReady();
+
+				var scroll = getScrollPosition();
+				this.update(scroll, this.getIndex(scroll), true);
+			}.bind(this), this._options.lazyTimeout);
+		};
+
+		SpringsGroup.prototype.itemsHeightChanged = function () {
+			return this._items.some(function (item) {
+				return item.heightHadBeenChanged();
+			});
+		};
+
+		SpringsGroup.prototype.revert = function () {
+			if (this._timer) {
+				clearTimeout(this._timer);
+				this._timer = null;
+			}
+
+			this._nodes.forEach(function (item) {
+				item.$.show();
+			});
+
+			// delete all old instances
+			var item;
+			while (this._items.length > 0) {
+				item = this._items.pop();
+				item.destroy();
+			}
+			return this;
+		};
+
+		SpringsGroup.prototype.ready = function (f) {
+			this._handleReady = f;
+			return this;
+		};
+
+		SpringsGroup.prototype.getState = function () {
+			return extend({}, this._state);
+		};
+
+		/**
+		 * Возвращает ссылки на якоря группы, если они еще присутствуют на странице
+		 * @returns {{top: [object], bottom: [object]}}
+		 */
+		SpringsGroup.prototype.getAnchors = function () {
+			var anchors = {};
+			if (this._anchorTop && this._anchorTop.parent().length) {
+				anchors.top = this._anchorTop;
+			}
+			if (this._anchorBottom && this._anchorBottom.parent().length) {
+				anchors.bottom = this._anchorBottom;
+			}
+			return anchors;
+		};
+
+		SpringsGroup.prototype.resetState = function (nextState) {
+			this._anchorTop = nextState.anchorTop || this._anchorTop;
+			this._anchorBottom = nextState.anchorBottom || this._anchorBottom;
+
+			this._state = extend(this._state, _createState.call(this), nextState || {});
+			return this;
+		};
+
+		SpringsGroup.prototype.firstItem = function () {
+			return this._items[0];
+		};
+
+		SpringsGroup.prototype.lastItem = function () {
+			return this._items.slice(-1)[0];
+		};
+
+		SpringsGroup.prototype.getItemAt = function (index) {
+			var left = this._items.slice(0, index);
+			var item = this._items[index];
+			var right = this._items.slice(index + 1);
+
+			return {
+				left: left,
+				item: item,
+				right: right,
+				rest: left.concat(right)
+			};
+		};
+
+		SpringsGroup.prototype.getIndex = function (scroll) {
+			var scrollY = scroll.top + this._options.paddingTop - this._state.top;
+			var index = -1;
+
+			if (scrollY > 0) {
+				this._state.itemParams.every(function (item, curIndex) {
+					if (item.limit >= scrollY) {
+						// вот тут обработка прервётся
+						index = curIndex;
+						return false;
+					}
+					return true;
+				});
+			}
+			return index;
+		};
+
+		/**
+		 * Актуализация активного элемента/элементов группы
+		 * @param {number} scroll
+		 * @param {number} index
+		 * @param {boolean} isForced  Флаг, что не нужно оптимизировать производительность
+		 */
+		SpringsGroup.prototype.update = multi(function (scroll, index, isForced) {
+			var methodName;
+			if (this._state.itemHeight < this._options.minSegmentHeight) {
+				methodName = 'all';
+			} else {
+				if (typeof index === 'undefined' || index === null) {
+					index = this.getIndex(scroll);
+				}
+				if (index < 0) {
+					methodName = 'first';
+				} else if (index >= this._items.length) {
+					methodName = 'last';
+				} else {
+					methodName = 'rest';
+				}
+			}
+			if (!isForced && index !== -1 && this._state.activeIndex === index) {
+				return;
+			}
+			this._state.activeIndex = index;
+			return methodName;
+		})
+			.method('all', function () {
+				this._items.forEach(function (item) {
+					item.toggle(true).setState({position: ITEM_STATE.STATIC, coords: {}});
+				}.bind(this));
+				_circumcision.call(this, this._items);
+
+				this._options.onGroupStatusChange(this._id, 'showAll');
+			})
+			.method('first', function () {
+				// всегда показываем первый элемент группы
+				var views = this.getItemAt(0);
+				if (typeof views.item !== 'undefined') {
+					var state = this._state;
+					var position = state.isFirstGroup ?
+					{
+						position: ITEM_STATE.STATIC,
+						coords: {}
+					} : {
+						position: ITEM_STATE.ABSOLUTE,
+						coords: {
+							// Отступ ставится относительно контейнера
+							// со значением position:relative
+							// (если встретится кейс с разными группами, но одним контейнером
+							// то нужно реализовать ветвление логики подсчета)
+							top: 0 // state.top - state.dimensions.top
+						}
+					};
+					views.item
+						.toggle(true)
+						.setState(position);
+				}
+				views.rest.forEach(function (item) {
+					item.toggle(false);
+				});
+				this._options.onGroupStatusChange(this._id, 'fixFirst');
+			})
+			.method('last', function () {
+				// всегда показываем и фиксируем последний элемент
+				var views = this.getItemAt(this._items.length - 1);
+				if (typeof views.item !== 'undefined') {
+					views.item
+						.toggle(true)
+						.setState({
+							position: ITEM_STATE.ABSOLUTE,
+							coords: {
+								top: this._state.height
+							}
+						});
+				}
+				views.rest.forEach(function (item) {
+					item.toggle(false);
+				});
+				this._options.onGroupStatusChange(this._id, 'fixLast');
+			})
+			.method('rest', function (scroll, index) {
+				if (typeof index === 'undefined' || index === null) {
+					index = this.getIndex(scroll);
+				}
+				var windowHeight = $window.height();
+				var views = this.getItemAt(index);
+
+				views.rest.forEach(function (item) {
+					item.toggle(false);
+				});
+
+				if (typeof views.item !== 'undefined') {
+					var itemHeight = views.item.getRect().height;
+
+					this._options.onGroupStatusChange(this._id, 'fixItem');
+
+					// для длинных элементов
+					if (itemHeight > windowHeight) {
+						var segmentStart = this._state.top + (index * this._state.itemHeight) - this._options.paddingTop;
+						var segmentScroll = (scroll.top - segmentStart) / this._state.itemHeight;
+						views.item
+							.toggle(true)
+							.setState({
+								position: ITEM_STATE.FIXED,
+								coords: {
+									top: this._options.paddingTop - (segmentScroll * (itemHeight - windowHeight))
+								}
+							});
+					} else {
+						views.item
+							.toggle(true)
+							.setState({
+								position: ITEM_STATE.FIXED,
+								coords: {top: this._options.paddingTop}
+							});
+					}
+				}
+			});
+
+		return SpringsGroup;
+	}());
+
+	window.getNameSpace('Modules', cpf).SpringsGroup = SpringsGroup;
+}(this, this.jQuery || this.$, this.ru.mail.cpf));

@@ -1,0 +1,1 @@
+if(void 0===YIcons)var YIcons={};YIcons["caret-down"]={name:"caret-down",height:48,width:48,path:"M24.21 33.173l12.727-12.728c.78-.78.78-2.048 0-2.828-.78-.78-2.047-.78-2.828 0l-9.9 9.9-9.9-9.9c-.78-.78-2.047-.78-2.827 0-.78.78-.78 2.047 0 2.828L24.21 33.173z"},"undefined"!=typeof module&&module.exports&&(module.exports=YIcons["caret-down"]);

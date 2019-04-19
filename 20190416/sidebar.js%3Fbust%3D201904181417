@@ -1,0 +1,1 @@
+define(["utils/sticky-element","vendors/domReady"],function(e,t){"use strict";function n(){t(this.init)}return n.prototype.init=function(){var t=document.querySelector(".site-aside"),n=document.querySelector(".hdr-vertical-blk");if(null!==t&&null!==n){var i=document.querySelector(".main-page-entity"),r=n.offsetHeight||0;e.add(t,i,r)}},new n});

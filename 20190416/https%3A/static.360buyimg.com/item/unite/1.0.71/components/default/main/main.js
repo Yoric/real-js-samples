@@ -1,0 +1,3 @@
+/*!Name: main.js
+ * Date: 2019-4-4 18:53:51 */
+define("MOD_ROOT/main/main",function(require,exports,module){function n(n){var o=[];o.push("common"),o=o.concat(n.modules),o.push("lazyinit");for(var i={detail:"detail"},t=0;t<o.length;t++)o[t]in i?o[t]="PUBLIC_ROOT/modules/"+o[t]+"/"+o[t]:o[t]="MOD_ROOT/"+o[t]+"/"+o[t];/debug=show_modules/.test(location.href)&&console.log(o),require.async(o,function(){for(var i=Array.prototype.slice.call(arguments),t=i.length,e=0;e<t;e++){var module=i[e];module&&"function"==typeof module.init?module.init(n):console.warn("Module[%s] must be exports a init function.",o[e])}})}module.exports.__id="main",module.exports.init=n});

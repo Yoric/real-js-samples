@@ -1,0 +1,2612 @@
+(function(window) {
+    const
+        MESSAGES_PER_ROOM = 50,
+        SILENCE_ERROR = "Невозможно отправлять сообщения пока действует Молчание",
+        NOT_VERIFIED_ERROR = "Дождитесь, пока аватарка пройдет модерацию",
+
+        // FRAMEWORK
+        VUE_DEBUG = !!window.vcdebug,
+
+        // Flashphoner
+        SESSION_STATUS = Flashphoner.constants.SESSION_STATUS,
+        STREAM_STATUS = Flashphoner.constants.STREAM_STATUS;
+
+    var chatmodel, ws, showCreatePopup, pollRooms;
+    var abilitiesMap, actionsMap = {}, emotionsMap = {}, drinksMap = {}, params;
+    var videoStream = null, currentSession = null;
+
+    Vue.config.devtools = VUE_DEBUG;
+
+    function trace() {
+        if (!!window.vcdebug) {
+            console.log.apply(console, arguments);
+        }
+    }
+
+    function errorJson(err) {
+        return JSON.stringify(err, Object.getOwnPropertyNames(err));
+    }
+
+    function postError(err) {
+        if (window.Raven) {
+            window.Raven.captureException(err);
+        }
+    }
+
+    var punishmentsMap = {
+        Silence: {
+            name: "Молчание",
+            shorthand: "ps"
+        },
+        Lock: {
+            name: "Запрет трансляций",
+            shorthand: "pl"
+        }
+    };
+
+    function object_values(obj) {
+        if (Object.values) {
+            return Object.values(obj);
+        } else {
+            return Object.keys(obj).map(function(key) {
+                return obj[key];
+            });
+        }
+    }
+
+    function padWithZero(number) {
+        return number < 10 ? '0' + number : number;
+    }
+
+    function showNotSupportedBrowserAlert() {
+        Popup.alert("Устаревший браузер", "Ваш браузер не поддерживает технологию видеочата. Воспользуйтесь браузером Chrome последней версии.");
+    }
+
+    function isWebRTCSupported() {
+        if (/puffin/.test(navigator.userAgent.toLowerCase())) {
+            return false;
+        }
+
+        return !!window.RTCPeerConnection
+            && 'createDataChannel' in RTCPeerConnection.prototype
+            && navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
+    }
+
+    function hasEffect(effects, type) {
+        return effects.filter(function(e) {return e.type === type}).length > 0;
+    }
+
+    function accountSortWeight(account) {
+        switch (account) {
+            case 0:
+                return 2;
+            case 1:
+                return 1;
+            case 2:
+                return 0;
+        }
+        return 100 - account;
+    }
+
+    function sortedMembers(me, author, users) {
+        var output = [];
+        for (var key in users) {
+            if (users.hasOwnProperty(key)) {
+                output.push(users[key]);
+            }
+        }
+
+        output.sort(function (a, b) {
+            if (a.id === author.id) {
+                return -1;
+            } else if (b.id === author.id) {
+                return 1;
+            }
+
+            if (a.id === me.id) {
+                return -1;
+            } else if (b.id === me.id) {
+                return 1;
+            }
+
+            if (a.account !== b.account) {
+                return accountSortWeight(a.account) - accountSortWeight(b.account);
+            }
+
+            if (a.level !== b.level) {
+                return b.level - a.level;
+            }
+
+            return a.name.localeCompare(b.name);
+        });
+
+        return output;
+    }
+
+    function sortRooms(a, b) {
+        function sortGenders(sex) {
+            return sex === 2 ? 0 : 100;
+        }
+
+        if (a.guests !== b.guests) {
+            return b.guests - a.guests;
+        }
+
+        if (a.user.sex !== b.user.sex) {
+            return sortGenders(a.user.sex) - sortGenders(b.user.sex);
+        }
+
+        if (a.password !== b.password) {
+            return a.password ? 1 : -1;
+        }
+
+        if (a.user.account !== b.user.account) {
+            return accountSortWeight(a.user.account) - accountSortWeight(b.user.account);
+        }
+
+        if (a.user.level !== b.user.level) {
+            return b.user.level - a.user.level;
+        }
+
+        return a.title.localeCompare(b.title);
+    }
+
+    function isModerator(account) {
+        return account === 3
+            || account === 4
+            || account === 5
+            || account === 6;
+    }
+
+    function formatSeconds(seconds) {
+        var hours = ~~(seconds / 3600);
+        seconds %= 3600;
+        var minutes = ~~(seconds / 60);
+        seconds %= 60;
+
+        var text = padWithZero(minutes) + ":" + padWithZero(seconds);
+
+        if (hours > 0) {
+            text = hours + ":" + text;
+        }
+
+        return text;
+    }
+
+    function getOtherOpenRoom(curRoom) {
+        for (var room in chatmodel.rooms) {
+            if (chatmodel.rooms.hasOwnProperty(room)) {
+                if (room !== curRoom) {
+                    return room;
+                }
+            }
+        }
+        return "";
+    }
+
+    function isHlsEnabled() {
+        return params.hlsEnabled && params.hlsServerUrl !== '';
+    }
+
+    function focusMessageInput(room) {
+        $("#message-input-" + room.name).focus();
+    }
+
+    function toggleRecipient(room, user, isPrivate) {
+        if (chatmodel.activeUser.id === user.id) {
+            return;
+        }
+
+        if (room.isRecPrivate === isPrivate && user.id in room.recipients) {
+            Vue.delete(room.recipients, user.id);
+        } else if (Object.keys(room.recipients).length < 3 && room.members.hasOwnProperty(user.id)) {
+            Vue.set(room.recipients, user.id, user);
+        }
+
+        room.isRecPrivate = Object.keys(room.recipients).length > 0 && isPrivate;
+
+        focusMessageInput(room);
+    }
+
+    function effectsTooltip(effects, punishments) {
+        var i;
+        var lines = [];
+
+        if (effects) {
+            for (i = 0; i < effects.length; i++) {
+                var effect = effects[i];
+                lines.push(abilitiesMap[effect.type].name + " на " + formatSeconds(effect.seconds) + " (" + effect.name + ")");
+            }
+        }
+
+        if (punishments) {
+            for (i = 0; i < punishments.length; i++) {
+                var punishment = punishments[i];
+                lines.push(punishmentsMap[punishment.type].name + " на " + formatSeconds(punishment.seconds) + " (Модератор)");
+            }
+        }
+
+        return lines.join("<br>");
+    }
+
+    function addMessage(room, message) {
+        var messages = chatmodel.rooms[room].messages;
+        messages.push(message);
+
+        if (messages.length > MESSAGES_PER_ROOM) {
+            messages.shift();
+        }
+    }
+
+    function addErrorMessage(text) {
+        if (chatmodel.showList) {
+            Popup.alert('Ошибка', text);
+        } else {
+            addMessage(chatmodel.currentRoom, {
+                recipients: [],
+                text: text,
+                isPrivate: false,
+                type: 0,
+                error: true
+            });
+        }
+    }
+
+    function openPage(url) {
+        window.open(url, "_blank").focus();
+    }
+
+    function playEmotion(room, id) {
+        // TODO play emotion, I guess
+    }
+
+    function restartVideos() {
+        $('video').each(function() {
+            const id = $(this).attr('id');
+            if (id !== 'video-preview' && this.paused) {
+                this.play();
+            }
+        });
+    }
+
+    function attachStreamToVideo(elemId) {
+        const video = document.getElementById(elemId);
+        video.muted = true;
+        if (typeof video.srcObject === "object") {
+            video.srcObject = videoStream;
+        } else {
+            video.src = window.URL.createObjectURL(videoStream);
+        }
+    }
+
+    function onUserMediaError(err) {
+        showCreatePopup = false;
+        console.error('Error getUserMedia', err, errorJson(err));
+
+        switch (err.name) {
+            case 'NotAllowedError':
+            case 'PermissionDeniedError':
+            case 'PermissionDismissedError':
+                Popup.alert("Нет доступа к камере или микрофону", "Чтобы создать трансляцию, разрешите браузеру получить доступ к камере и микрофону.");
+                break;
+            case 'NotFoundError':
+            case 'DevicesNotFoundError':
+            case 'NotReadableError':
+            case 'TrackStartError':
+                Popup.alert("Камера или микрофон не найдены", "Браузеру не удалось обнаружить камеру или микрофон, возможно они заняты другим приложением.");
+                break;
+            default:
+                Popup.alert("Неизвестная ошибка", "Не удалось создать трансляцию, попробуйте воспользоваться браузером Chrome или обратитесь службу поддержки.");
+        }
+    }
+
+    function attachVideoPreview(cameraIndex) {
+        function getUserMediaSuccess(stream) {
+            videoStream = stream;
+            attachStreamToVideo('video-preview');
+            showCreatePopup = false;
+        }
+
+        const constraints = {
+            video: {
+                deviceId: chatmodel.cameras[cameraIndex].deviceId,
+                width: 640,
+                height: 480
+            }
+        };
+
+        if (navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia(constraints).then(getUserMediaSuccess).catch(onUserMediaError);
+        } else if (navigator.getUserMedia) {
+            navigator.getUserMedia(constraints, getUserMediaSuccess, onUserMediaError);
+        } else {
+            showNotSupportedBrowserAlert();
+            showCreatePopup = false;
+        }
+    }
+
+    // TODO multiple servers support
+    function connectMediaServer(url, callback) {
+        if (currentSession && currentSession.status() === SESSION_STATUS.ESTABLISHED) {
+            trace("connectMediaServer() Already connected", currentSession.id());
+            callback(currentSession);
+            return;
+        }
+
+        console.log('Init flashphoner');
+        Flashphoner.init({
+            mediaProvidersReadyCallback: function(providers) {
+                console.log('Flashphoner providers ready', providers);
+            }
+        });
+
+        const options = {
+            urlServer: 'wss://' + params.serverUrl
+        };
+
+        const turnServers = [];
+
+        if (params.turnServerUrl) {
+            turnServers.push({
+                url: 'turn:' + params.turnServerUrl + '?transport=tcp',
+                credential: 'gVZE5YveBrxFXdST',
+                username: 'videoclub'
+            });
+        }
+
+        if (params.turnServerIntUrl) {
+            turnServers.push({
+                url: 'turn:' + params.turnServerIntUrl + '?transport=tcp',
+                credential: 'flashphoner',
+                username: 'flashphoner'
+            });
+        }
+
+        if (turnServers.length > 0) {
+            options.mediaOptions = {
+                iceServers: turnServers,
+                iceTransportPolicy: "relay"
+            };
+        }
+
+        console.log('createSession OPTIONS', options);
+
+        currentSession = Flashphoner.createSession(options)
+            .on(SESSION_STATUS.ESTABLISHED, function (session, obj) {
+                console.log("Flashphoner.createSession established", session.id(), session, obj);
+                if (chatmodel.activeUser.account > 2) {
+                    session.startDebug();
+                }
+                callback(session);
+            })
+            .on(SESSION_STATUS.DISCONNECTED, function (session) {
+                console.log("Flashphoner.createSession disconnect", session.id());
+            })
+            .on(SESSION_STATUS.FAILED, function (session) {
+                console.error("Flashphoner.createSession failed", session.id());
+            });
+    }
+
+    function startPlayer(participant, room, elementId, callback, hlsFallbackCallback) {
+        if (!participant.streamId) return;
+
+        connectMediaServer(participant.serverUrl, function(session) {
+            if (!!window.force_hls) {
+                console.warn('Force HLS');
+                hlsFallbackCallback();
+                return;
+            }
+
+            if (!isWebRTCSupported()) {
+                console.warn('Browser has problems with WebRTC, fallback to HLS');
+                hlsFallbackCallback();
+                return;
+            }
+
+            const options = {
+                name: participant.streamId,
+                display: document.getElementById(elementId),
+                custom: {
+                    userId: chatmodel.activeUser.id,
+                    roomId: room.name
+                }
+            };
+
+            console.log('startPlayer', session.id(), JSON.stringify(participant));
+
+            session.createStream(options)
+                .on(STREAM_STATUS.PLAYING, function (stream) {
+                    if (!stream || !stream.id()) {
+                        console.warn('Invalid stream object', stream);
+                        return;
+                    }
+
+                    console.log("Stream play", stream.id());
+                    callback(stream.id());
+                    restartVideos();
+                })
+                .on(STREAM_STATUS.STOPPED, function (stream) {
+                    console.log("Stream stopped", stream.id());
+                    restartVideos();
+                })
+                .on(STREAM_STATUS.FAILED, function (stream) {
+                    console.log("Stream failed", stream.id());
+                    restartVideos();
+                    hlsFallbackCallback();
+                })
+                .play();
+        });
+    }
+
+    function startPublisher(elementId, room, callback) {
+        connectMediaServer(params.serverUrl, function(session) {
+            const options = {
+                name: room.streamId,
+                display: document.getElementById(elementId),
+                cacheLocalResources: true,
+                receiveVideo: false,
+                receiveAudio: false,
+                constraints: {
+                    video: {
+                        minBitrate: 200,
+                        maxBitrate: 2000,
+                        width: 320,
+                        height: 240
+                    }
+                },
+                custom: {
+                    userId: chatmodel.activeUser.id,
+                    roomId: chatmodel.activeUser.id
+                }
+            };
+
+            if (chatmodel.activeUser.sex === 1) {
+                options.constraints.video.width = 320;
+                options.constraints.video.height = 240;
+                options.constraints.video.minBitrate = 100;
+                options.constraints.video.maxBitrate = 100;
+            }
+
+            if (chatmodel.cameraId >= 0 && chatmodel.cameraId < chatmodel.cameras.length) {
+                const camera = chatmodel.cameras[chatmodel.cameraId];
+                if (camera.deviceId !== '') {
+                    options.constraints.video.deviceId = camera.deviceId;
+                }
+            }
+
+            if (chatmodel.microphoneId >= 0 && chatmodel.microphoneId < chatmodel.microphones.length) {
+                const microphone = chatmodel.microphones[chatmodel.microphoneId];
+                if (microphone.deviceId !== '') {
+                    options.constraints.audio = {
+                        deviceId: microphone.deviceId
+                    };
+                }
+            }
+
+            console.log('startPublisher', session.id(), options);
+
+            session.createStream(options)
+                .on(STREAM_STATUS.PUBLISHING, function (stream) {
+                    if (!stream || !stream.id()) {
+                        console.warn('Invalid stream object', stream);
+                        return;
+                    }
+
+                    console.log("Publisher start", stream.id());
+                    callback(stream.id());
+                    restartVideos();
+                })
+                .on(STREAM_STATUS.UNPUBLISHED, function(stream) {
+                    console.log("Publisher stop", stream.id());
+                    Flashphoner.releaseLocalMedia(options.display);
+                    restartVideos();
+                })
+                .on(STREAM_STATUS.FAILED, function(stream) {
+                    console.error("Publisher failed", stream.id());
+                    Flashphoner.releaseLocalMedia(options.display);
+                    restartVideos();
+                })
+                .publish();
+        });
+    }
+
+    function onDevices() {
+        var that = this;
+        navigator.mediaDevices.enumerateDevices().then(function(devices) {
+            that.cameras = [];
+            that.microphones = [];
+
+            var i = 0, j = 0;
+            devices.forEach(function(device) {
+                if (device.kind === 'videoinput') {
+                    that.cameras.push({
+                        id: i++,
+                        deviceId: device.deviceId,
+                        label: device.label
+                    });
+                    trace('Camera found', 'label=' + device.label, "id=" + device.deviceId);
+                } else if (device.kind === 'audioinput') {
+                    that.microphones.push({
+                        id: j++,
+                        deviceId: device.deviceId,
+                        label: device.label
+                    });
+                    trace('Microphone found', 'label=' + device.label, "id=" + device.deviceId);
+                }
+            });
+
+            showCreateRoomPopup();
+        }).catch(function(err) {
+            console.warn('Enumerate devices error', err, errorJson(err));
+            postError(err);
+            showCreateRoomPopup();
+        });
+    }
+
+    function showCreateRoomPopup() {
+        Popup.show("Создание трансляции", $('#create-room-popup'), {
+            dontClone: true,
+            width: 600,
+            onOpen: function() {
+                attachVideoPreview(0);
+            },
+            onClose: function() {
+                if (videoStream == null) return;
+
+                const video = document.getElementById('video-preview');
+                video.pause();
+                video.srcObject = null;
+
+                var tracks = videoStream.getTracks();
+                for (var i = 0; i < tracks.length; i++) {
+                    tracks[i].stop();
+                }
+                videoStream = null;
+            }
+        });
+    }
+
+    function closeRoom(user) {
+        Vue.delete(chatmodel.room_list, user.id);
+
+        if (chatmodel.rooms.hasOwnProperty(user.id)) {
+            console.log('Room closed', JSON.stringify(user.id));
+
+            if (chatmodel.currentRoom === user.id) {
+                chatmodel.currentRoom = getOtherOpenRoom(user.id);
+            }
+
+            Vue.delete(chatmodel.rooms, user.id);
+
+            if (user.id !== chatmodel.activeUser.id) {
+                Popup.alert('Трансляция закрыта', user.name + ' закрыл трансляцию');
+            }
+        }
+    }
+
+    function canOpenRoom(create) {
+        var rooms = Object.keys(chatmodel.rooms).length;
+        if (chatmodel.rooms.hasOwnProperty(chatmodel.activeUser.id) || !!create) {
+            rooms--;
+        }
+
+        if (rooms === params.basicRoomLimit && chatmodel.activeUser.account === 0) {
+            Popup.alert('Достигнут лимит', 'Купите Элитный аккаунт, чтобы смотреть больше трансляций одновременно.');
+            return false;
+        } else if (rooms === params.vipRoomLimit && chatmodel.activeUser.account === 1) {
+            Popup.alert('Достигнут лимит', 'Купите Элитный аккаунт, чтобы смотреть больше трансляций одновременно.');
+            return false;
+        } else if (rooms === params.eliteRoomLimit && chatmodel.activeUser.account === 2) {
+            Popup.alert('Достигнут лимит', 'Уже открыто максимальное количество трансляций. Закройте одну трансляцию, чтобы открыть другую.');
+            return false;
+        }
+
+        return true;
+    }
+
+    function hasProtectedRoom() {
+        const rooms = object_values(chatmodel.room_list).filter(function(e) {
+            return e.user.id === chatmodel.activeUser.id;
+        });
+
+        if (rooms.length > 0) {
+            return rooms[0].password;
+        }
+
+        return false;
+    }
+
+    function openRoom(room) {
+        if (params.guest) {
+            Profile.pleaseRegister();
+        } else if (chatmodel.rooms.hasOwnProperty(room.id)) {
+            chatmodel.currentRoom = room.id;
+        } else if (canOpenRoom()) {
+            if (!isWebRTCSupported()) {
+                showNotSupportedBrowserAlert();
+            }
+
+            if (room.password) {
+                chatmodel.roomEnter = room.id;
+                Popup.show("Введите пароль", $('#enter-room-popup'), {dontClone: true, width: 400});
+            } else if (hasProtectedRoom()) {
+                Popup.alert('Нельзя войти', 'Нельзя войти в незащищенную трансляцию, создав трансляцию с паролем. Закройте свою трансляцию или пересоздайте ее без пароля.');
+            } else {
+                ws.send(JSON.stringify({
+                    cmd: "enter_room",
+                    room: room.id
+                }));
+            }
+        }
+    }
+
+    function updateRoomList() {
+        trace('Poll room views');
+        ws.send(JSON.stringify({
+            cmd: "room_views"
+        }));
+    }
+
+    function enableRoomListAutoUpdate() {
+        if (!pollRooms) {
+            pollRooms = setInterval(updateRoomList, 15000);
+        }
+    }
+
+    function replaceRoomList(rooms) {
+        rooms.sort(sortRooms);
+        var roomList = {};
+        for (var i = 0; i < rooms.length; i++) {
+            roomList[rooms[i].id] = rooms[i];
+        }
+        Vue.set(chatmodel, "room_list", roomList);
+    }
+
+    function useAbilities(target, actions, room) {
+        var ids = actions.join(",");
+        console.log("Execute abilities", target.id, ids);
+
+        ws.send(JSON.stringify({
+            cmd: "ability",
+            actions: ids,
+            uid: target.id,
+            room: room.name
+        }));
+    }
+
+    function punishLock(info, type) {
+        Popup.confirm('Применить Запрет трансляций к ' + info.name + '?', function() {
+            $.post("/chat/punish", { uid: info.id, type: type }, function (response) {
+                if (response.error) {
+                    Popup.alert('Ошибка', response.error);
+                }
+            });
+        }, { destructive: true });
+    }
+
+    function getAccountIcon(account) {
+        switch (account) {
+            case 0:
+                return false;
+            case 1:
+                return "/public/img/accounts/vip.png";
+            case 2:
+                return "/public/img/accounts/elite.png";
+            case 3:
+            case 4:
+            case 5:
+            case 6:
+                if (params.mode === 'christmas') {
+                    return "/public/img/accounts/santa.png";
+                } else {
+                    return "/public/img/accounts/moderator.png";
+                }
+        }
+        return false;
+    }
+
+    function createContextMenu(element, selector) {
+        var isMe = chatmodel.activeUser.id === element.userinfo.id,
+            moderator = isModerator(chatmodel.activeUser.account),
+            isTargetModerator = isModerator(element.userinfo.account);
+
+        var items = {
+            profile: {
+                name: "Профиль",
+                callback: function () {
+                    openPage("/profile/" + element.userinfo.id);
+                }
+            }
+        };
+
+        if (!isMe) {
+            items.message = {
+                name: "Почта",
+                callback: function () {
+                    openPage("/profile/" + element.userinfo.id + "#sendmsg");
+                }
+            };
+            items.gift = {
+                name: "Подарок",
+                callback: function () {
+                    Profile.showBuyGifts(element.userinfo.id, chatmodel.currentRoom, element.userinfo.name);
+                }
+            };
+        }
+
+        if (!moderator && !isTargetModerator) {
+            items.ability = {
+                name: "Способности",
+                callback: function () {
+                    $.getJSON('/chat/userinfo', { uid: element.userinfo.id }, function(userinfo) {
+                        Vue.set(chatmodel, "abtarget", userinfo);
+                        Popup.show("Способности", $('#ability-template'), {dontClone: true, width: 600});
+                    });
+                }
+            };
+        }
+
+        if (!isMe) {
+            items.account = {
+                name: "Подарить аккаунт",
+                callback: function() {
+                    Profile.showPresentAccount(element.userinfo.id, element.userinfo.name);
+                }
+            };
+            items.gold = {
+                name: "Перевести золото",
+                callback: function() {
+                    Profile.showGoldTransfer(element.userinfo.id);
+                }
+            };
+        }
+
+        items.bar = {
+            name: "Барная стойка",
+            callback: function () {
+                $.getJSON('/chat/userinfo', { uid: element.userinfo.id }, function(userinfo) {
+                    Vue.set(chatmodel, "bartarget", userinfo);
+                    Popup.show("Бар", $('#bar-popup'), {dontClone: true, width: 686});
+                });
+            }
+        };
+
+        items.author_kick = {
+            name: "Удалить из трансляции",
+            visible: function() {
+                var isMyRoom = chatmodel.currentRoom === chatmodel.activeUser.id;
+                return isMyRoom && !isMe && !isTargetModerator;
+            },
+            callback: function () {
+                ws.send(JSON.stringify({
+                    cmd: "kick",
+                    uid: element.userinfo.id
+                }));
+            }
+        };
+
+        if (moderator) {
+            items.separator = {
+                type: "cm_separator"
+            };
+            items.moderation = {
+                name: "Наказание",
+                items: {}
+            };
+
+            items.moderation.items.silence = {
+                name: "Молчание",
+                disabled: isTargetModerator,
+                callback: function () {
+                    Popup.confirm('Применить Молчание к ' + element.userinfo.name + '?', function() {
+                        $.post("/chat/punish", { uid: element.userinfo.id, type: 0 }, function (response) {
+                            if (response.error) {
+                                Popup.alert('Ошибка', response.error);
+                            }
+                        });
+                    }, { destructive: true });
+                }
+            };
+            items.moderation.items.lock = {
+                name: "Запрет трансляций",
+                disabled: isTargetModerator,
+                callback: function () {
+                    punishLock(element.userinfo, 1);
+                }
+            };
+
+            if (element.message && element.message.type === 0) {
+                items.removeMessage = {
+                    name: "Удалить сообщение",
+                    disabled: !isMe && isTargetModerator,
+                    callback: function () {
+                        ws.send(JSON.stringify({
+                            cmd: "remove_msg",
+                            room: chatmodel.currentRoom,
+                            id: element.message.id
+                        }));
+                    }
+                };
+            }
+        }
+
+        return $.contextMenu({
+            selector: selector,
+            trigger: 'none',
+            items: items
+        });
+    }
+
+    function reset() {
+        Vue.set(chatmodel, "currentRoom", "");
+        Vue.set(chatmodel, "rooms", {});
+        Vue.set(chatmodel, "room_list", {});
+    }
+
+    function handleJson(event) {
+        const message = JSON.parse(event.data);
+        var room;
+
+        switch (message.cmd) {
+            case "login":
+                Vue.set(chatmodel, "activeUser", message.user);
+
+                /* TODO reconnect to opened rooms */
+
+                reset();
+
+                break;
+            case "room_list":
+                replaceRoomList(message.rooms);
+                enableRoomListAutoUpdate();
+                break;
+            case "room_views":
+                var roomIds = Object.keys(chatmodel.room_list);
+                var rooms = [];
+
+                for (var i = 0; i < roomIds.length; i++) {
+                    const id = roomIds[i];
+                    if (message.rooms.hasOwnProperty(id)) {
+                        var roomObj = chatmodel.room_list[id];
+                        roomObj.guests = message.rooms[id];
+                        rooms.push(roomObj);
+                    }
+                }
+
+                replaceRoomList(rooms);
+                break;
+            case "enter_room":
+                console.log('Room opened', JSON.stringify(message));
+
+                var memberMap = {};
+                for (i = 0; i < message.users.length; ++i) {
+                    memberMap[message.users[i].id] = message.users[i];
+                }
+
+                Vue.set(chatmodel.rooms, message.room, {
+                    name: message.room,
+                    title: message.title,
+                    author: message.author,
+                    protocol: message.protocol,
+                    serverUrl: message.serverUrl,
+                    streamId: message.streamId,
+                    newMessage: "",
+                    isRecPrivate: false,
+                    recipients: {},
+                    messages: [],
+                    members: memberMap,
+                    activeGroup: "1",
+                    requests: {},
+                    participants: message.participants
+                });
+
+                for (i = 0; i < message.messages.length; ++i) {
+                    addMessage(message.room, message.messages[i]);
+                }
+
+                chatmodel.currentRoom = message.room;
+
+                if (window['yaCounter26214453']) {
+                    if (message.room === chatmodel.activeUser.id) {
+                        window['yaCounter26214453'].reachGoal('GOAL_ROOM_CREATED');
+                    }
+                }
+
+                break;
+            case "room_created":
+                Vue.set(chatmodel.room_list, message.room.id, message.room);
+                break;
+            case "room_updated":
+                if (chatmodel.room_list.hasOwnProperty(message.room.id)) {
+                    Vue.set(chatmodel.room_list, message.room.id, message.room);
+                }
+                break;
+            case "room_closed":
+                closeRoom(message.user);
+                break;
+            case "user_enters":
+                Vue.set(chatmodel.rooms[message.room].members, message.user.id, message.user);
+                break;
+            case "user_leaves":
+                if (chatmodel.activeUser.id === message.userId) {
+                    chatmodel.currentRoom = getOtherOpenRoom(message.room);
+                    Vue.delete(chatmodel.rooms, message.room);
+                } else {
+                    room = chatmodel.rooms[message.room];
+                    Vue.delete(room.members, message.userId);
+                    Vue.delete(room.recipients, message.userId);
+                }
+                break;
+            case "chat_msg":
+                addMessage(message.room, message);
+                break;
+            case "user_update":
+                if (chatmodel.activeUser.id === message.user.id) {
+                    Vue.set(chatmodel, "activeUser", message.user);
+                }
+
+                room = chatmodel.rooms[message.room];
+                if (room && room.members[message.user.id]) {
+                    room.members[message.user.id] = message.user;
+                }
+                break;
+            case "effects_update":
+                room = chatmodel.rooms[message.room];
+                if (room && room.members[message.user_id]) {
+                    Vue.set(room.members[message.user_id], "effects", message.effects);
+                }
+                break;
+            case "remove_msg":
+                var messages = chatmodel.rooms[message.room].messages;
+                for (i = 0; i < messages.length; i++) {
+                    if (messages[i].id === message.msg_id) {
+                        messages[i].type = -1;
+                        delete messages[i].sender;
+                        break;
+                    }
+                }
+                break;
+            case "punishments_update":
+                room = chatmodel.rooms[message.room];
+                if (room && room.members[message.user_id]) {
+                    Vue.set(room.members[message.user_id], "punishments", message.punishments);
+                }
+                break;
+            case "user_request":
+                room = chatmodel.rooms[message.room];
+                if (room) {
+                    Vue.set(room.requests, message.id, message);
+                }
+                break;
+            case "add_participant":
+                room = chatmodel.rooms[message.room];
+                if (room && object_values(room.participants).length < 6 && !room.participants.hasOwnProperty(message.stream_id)) {
+                    console.log('Participant added', JSON.stringify(message));
+                    Vue.set(room.participants, message.info.id, {
+                        streamId: message.stream_id,
+                        serverUrl: message.server_url,
+                        info: message.info,
+                        protocol: message.protocol,
+                        url: message.url
+                    });
+                }
+                break;
+            case "remove_participant":
+                room = chatmodel.rooms[message.room];
+                if (room && room.participants.hasOwnProperty(message.id)) {
+                    Vue.delete(room.participants, message.id);
+                }
+                break;
+            case "play_emotion":
+                playEmotion(message.room, message.id);
+                break;
+            default:
+                if (message.error) {
+                    addErrorMessage(message.error);
+                } else if (message.alert) {
+                    Popup.alert(message.alert, message.text);
+                } else {
+                    console.log("Unrecognized msg", message);
+                }
+        }
+    }
+
+    function scrollToBottom(el) {
+        el.scrollTop = el.scrollHeight;
+        setTimeout(function() {
+            el.scrollTop = el.scrollHeight;
+        }, 200);
+    }
+
+    var vChatScroll = {
+        bind: function bind(el, binding) {
+            var timeout = void 0;
+            var scrolled = false;
+
+            el.addEventListener('scroll', function (e) {
+                if (timeout) window.clearTimeout(timeout);
+                timeout = window.setTimeout(function () {
+                    scrolled = el.scrollTop + el.clientHeight + 1 < el.scrollHeight;
+                }, 200);
+            });
+
+            new MutationObserver(function (e) {
+                if (!scrolled) {
+                    scrollToBottom(el);
+                }
+            }).observe(el, { childList: true });
+        },
+        inserted: scrollToBottom
+    };
+
+    var VueChatScroll = {
+        install: function install(Vue, options) {
+            Vue.directive('chat-scroll', vChatScroll);
+        }
+    };
+
+    Vue.use(VueChatScroll);
+    Vue.use(VTooltip);
+
+    Vue.filter('with-sign', function(value) {
+        if (!value) {
+            return 0;
+        }
+
+        if (value > 0) {
+            return '+' + value;
+        }
+
+        return value;
+    });
+
+    Vue.component('create-room-popup', {
+        props: ['cameras', 'microphones'],
+        template: '#create-room-template',
+        data: function() {
+            return {
+                cameraId: 0,
+                microphoneId: 0,
+                title: '',
+                password: ''
+            };
+        },
+        watch: {
+            cameraId: function(cameraId) {
+                attachVideoPreview(cameraId);
+            }
+        },
+        methods: {
+            createRoom: function() {
+                if (this.password.length > 0) {
+                    const rooms = Object.keys(chatmodel.rooms);
+
+                    for (var i = 0; i < rooms.length; i++) {
+                        const roomInfo = chatmodel.room_list[rooms[i]];
+
+                        if (roomInfo && !roomInfo.password) {
+                            Popup.alert('Невозможно создать', 'Невозможно создать закрытую паролем трансляцию находясь в трансляции без пароля');
+                            return;
+                        }
+                    }
+
+                    if (chatmodel.activeUser.account === 0) {
+                        Popup.alert('Недоступно', 'Трансляцию с паролем могут создать только пользователи с Элитным аккаунтом');
+                        return;
+                    }
+                }
+
+                chatmodel.cameraId = this.cameraId;
+                chatmodel.microphoneId = this.microphoneId;
+                ws.send(JSON.stringify({
+                    cmd: "create_room",
+                    title: this.title,
+                    password: this.password,
+                    protocol: "webrtc",
+                    serverUrl: params.serverUrl
+                }));
+                this.password = '';
+                Popup.close();
+            }
+        }
+    });
+
+    Vue.component('youtube-popup', {
+        props: ['room', 'videos'],
+        template: '#youtube-popup-template',
+        data: function() {
+            return {
+                url: ''
+            };
+        },
+        methods: {
+            addVideo: function() {
+                if (!this.url) {
+                    Popup.alert("Ошибка", "Добавьте ссылку на видео из YouTube");
+                } else if (!this.url.startsWith("https://www.youtube.com") && !this.url.startsWith("https://youtu.be")) {
+                    Popup.alert("Ошибка", "Введенная ссылка не похожа на ссылку видео из YouTube");
+                } else {
+                    ws.send(JSON.stringify({
+                        cmd: "add_video",
+                        room: chatmodel.activeUser.id,
+                        url: this.url
+                    }));
+                    this.url = '';
+                    Popup.close();
+
+                    Popup.alert("Видео будет добавлено через несколько секунд");
+                }
+            }
+        }
+    });
+
+    Vue.component('enter-room-popup', {
+        template: '#enter-room-template',
+        data: function() {
+            return {
+                password: ''
+            };
+        },
+        methods: {
+            enterRoom: function() {
+                ws.send(JSON.stringify({
+                    cmd: "enter_room",
+                    room: chatmodel.roomEnter,
+                    password: this.password
+                }));
+                this.password = '';
+                chatmodel.roomEnter = '';
+                Popup.close();
+            },
+            requestAccess: function() {
+                ws.send(JSON.stringify({
+                    cmd: "request_access",
+                    room: chatmodel.roomEnter
+                }));
+                Popup.alert('Запрос отправлен', 'Автор трансляции получит Ваш запрос и, если запрос будет одобрен, трансляция откроется автоматически.');
+                Popup.close();
+            }
+        }
+    });
+
+    Vue.component('room-item', {
+        props: ['room'],
+        template: '#room-list-item',
+        computed: {
+            protected: function() {
+                return this.room.password;
+            },
+            accountIcon: function() {
+                return getAccountIcon(this.room.user.account);
+            },
+            fullAvatar: function() {
+                return this.room.user.avatar.replace('-m.jpg', '-o.jpg');
+            },
+            classObject: function() {
+                return {
+                    'sex-male':  this.room.user.sex === 1,
+                    'sex-female':  this.room.user.sex === 2,
+                    'elite': this.room.user.account === 2,
+                    'high-level': this.room.user.level === params.maxLevel
+                };
+            },
+            styleObject: function() {
+                return {
+                    'background-image': 'url(' + this.fullAvatar + ')'
+                };
+            },
+            title: function() {
+                return this.room.title ? this.room.title : this.room.user.name;
+            },
+            duration: function() {
+                return formatSeconds(this.room.seconds);
+            },
+            canPunish: function() {
+                return isModerator(chatmodel.activeUser.account) && !isModerator(this.room.user.account);
+            },
+            showBirthdayIcon: function() {
+                return this.room.user.birthday;
+            }
+        },
+        methods: {
+            open: function() {
+                openRoom(this.room);
+            },
+            goProfile: function() {
+                openPage("/profile/" + this.room.user.id);
+            },
+            openModeration: function() {
+                Vue.set(chatmodel, "abtarget", this.room.user);
+                Popup.show("Модерация " + this.room.user.name, $('#punishment-template'), {dontClone: true, width: 300});
+            }
+        }
+    });
+
+    Vue.component('room-icon', {
+        props: ['room'],
+        template: '#room-icon',
+        computed: {
+            classObject: function() {
+                return {
+                    'selected': chatmodel.currentRoom === this.room.name,
+                    'sex-male':  this.room.author.sex === 1,
+                    'sex-female':  this.room.author.sex === 2
+                };
+            }
+        },
+        methods: {
+            select: function() {
+                chatmodel.currentRoom = this.room.name;
+            },
+            close: function() {
+                ws.send(JSON.stringify({
+                    cmd: "leave_room",
+                    room: this.room.name
+                }));
+            }
+        }
+    });
+
+    var JoinConferenceRequestComponent = {
+        props: ['request', 'room'],
+        template: '#join-conference-request',
+        methods: {
+            goRoom: function() {
+                var roomId = this.request.user.id;
+                if (chatmodel.room_list.hasOwnProperty(roomId)) {
+                    openRoom(chatmodel.room_list[roomId]);
+                }
+            },
+            accept: function() {
+                ws.send(JSON.stringify({
+                    cmd: "add_participant",
+                    participant: this.request.user.id
+                }));
+                this.remove();
+            },
+            remove: function() {
+                this.$emit('remove', this.request.id);
+            }
+        }
+    };
+
+    var RepeatAbilitiesRequestComponent = {
+        props: ['request', 'room'],
+        template: '#repeat-abilities-request',
+        computed: {
+            abilities: function() {
+                var result = [];
+                for (var i = 0; i < this.request.abilities.length; i++) {
+                    var abilityName = actionsMap[this.request.abilities[i]].ability;
+                    result.push(abilitiesMap[abilityName].name);
+                }
+                return result;
+            }
+        },
+        methods: {
+            retry: function() {
+                useAbilities(this.request.user, this.request.abilities, this.room);
+                this.remove();
+            },
+            remove: function() {
+                this.$emit('remove', this.request.id);
+            }
+        }
+    };
+
+    var DrinkOfferRequestComponent = {
+        props: ['request', 'room'],
+        template: '#drink-offer-request',
+        computed: {
+            drinkName: function() {
+                return drinksMap[this.request.drink].chatName;
+            }
+        },
+        methods: {
+            accept: function() {
+                ws.send(JSON.stringify({
+                    cmd: "accept_drink",
+                    sender: this.request.user.id,
+                    room: this.room.name,
+                    id: this.request.drink
+                }));
+                this.remove();
+            },
+            remove: function() {
+                this.$emit('remove', this.request.id);
+            }
+        }
+    };
+
+    var EnterRoomRequestComponent = {
+        props: ['request', 'room'],
+        template: '#enter-room-request',
+        methods: {
+            accept: function() {
+                ws.send(JSON.stringify({
+                    cmd: "accept_enter_request",
+                    id: this.request.user.id
+                }));
+                this.remove();
+            },
+            remove: function() {
+                this.$emit('remove', this.request.id);
+            }
+        }
+    };
+
+    var EmotionComponent = {
+        props: ['emotion', 'room'],
+        template: '#emotion-item',
+        computed: {
+            image: function() {
+                return '/public/img/emo/' + this.emotion.id + '.png';
+            }
+        },
+        methods: {
+            select: function() {
+                var that = this;
+                Popup.confirm('Отправить эту эмоцию для ' + this.room.author.name + '?', function() {
+                    ws.send(JSON.stringify({
+                        cmd: "emotion",
+                        room: that.room.name,
+                        uid: that.room.author.id,
+                        id: that.emotion.id
+                    }));
+                });
+            }
+        }
+    };
+
+    var RightColumnComponent = {
+        props: ['room', 'emotions', 'rooms'],
+        template: '#right-column-template',
+        data: function () {
+            return {
+                tab: 'users'
+            }
+        },
+        computed: {
+            sortedMembers: function () {
+                return sortedMembers(chatmodel.activeUser, this.room.author, this.room.members);
+            },
+            numUsers: function() {
+                return this.sortedMembers.length;
+            },
+            numRequests: function() {
+                return Object.keys(this.room.requests).length;
+            }
+        },
+        methods: {
+            selectTab: function(tab) {
+                this.tab = tab;
+            },
+            removeRequest: function(id) {
+                Vue.delete(this.room.requests, id);
+            }
+        },
+        components: {
+            'join_conference': JoinConferenceRequestComponent,
+            'repeat_abilities': RepeatAbilitiesRequestComponent,
+            'drink_offer': DrinkOfferRequestComponent,
+            'enter_room': EnterRoomRequestComponent,
+            'emotion': EmotionComponent
+        }
+    };
+
+    var VideoPlayerComponent = {
+        props: ['participant', 'room', 'active'],
+        template: '#video-player-template',
+        data: function() {
+            const me = this.participant.id === chatmodel.activeUser.id;
+            return {
+                streamId: undefined,
+                isMe: me,
+                elementId: this.room.name + '_' + this.participant.id,
+                volume: 30,
+                canFullScreen: !me,
+                canMute: !me || this.room.name === chatmodel.activeUser.id,
+                muted: false,
+                hls: undefined
+            }
+        },
+        computed: {
+            showVolumeBar: function() {
+                return this.active && this.canMute && !this.isMe;
+            }
+        },
+        methods: {
+            fullScreen: function() {
+                const video = $('#' + this.elementId).find('video')[0];
+                if (video.requestFullscreen) {
+                    video.requestFullscreen();
+                } else if (video.msRequestFullscreen) {
+                    video.msRequestFullscreen();
+                } else if (video.mozRequestFullScreen) {
+                    video.mozRequestFullScreen();
+                } else if (video.webkitRequestFullscreen) {
+                    video.webkitRequestFullscreen();
+                } else if (video.webkitEnterFullscreen) {
+                    video.webkitEnterFullscreen();
+                }
+            }
+        },
+        watch: {
+            muted: function(value) {
+                trace('Muted', this.participant.id, value);
+                const stream = currentSession.getStream(this.streamId);
+                if (this.isMe && this.room.name === chatmodel.activeUser.id) {
+                    if (value) {
+                        stream.muteAudio();
+                    } else {
+                        stream.unmuteAudio();
+                    }
+                } else {
+                    $('#' + this.elementId).find('video')[0].muted = value;
+                }
+            },
+            volume: function(value) {
+                trace('Volume', this.participant.id, value);
+
+                if (this.isMe) {
+                    const stream = currentSession.getStream(this.streamId);
+                    if (stream.getVolume() !== -1) {
+                        stream.setMicrophoneGain(value);
+                    }
+                } else {
+                    const video = $('#' + this.elementId).find('video')[0];
+                    if (video && video.srcObject && video.srcObject.getAudioTracks().length > 0) {
+                        video.volume = value / 100;
+                    }
+                }
+
+                this.muted = value <= 0;
+            }
+        },
+        mounted: function() {
+            trace('MOUNT PARTICIPANT', this.participant, this.room, this.elementId, this.muted, this.volume);
+
+            const $videos = $('.player-' + this.participant.id);
+
+            if (this.participant.url) {
+                const videoElement = document.createElement('video');
+                videoElement.setAttribute("controls", "false");
+                videoElement.controls = false;
+
+                if (this.room.name === chatmodel.activeUser.id) {
+                    const id = this.participant.id;
+                    videoElement.addEventListener('ended', function () {
+                        ws.send(JSON.stringify({
+                            cmd: "remove_participant",
+                            participant: id
+                        }));
+                    });
+                }
+
+                if (this.participant.ts > 0) {
+                    const pos = new Date().getTime() / 1000 - this.participant.ts;
+                    videoElement.src = this.participant.url + "#t=" + pos;
+                } else {
+                    videoElement.src = this.participant.url;
+                }
+
+                videoElement.play();
+                this.$refs.player.appendChild(videoElement);
+                restartVideos();
+            } else if ($videos.length >= 2) {
+                console.log('Reuse broadcasting', this.participant.id);
+
+                const videoElement = document.createElement('video');
+                videoElement.srcObject =  $videos.find('video')[0].srcObject;
+                videoElement.setAttribute("muted", "true");
+                videoElement.setAttribute("controls", "false");
+                videoElement.muted = true;
+                videoElement.controls = false;
+                videoElement.play();
+                this.$refs.player.appendChild(videoElement);
+
+                if (!this.isMe) {
+                    this.muted = true;
+                }
+
+                restartVideos();
+            } else if (this.isMe && this.room.name === chatmodel.activeUser.id) {
+                console.log('Start my broadcasting');
+                startPublisher(this.elementId, this.room, function (id) {
+                    console.log('My broadcasting started', id);
+                    this.streamId = id;
+                    $('#' + this.elementId).find('video')[0].muted = true;
+                }.bind(this));
+            } else {
+                console.log('Show broadcasting');
+                startPlayer(this.participant, this.room, this.elementId, function (id) {
+                    console.log('Player started', id);
+                    this.streamId = id;
+                }.bind(this), function() {
+                    console.log('Fallback to HLS', this.participant.id);
+
+                    if (!isHlsEnabled() && !window.force_hls) {
+                        console.log('Hls disabled');
+                        return;
+                    }
+
+                    if (!Hls.isSupported()) {
+                        console.warn('HLS is not supported');
+                        return;
+                    }
+
+                    const videoElement = document.createElement('video');
+                    videoElement.setAttribute("muted", Boolean(this.muted).toString());
+                    videoElement.setAttribute("controls", "false");
+                    videoElement.muted = this.muted;
+                    videoElement.controls = false;
+                    this.$refs.player.appendChild(videoElement);
+
+                    const url = 'https://' + params.hlsServerUrl
+                        + '/' + this.room.streamId
+                        + '/' + this.room.streamId + '.m3u8';
+
+                    const hlsConfig = {
+                        debug: !!window.vcdebug,
+                        enableWorker: true
+                    };
+
+                    const hls = this.hls = new Hls(hlsConfig);
+                    hls.loadSource(url);
+                    hls.attachMedia(videoElement);
+                    hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
+                        console.log('HLS: Start video element');
+                        videoElement.play();
+                    });
+                    hls.on(Hls.Events.ERROR, function (event, data) {
+                        if (data.fatal) {
+                            console.warn('HLS error', data.details);
+                        } else {
+                            console.log('HLS warn', data.details);
+                        }
+                    });
+                }.bind(this));
+            }
+        },
+        beforeDestroy: function() {
+            trace('UNMOUNT PARTICIPANT', this.participant.id);
+
+            if (!this.streamId) {
+                console.warn('No stream id defined for participant', this.participant.id);
+            } else {
+                const stream = Flashphoner.getSessions()[0].getStream(this.streamId);
+                if (stream) {
+                    trace('Stop stream', this.streamId);
+                    stream.stop();
+                }
+            }
+
+            if (this.hls) {
+                this.hls.stopLoad();
+                this.hls.detachMedia();
+            }
+        }
+    };
+
+    var VideoContainerComponent = {
+        props: ['room'],
+        template: '#video-container-template',
+        data: function() {
+            return {
+                activeId: this.room.name
+            };
+        },
+        computed: {
+            participants: function() {
+                const participants = [];
+
+                participants.push({
+                    id: this.room.name,
+                    name: this.room.author.name,
+                    streamId: this.room.streamId,
+                    serverUrl: this.room.serverUrl,
+                    active: this.activeId === this.room.name
+                });
+
+                for (var id in this.room.participants) {
+                    if (this.room.participants.hasOwnProperty(id)) {
+                        var participant = this.room.participants[id];
+                        participants.push({
+                            id: id,
+                            name: participant.info.name,
+                            streamId: participant.streamId,
+                            serverUrl: participant.serverUrl,
+                            active: this.activeId === id,
+                            url: participant.url,
+                            ts: participant.ts
+                        });
+                    }
+                }
+
+                const active = participants.find(function(v) { return v.active; });
+                if (!active) {
+                    participants[0].active = true;
+                }
+
+                trace('Participants recomputed', participants);
+
+                return participants;
+            },
+            canAddParticipant: function() {
+                return chatmodel.currentRoom !== chatmodel.activeUser.id && this.participants.length < 7;
+            },
+            canAddVideo: function() {
+                if (this.room.name !== chatmodel.activeUser.id) {
+                    console.log('Not my room');
+                    return false;
+                }
+
+                if (object_values(this.participants).filter(function(e) { return !!e.url; }).length > 0) {
+                    console.log('Video already in the room');
+                    return false;
+                }
+
+                return true;
+            }
+        },
+        methods: {
+            setActive: function(id) {
+                this.activeId = id;
+            },
+            add: function() {
+                console.log('Send conference add request');
+
+                if (!chatmodel.rooms[chatmodel.activeUser.id]) {
+                    Popup.alert('Ошибка', 'Для предложения своей трансляции в конференцию нужно сперва начать трансляцию');
+                } else if (!this.room.participants.hasOwnProperty(chatmodel.activeUser.id)) {
+                    ws.send(JSON.stringify({
+                        cmd: "join_conference",
+                        room: this.room.name
+                    }));
+                    Popup.alert('Запрос отправлен', 'Автор трансляции получил ваш запрос на добавление в конференцию');
+                }
+            },
+            addVideo: function() {
+                if (chatmodel.activeUser.account < 2) {
+                    Popup.alert("YouTube", "Только пользователи с Элитным аккаунтом могут добавлять YouTube видео");
+                    return;
+                }
+
+                if (chatmodel.activeUser.level < 20 && !isModerator(chatmodel.activeUser.account)) {
+                    Popup.alert("YouTube", "Во время тестового периода добавлять видео из YouTube могут только пользователи 20 уровня и выше");
+                    return;
+                }
+
+                Popup.show("Добавление видео из YouTube", $('#youtube-popup'), {
+                    dontClone: true,
+                    width: 600
+                });
+            },
+            remove: function(participant) {
+                console.log('onConferenceRemoveRequest', participant.id);
+
+                if (chatmodel.currentRoom === chatmodel.activeUser.id) {
+                    ws.send(JSON.stringify({
+                        cmd: "remove_participant",
+                        participant: participant.id
+                    }));
+                } else if (chatmodel.activeUser.id === participant.id) {
+                    ws.send(JSON.stringify({
+                        cmd: "leave_conference",
+                        room: chatmodel.currentRoom
+                    }));
+                }
+            },
+            canRemove: function(participant) {
+                if (this.activeId === participant.id) {
+                    return false;
+                }
+
+                const isMyRoom = chatmodel.currentRoom === chatmodel.activeUser.id;
+
+                if (isMyRoom && participant.id !== chatmodel.currentRoom) {
+                    return true;
+                }
+
+                return !isMyRoom && participant.id === chatmodel.activeUser.id;
+            }
+        },
+        components: {
+            'video-player': VideoPlayerComponent
+        }
+    };
+
+    Vue.component('broadcast', {
+        props: ['room', 'emotions', 'rooms'],
+        template: '#broadcast-template',
+        data: function() {
+            return {
+                window: window
+            };
+        },
+        computed: {
+            classObject: function() {
+                return {
+                    'invisible': chatmodel.currentRoom !== this.room.name
+                };
+            },
+            smiles: function() {
+                var selected = [];
+                for (var i = 0; i < Smiles.groups.length; i++) {
+                    var group = Smiles.groups[i];
+                    if (group.mode && params.mode !== group.mode) continue;
+                    if (group.sex === 3 || group.sex === chatmodel.activeUser.sex) {
+                        if (group.mode) {
+                            selected.unshift(group);
+                        } else {
+                            selected.push(group);
+                        }
+                    }
+                }
+
+                return selected;
+            },
+            isSilenced: function() {
+                if (!chatmodel.activeUser) return false;
+                var me = this.room.members[chatmodel.activeUser.id];
+                if (!me) return false;
+                return hasEffect(me.effects, "Silence") || hasEffect(me.punishments, "Silence");
+            },
+            isVerified: function() {
+                return chatmodel.activeUser && chatmodel.activeUser.verified;
+            },
+            isDisabled: function() {
+                return this.isSilenced || !this.isVerified;
+            },
+            placeholder: function() {
+                if (this.isSilenced) {
+                    return SILENCE_ERROR;
+                }
+
+                if (!this.isVerified) {
+                    return NOT_VERIFIED_ERROR;
+                }
+
+                return "";
+            }
+        },
+        methods: {
+            sendMessage: function (room) {
+                if (this.isSilenced) {
+                    addErrorMessage(SILENCE_ERROR);
+                } else if (room.newMessage !== '') {
+                    var ids = Object.keys(room.recipients);
+
+                    var msg = Smiles.clean(room.newMessage, chatmodel.activeUser.level, params.mode);
+
+                    if (msg.trim() !== '') {
+                        ws.send(JSON.stringify({
+                            cmd: "chat_msg",
+                            room: room.name,
+                            text: msg,
+                            recipients: ids,
+                            isPrivate: room.isRecPrivate
+                        }));
+                    }
+                }
+                room.newMessage = "";
+            },
+            removeRecipient: function(room, userinfo) {
+                toggleRecipient(room, userinfo, room.isRecPrivate);
+            }
+        },
+        components: {
+            'video-container': VideoContainerComponent,
+            'right-column': RightColumnComponent
+        }
+    });
+
+    Vue.component('chat-member', {
+        props: ['userinfo', 'room', 'rooms'],
+        template: '#member-template',
+        data: {
+            contextMenu: undefined
+        },
+        methods: {
+            toggleRecipient: function (isPrivate) {
+                if (!chatmodel.isSilenced) {
+                    toggleRecipient(this.room, this.userinfo, isPrivate);
+                }
+            },
+            showMenu: function(event) {
+                if (!this.contextMenu) {
+                    this.contextMenu = createContextMenu(this, "#" + this.elementId);
+                }
+
+                $("#" + this.elementId).contextMenu();
+            },
+            openRoom: function() {
+                var room = this.rooms[this.userinfo.id];
+                if (room) {
+                    openRoom(room);
+                }
+            }
+        },
+        computed: {
+            isSelected: function () {
+                return this.userinfo.id in this.room.recipients;
+            },
+            elementId: function () {
+                return "chat-member" + this.userinfo.id;
+            },
+            status: function() {
+                var moder = isModerator(chatmodel.activeUser.account);
+                if (!moder && hasEffect(this.userinfo.effects, "Idiot")) {
+                    return "100% идиот";
+                } else if (this.userinfo.status) {
+                    return this.userinfo.status;
+                } else {
+                    var text = this.userinfo.level + " уровень";
+                    if (this.userinfo.rank > 0) {
+                        text += ", №" + this.userinfo.rank + " в рейтинге";
+                    }
+                    return text;
+                }
+            },
+            effectIcons: function() {
+                var effects = this.userinfo.effects;
+                return effects.map(function(e) { return abilitiesMap[e.type].shorthand; });
+            },
+            accountIcon: function() {
+                return getAccountIcon(this.userinfo.account);
+            },
+            hasRoom: function() {
+                return this.rooms.hasOwnProperty(this.userinfo.id);
+            },
+            genderClass: function() {
+                if (this.userinfo.level === params.maxLevel) {
+                    return "high-level";
+                } else if (this.userinfo.sex === 2) {
+                    return "sex-female";
+                } else {
+                    return "sex-male";
+                }
+            },
+            effectsTooltip: function() {
+                return effectsTooltip(this.userinfo.effects, this.userinfo.punishments);
+            }
+        },
+        beforeDestroy: function() {
+            if (this.contextMenu) {
+                $.contextMenu("destroy", "#" + this.elementId);
+            }
+        }
+    });
+
+    Vue.component('punishment-icon', {
+        props: ['punishment', 'userinfo', 'room'],
+        template: '#status-template',
+        computed: {
+            icon: function () {
+                return "/public/img/ability/" + punishmentsMap[this.punishment.type].shorthand + ".png";
+            }
+        }
+    });
+
+    Vue.component('chat-message', {
+        props: ['info', 'message', 'image', 'room', 'index'],
+        template: '#message-template',
+        computed: {
+            classObject: function () {
+                return {
+                    myself: this.hasMyself,
+                    'private': this.message.isPrivate,
+                    error: this.message.error,
+                    ability: this.message.type === 2,
+                    punishment: this.message.type === 3,
+                    birthday: this.message.type === 7,
+                    admin: this.message.type === 8
+                };
+            },
+            html: function() {
+                var text = "";
+                switch (this.message.type) {
+                    case 0:
+                        text = this.message.text.replace(/&/g, "&amp;")
+                            .replace(/</g, "&lt;")
+                            .replace(/>/g, "&gt;")
+                            .replace(/"/g, "&quot;");
+                        break;
+                    case 2:
+                        var i = 0, exp = 0, removeExp = 0;
+
+                        do {
+                            var action = actionsMap[this.message.actions[i]];
+                            text += abilitiesMap[action.ability].name;
+                            exp += action.exp;
+                            if (action.exp > 0 && chatmodel.activeUser.account === 2) {
+                                exp += action.expEliteBonus;
+                            }
+                            removeExp += action.removeExp;
+                            if (action.duration > 0) {
+                                text += ' (' + action.duration + ' минут)';
+                            }
+                            text += ', ';
+                        } while (++i < this.message.actions.length);
+
+                        text += ' получено +' + exp + ' опыта';
+
+                        if (removeExp > 0) {
+                            text += ', отобрано -' + removeExp + ' опыта';
+                        }
+                        break;
+                    case 3:
+                        return punishmentsMap[this.message.action].name;
+                    case 4:
+                    case 5:
+                        return drinksMap[this.message.drink].chatName;
+                    case 6:
+                        var emotion = emotionsMap[this.message.emotion];
+                        return 'применяет эмоцию &laquo;' + emotion.name + '&raquo;, ' +
+                            emotion.chatMsg +  ' (+' + emotion.exp + ' опыта)';
+                    case 8:
+                        text = this.message.text;
+                        break;
+                }
+
+                return Smiles.parse(text);
+            },
+            hasMyself: function() {
+                if (!this.message.sender) {
+                    return false;
+                }
+
+                if (chatmodel.activeUser.id === this.message.sender.id) {
+                    return true;
+                }
+
+                if (!this.message.recipients) {
+                    return false;
+                }
+
+                for (var i = 0; i < this.message.recipients.length; i++) {
+                    if (this.message.recipients[i].id === chatmodel.activeUser.id) {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+        }
+    });
+
+    Vue.component('chat-user', {
+        props: ['userinfo', 'room', 'index', 'message'],
+        template: '#chat-user',
+        data: {
+            contextMenu: undefined
+        },
+        computed: {
+            classObject: function() {
+                return {
+                    "sex-female": this.userinfo.sex === 2,
+                    "sex-male": this.userinfo.sex !== 2,
+                    "myself": this.userinfo.id === chatmodel.activeUser.id,
+                    "high-level": this.userinfo.level === params.maxLevel
+                };
+            },
+            iconImage: function() {
+                if (this.userinfo.account === 0) {
+                    return null;
+                }
+                return this.userinfo.icon ? "/public/img/status/" + this.userinfo.icon + ".png" : null;
+            },
+            elementId: function () {
+                return "chat-user" + this.message.id + "-" + this.index;
+            }
+        },
+        methods: {
+            click: function (event) {
+                if (event.ctrlKey || event.metaKey) {
+                    if (!this.contextMenu) {
+                        this.contextMenu = createContextMenu(this, "#" + this.elementId);
+                    }
+                    $("#" + this.elementId).contextMenu();
+                } else if (!chatmodel.isSilenced) {
+                    toggleRecipient(this.room, this.userinfo, this.message.isPrivate);
+                }
+            }
+        },
+        beforeDestroy: function() {
+            if (this.contextMenu) {
+                $.contextMenu("destroy", "#" + this.elementId);
+            }
+        }
+    });
+
+    Vue.component('droppler', {
+        props: ['room'],
+        template: '#vue-droppler-template',
+        mounted: function() {
+            this.room.smilesHandle = new Drop({
+                target: this.$refs.dropTrigger,
+                content: this.$refs.dropContent,
+                position: this.position ? this.position : 'top left',
+                openOn: this.openOn ? this.openOn : 'click',
+                classes: this.classes ? this.classes : 'drop-theme-basic',
+                constrainToWindow: this.constrainToWindow ? this.constrainToWindow : false,
+                constrainToScrollParent: this.constrainToScrollParent ? this.constrainToScrollParent : false,
+                hoverOpenDelay: this.hoverOpenDelay ? this.hoverOpenDelay : 0,
+                hoverCloseDelay: this.hoverOpenDelay ? this.hoverCloseDelay : 50,
+                focusDelay: this.focusDelay ? this.focusDelay : 0,
+                blurDelay: this.blurDelay ? this.blurDelay : 50,
+                tetherOptions: this.tetherOptions ? this.tetherOptions : {offset: '5px 0px'}
+            });
+        }
+    });
+
+    Vue.component('emoticons-group', {
+        props: ['group', 'room', 'id'],
+        template: '#emoticons-group',
+        computed: {
+            classObject: function() {
+                return {
+                    locked: this.locked,
+                    activegroup: this.room && this.room.activeGroup === this.id
+                }
+            },
+            imagesrc: function() {
+                return Smiles.url(this.group, this.group.icon);
+            },
+            locked: function() {
+                return this.group.level > chatmodel.activeUser.level;
+            },
+            tooltip: function() {
+                return this.locked ? "Требуется уровень " + this.group.level : null;
+            }
+        },
+        methods: {
+            makeActive: function() {
+                if (!this.locked) {
+                    Vue.set(this.room, "activeGroup", this.id);
+                }
+            }
+        }
+    });
+
+    Vue.component('emoticons-images', {
+        props: ['images', 'room', 'group'],
+        template: '#emoticons-images'
+    });
+
+    Vue.component('emoticons-image', {
+        props: ['code', 'room', 'group'],
+        template: '#emoticons-image',
+        computed: {
+            imagesrc: function () {
+                return Smiles.url(this.group, this.code);
+            }
+        },
+        methods: {
+            addToChat: function () {
+                if (!chatmodel.isSilenced) {
+                    this.room.newMessage = this.room.newMessage + " [:" + this.group.id + ":" + this.code + ":] ";
+                    this.room.smilesHandle.close();
+                    focusMessageInput(this.room);
+                }
+            }
+        }
+    });
+
+    /* Abilities */
+
+    Vue.component('ability-button', {
+        props: ['ability', 'active'],
+        template: '#ability-button',
+        computed: {
+            isEnabled: function () {
+                if (abilitiesMap[this.ability.ability].rating) {
+                    return chatmodel.activeUser.rank > 0 && chatmodel.activeUser.rank <= this.ability.level;
+                } else {
+                    return chatmodel.activeUser.level >= this.ability.level;
+                }
+            },
+            label: function() {
+                if (!this.isEnabled) {
+                    return (abilitiesMap[this.ability.ability].rating ? "Ранг " : "Уровень ") + this.ability.level;
+                } else if (this.ability.duration) {
+                    return this.ability.duration + " минут";
+                } else {
+                    return this.ability.removeExp + " опыта";
+                }
+            },
+            classObject: function() {
+                return {
+                    "active": this.active,
+                    "disabled": !this.isEnabled
+                };
+            }
+        },
+        methods: {
+            makeActive: function (index) {
+                if (abilitiesMap[this.ability.ability].rating) {
+                    if (chatmodel.activeUser.rank > 0 && chatmodel.activeUser.rank <= this.ability.level) {
+                        this.$emit('toggle');
+                    }
+                } else if (chatmodel.activeUser.level >= this.ability.level) {
+                    this.$emit('toggle');
+                }
+            }
+        }
+    });
+
+    Vue.component('ability-group', {
+        props: ['group', 'name'],
+        template: '#ability-group',
+        data: function () {
+            return {
+                activeIndex: -1,
+                activeCode: -1
+            }
+        },
+        computed: {
+            caption: function () {
+                return abilitiesMap[this.name].name;
+            },
+            icon: function () {
+                return "/public/img/ability/" + abilitiesMap[this.name].shorthand + ".png";
+            },
+            tooltip: function () {
+                return abilitiesMap[this.name].desc;
+            }
+        },
+        methods: {
+            makeActive: function (index, code) {
+                if (this.activeIndex !== index) {
+                    this.activeIndex = index;
+                } else {
+                    this.activeIndex = -1;
+                }
+                if (this.activeCode !== -1) {
+                    this.$emit('toggle', code, this.activeCode);
+                } else {
+                    this.$emit('toggle', code);
+                }
+                if (this.activeCode !== code) {
+                    this.activeCode = code;
+                } else {
+                    this.activeCode = -1;
+                }
+            }
+        },
+        mounted: function () {
+            chatmodel.$on('resetabilities', function () {
+                this.activeIndex = -1;
+                this.activeCode = -1;
+            }.bind(this));
+        }
+    });
+
+    Vue.component('abilities-container', {
+        props: ['actions', 'room', 'abtarget'],
+        template: '#abilities-container',
+        data: function () {
+            return {
+                selectedCodes: {},
+                totalGold: 0,
+                totalExpGain: 0,
+                totalExpLost: 0
+            }
+        },
+        computed: {
+            actionGroups: function () {
+                if (this.actions.length === 0) {
+                    return [];
+                }
+                var newArray = {};
+                var newElement = [];
+                for (var i = 0, z = 1; i < this.actions.length; i++, z++) {
+                    var copy = Object.assign({}, this.actions[i]);
+                    copy.code = copy.id;
+                    newElement.push(copy);
+                    if (z === 3) {
+                        newArray[this.actions[i].ability] = newElement;
+                        newElement = [];
+                        z = 0;
+                    }
+                }
+                return newArray;
+            },
+            effectIcons: function() {
+                if (this.abtarget && this.abtarget.effects) {
+                    return this.abtarget.effects.map(function (e) {
+                        return abilitiesMap[e.type].shorthand;
+                    });
+                }
+            },
+            effectsTooltip: function() {
+                return effectsTooltip(this.abtarget.effects, []);
+            }
+        },
+        methods: {
+            toggle: function (code, oldCode) {
+                this.selectedCodes[code] = code;
+                if (oldCode !== undefined) {
+                    delete this.selectedCodes[oldCode];
+                }
+                this.totalGold = 0;
+                this.totalExpGain = 0;
+                this.totalExpLost = 0;
+                for (var c in this.selectedCodes) {
+                    if (this.selectedCodes.hasOwnProperty(c)) {
+                        var action = actionsMap[c];
+                        this.totalGold += action.gold;
+                        this.totalExpGain += action.exp;
+                        if (action.exp > 0 && chatmodel.activeUser.account === 2) {
+                            this.totalExpGain += action.expEliteBonus;
+                        }
+                        this.totalExpLost += action.removeExp;
+                    }
+                }
+            },
+            useAbilities: function () {
+                useAbilities(this.abtarget, Object.keys(this.selectedCodes), this.room);
+
+                Popup.close();
+                chatmodel.$emit('resetabilities', {});
+                this.totalGold = 0;
+                this.totalExpGain = 0;
+                this.totalExpLost = 0;
+                this.selectedCodes = {};
+            }
+        }
+    });
+
+    Vue.component('punishment-container', {
+        props: ['room', 'abtarget'],
+        template: '#punishment-container',
+        methods: {
+            lock: function (type) {
+                Popup.close();
+                punishLock(this.abtarget, type);
+            },
+            rename: function() {
+                Popup.close();
+                ws.send(JSON.stringify({
+                    cmd: "rename_room",
+                    room: this.abtarget.id
+                }));
+            },
+            protect: function() {
+                Popup.close();
+                ws.send(JSON.stringify({
+                    cmd: "protect",
+                    room: this.abtarget.id
+                }));
+            }
+        }
+    });
+
+    var BarDrinkComponent = {
+        props: ['drink', 'selected'],
+        template: '#bar-drink',
+        data: function() {
+            return {
+                over: false
+            }
+        },
+        computed: {
+            image: function() {
+                var suffix = this.over || this.selected ? '_hover' : '';
+                return '/public/img/bar/' + padWithZero(this.drink.id) + suffix + '.png';
+            }
+        },
+        methods: {
+            select: function() {
+                this.$emit('select', this.drink);
+            }
+        }
+    };
+
+    Vue.component('bar-container', {
+        props: ['room', 'drinks', 'target'],
+        template: '#bar-container',
+        data: function() {
+            return {
+                type: 0,
+                drink: {}
+            }
+        },
+        computed: {
+            selectedDrinks: function() {
+                var result = [];
+
+                for (var i = 0; i < this.drinks.length; i++) {
+                    var drink = this.drinks[i];
+                    if (drink.type === this.type) {
+                        result.push(drink);
+                    }
+                }
+
+                return result;
+            },
+            currencyClass: function() {
+                return this.drink.gold ? 'gold' : 'silver';
+            },
+            points: function() {
+                return Math.ceil(this.target.drunkSeconds / 120);
+            },
+            drunknessPercent: function() {
+                return Math.ceil(this.points * 100 / 15);
+            },
+            drunknessName: function() {
+                var points = this.points;
+
+                if (points >= 13) {
+                    return "В ноль";
+                } else if (points > 4) {
+                    return "Под шафе";
+                } else if (points >= 1) {
+                    return "Немного трезв";
+                }
+
+                return "Как стекло!";
+            }
+        },
+        methods: {
+            selectType: function(type) {
+                this.type = type;
+            },
+            selectDrink: function(drink) {
+                this.drink = drink;
+            },
+            buyDrink: function() {
+                this.offerDrink(null);
+            },
+            offerDrink: function(target) {
+                if (!this.drink.id) return;
+
+                ws.send(JSON.stringify({
+                    cmd: "buy_drink",
+                    room: this.room.name,
+                    id: this.drink.id,
+                    targets: target ? [chatmodel.activeUser.id, target] : null
+                }));
+
+                Popup.close();
+            },
+            offerDrinkAll: function() {
+                if (!this.drink.id) return;
+                Popup.close();
+
+                var total = 0;
+                var targets = [];
+                for (var p in this.room.members) {
+                    if (this.room.members.hasOwnProperty(p)) {
+                        total += this.drink.price;
+                        targets.push(this.room.members[p].id);
+                    }
+                }
+
+                var that = this;
+                var msg = 'Купить ' + this.drink.chatName + ' для ' + targets.length + ' человек, заплатив '
+                        + total + (this.drink.gold ? ' золота' : ' серебра') + '?';
+                Popup.confirm(msg, function() {
+                    ws.send(JSON.stringify({
+                        cmd: "buy_drink",
+                        room: that.room.name,
+                        id: that.drink.id,
+                        targets: targets
+                    }));
+                });
+            }
+        },
+        components: {
+            'bar-drink': BarDrinkComponent
+        }
+    });
+
+    chatmodel = new Vue({
+        el: "#chatmodel",
+        data: {
+            currentRoom: "",
+            rooms: {},
+            room_list: {},
+            filters: {
+                women: true,
+                men: true
+            },
+            activeUser: {},
+            showAbilities: false,
+            actions: {},
+            abtarget: {},
+            emotions: [],
+            cameras: [
+                {
+                    id: 0,
+                    label: 'Основная камера',
+                    deviceId: ''
+                }
+            ],
+            microphones: [
+                {
+                    id: '',
+                    label: 'Микрофон',
+                    deviceId: ''
+                }
+            ],
+            cameraId: 0,
+            microphoneId: 0,
+            roomEnter: '',
+            drinks: [],
+            bartarget: {},
+            youtubeVideos: []
+        },
+        methods: {
+            showCreatePopup: function() {
+                if (params.guest) {
+                    Profile.pleaseRegister();
+                    return;
+                }
+
+                if (!isWebRTCSupported()) {
+                    showNotSupportedBrowserAlert();
+                    return;
+                }
+
+                if (showCreatePopup) return;
+                showCreatePopup = true;
+
+                if (this.rooms.hasOwnProperty(this.activeUser.id)) {
+                    chatmodel.currentRoom = this.activeUser.id;
+                } else if (canOpenRoom(true)) {
+                    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+                        console.log("enumerateDevices() not supported.");
+                        showCreateRoomPopup();
+                    } else if (navigator.mediaDevices.getUserMedia) {
+                        var that = this;
+                        navigator.mediaDevices.getUserMedia({video: true, audio: true})
+                            .then(onDevices.bind(that))
+                            .catch(function() {
+                                console.log('Requesting both audio and video failed, try video only');
+                                navigator.mediaDevices.getUserMedia({video: true})
+                                    .then(onDevices.bind(that))
+                                    .catch(onUserMediaError)
+                            });
+                    }
+                }
+            },
+            showListClick: function() {
+                this.currentRoom = "";
+            }
+        },
+        watch: {
+            showList: function(value) {
+                if (value) {
+                    updateRoomList();
+                    enableRoomListAutoUpdate();
+                    trace('Room list polling enabled');
+                } else {
+                    clearInterval(pollRooms);
+                    pollRooms = undefined;
+                    trace('Room list polling stopped')
+                }
+            }
+        },
+        computed: {
+            selectedRoom: function() {
+                return this.currentRoom ? this.rooms[this.currentRoom] : undefined;
+            },
+            showList: function() {
+                return this.currentRoom === "";
+            },
+            rooms_filtered: function() {
+                var that = this;
+                return object_values(this.room_list).filter(function(e) {
+                    return e.user.sex === 2 && that.filters.women
+                        || e.user.sex === 1 && that.filters.men;
+                });
+            },
+            classObject: function() {
+                return {
+                    'moderator-mode': this.activeUser.account > 2
+                };
+            }
+        },
+        mounted: function() {
+            function decrement(effects) {
+                if (!effects) return;
+                var i = effects.length;
+                while (i--) {
+                    if (--effects[i].seconds <= 0) {
+                        effects.splice(i, 1);
+                    }
+                }
+            }
+
+            var app = this;
+            this.effectInterval = setInterval(function() {
+                if (app.abtarget) {
+                    decrement(app.abtarget.effects);
+                }
+
+                for (var name in app.rooms) {
+                    if (!app.rooms.hasOwnProperty(name)) continue;
+                    var room = app.rooms[name];
+
+                    for (var uid in room.members) {
+                        if (!room.members.hasOwnProperty(uid)) continue;
+                        decrement(room.members[uid].effects);
+                        decrement(room.members[uid].punishments);
+                    }
+                }
+            }, 1000);
+
+            this.roomTimeInterval = setInterval(function() {
+                for (var room in app.room_list) {
+                    if (app.room_list.hasOwnProperty(room)) {
+                        app.room_list[room].seconds++;
+                    }
+                }
+            }, 1000);
+        }
+    });
+
+
+    /* Main */
+
+    window.initVideochat = function(actions, abilities, options, emotions, drinks) {
+        abilitiesMap = abilities;
+        params = options;
+
+        for (var i = 0; i < actions.length; i++) {
+            var action = actions[i];
+            actionsMap[action.id] = action;
+        }
+
+        for (i = 0; i < drinks.length; i++) {
+            var drink = drinks[i];
+            drinksMap[drink.id] = drink;
+        }
+
+        for (i = 0; i < emotions.length; i++) {
+            var emotion = emotions[i];
+            emotionsMap[emotion.id] = emotion;
+        }
+
+        Vue.set(chatmodel, "actions", actions);
+        Vue.set(chatmodel, "emotions", emotions);
+        Vue.set(chatmodel, "drinks", drinks);
+
+        var $chatmodel = $("#chatmodel");
+
+        if (options.guest) {
+            $.getJSON(options.roomListUrl + '?callback=?', function(rooms) {
+                replaceRoomList(rooms);
+            });
+        } else {
+            ws = new WebSocketClient();
+            ws.onmessage = handleJson;
+
+            ws.onopen = function () {
+                connectMediaServer(params.serverUrl, function() {
+                    ws.send(JSON.stringify({
+                        cmd: "login",
+                        sid: $chatmodel.data('sid')
+                    }));
+                });
+            };
+
+            ws.ondisconnect = function () {
+                if (chatmodel.currentRoom) {
+                    addErrorMessage("Соединение прервано, переустанавливаем...");
+                }
+            };
+
+            ws.onclose = function () {
+                reset();
+                addErrorMessage("Соединение закрыто. Возможно, страница была открыта в другой вкладке браузера.");
+            };
+
+            if ($chatmodel.data('sid') !== '') {
+                ws.open($chatmodel.data("ws-url"));
+            }
+        }
+    };
+
+})(window);

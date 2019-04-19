@@ -1,0 +1,2 @@
+/* PLEASE DO NOT COPY AND PASTE THIS CODE. */
+!function(){var t=document.createElement("script");t.type="text/javascript",t.async=!0,t.src="https://cdn.arkoselabs.com/fc/js/c031bc7e8b941d594a2cc89536a3dc14/standard/funcaptcha_api.js";var e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(t,e)}();

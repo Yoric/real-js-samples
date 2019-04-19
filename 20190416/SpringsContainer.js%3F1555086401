@@ -1,0 +1,386 @@
+// import from '../lib/polyfills/raf'
+// import {extend, debounce, getView} from '../lib/basic'
+// import {multi} from '../tools/tools.funcTools'
+
+;(function (window, $, cpf) {
+	'use strict';
+
+	if (!(!!window.requestAnimationFrame)) {
+		throw new Error('Install \'requestAnimationFrame\' polyfill, por favor. Comprendes, amigo?');
+	}
+
+	var raf = window.requestAnimationFrame;
+	var rafIsNative = !!(window.requestAnimationFrame && window.requestAnimationFrame.name);
+
+	var extend = cpf.Basic.Extend;
+	var debounce = cpf.Basic.debounce;
+	var getView = cpf.Basic.Constructors.getView;
+
+	var MODULE_NAME = 'SpringsContainer';
+
+	/**
+	 * Дефолтные настройки для контейнера
+	 * @property {function} filters - возвращает список имен фильтров,
+	 *     которые следует применить к каждому элементу.
+	 *     Сами фильтры определены в SpringsGroup.
+	 */
+	var defaultOptions = {
+		cssSels: {
+			Main: {
+				top: '.js-springs__top',
+				bottom: '.js-springs__bottom'
+			},
+			item: '.js-springs__item',
+			group: '.js-springs__group',
+			groupTop: '.js-springs__group_top',
+			groupBottom: '.js-springs__group_bottom'
+		},
+		autostart: true,
+		alwaysShowFirst: true,
+		itemOptions: {
+			minHeight: 10
+		},
+		filters: function () {
+			return ['notEmpty', 'minHeight', 'maxHeight'];
+		},
+		groupParams: {},
+		minSegmentHeight: 600,
+		lazyTimeout: 1000,
+		paddingTop: 0,
+		itemPaddingBottom: 20,
+		itemWrapTemplate: function (html) {
+			return html;
+		}
+	};
+
+	var $window = $(window);
+
+	/**
+	 * Выводит сообщение в консоль при DEBUG режиме
+	 */
+	function print () {
+		if (!window.DEBUG) {
+			return;
+		}
+		var args = [MODULE_NAME + ':'].concat(Array.prototype.slice.call(arguments, 0));
+		window.console.info.apply(window.console, args);
+	}
+
+	function getScrollPosition () {
+		if ((typeof window.pageXOffset !== 'undefined') &&
+				(typeof window.pageYOffset !== 'undefined')) {
+			return {
+				left: window.pageXOffset,
+				top: window.pageYOffset
+			};
+		} else {
+			var el = (document.documentElement || document.body.parentNode || document.body);
+			return {
+				left: el.scrollLeft,
+				top: el.scrollTop
+			};
+		}
+	}
+
+	var SpringsContainer = getView((function () {
+		function getAnchor (anchor, defAnchor) {
+			if (anchor) {
+				if (!anchor.length) {
+					return defAnchor;
+				}
+				return $(anchor.get(0));
+			}
+			return defAnchor;
+		}
+
+		var _requestRender = function (f) {
+			if (!this._state.processing) {
+				raf(f.bind(this));
+				this._state.processing = true;
+			}
+		};
+
+		var _getNamespaceFor = function (name, delimiter) {
+			delimiter = delimiter || '.';
+			return [name, this._props.namespace].join(delimiter);
+		};
+
+		/**
+		 * При изменении измерений контейнера пересчитает его стейт
+		 */
+		var _DOMChangeListener = function () {
+			var prevDimensions = this._state.dimensions;
+			var currDimensions = this.getDimensions();
+
+			var itemsChanged = this._state.groups.some(function (group) {
+				return group.itemsHeightChanged();
+			});
+
+			if ((prevDimensions.height !== currDimensions.height) || itemsChanged) {
+				this._trigger('dimensionsChange', prevDimensions, currDimensions);
+				this.resetState();
+				this.update(true);
+			}
+		};
+
+		var _resizeHandler = function () {
+			this.resetState();
+			this.update(true);
+		};
+
+		/**
+		* Обработчик сообщения об успешном добавлении adq-слота
+		* @param {object} pubsubMessage
+		* @this {SpringsContainer}
+		*/
+		var adqSlotAddHandler = function (/* pubsubMessage */) {
+			this.initGroups();
+		};
+
+		// Принудительный repaint по завершению скрола. Сделан для Opera 12,
+		// в которой внутренний баг блокируют repaint при работе тяжелых
+		// обработчиков на событии scroll. Включается также в других браузерах
+		// без поддержки requestAnimationFrame.
+		// Здесь создаются две debounce-функции: первая срабатывает в начале скрола
+		// и добавляет класс "_" к элементу body, вторая срабатывает по завершению
+		// скрола и убирает этот класс. Манипулирование классами вынуждает браузер
+		// выполнить repaint после скрола.
+		// Если в браузере есть поддержка requestAnimationFrame, создаются пустые
+		// функции, чтобы не тратить вычислительные ресурсы.
+		function forceRepaint () {
+			var bodyElem = $(document.body);
+			bodyElem.toggleClass('_', !bodyElem.hasClass('_'));
+		}
+
+		/**
+		 * Получение значения для опции из объектов, переданных, начиная со второго аругумента,
+		 * в порядке приоритета. Используется для получения более приоритетного значения из опций группы.
+		 * @param {Array} namesList — Массив имен опций, значения которых ищем
+		 * @returns {object} - набор опций для группы
+		 */
+		function getGroupOpts (namesList/*, obj1, obj2... objN  */) {
+			var groupOpts = {},
+				optList = Array.prototype.slice.call(arguments, 1);
+
+			namesList.forEach(function (optName) {
+				optList.some(function (obj) {
+					if (obj && optName in obj) {
+						groupOpts[optName] = obj[optName];
+						return true;
+					}
+					return false;
+				});
+			});
+			return groupOpts;
+		}
+
+		var forceRepaintBegin = rafIsNative ? function () {} : debounce(forceRepaint, 80, true);
+		var forceRepaintEnd = rafIsNative ? function () {} : debounce(forceRepaint, 80);
+
+		var _scrollHandler = function () {
+			this.update();
+			forceRepaintBegin();
+			forceRepaintEnd();
+		};
+
+		return {
+			_Events: ['ready', 'dimensionsChange', 'groupStatusChange'],
+			_Handlers: {
+				pubsub: {
+					adqSlotAdded: adqSlotAddHandler
+				}
+			},
+			_Init: function () {
+				if (!this._elems.top) {
+					print('_Elems.top not found');
+					return;
+				}
+				if (!this._elems.bottom) {
+					print('_Elems.bottom not found');
+					return;
+				}
+
+				this._elems.parent.data(MODULE_NAME, this);
+
+				this._props = {
+					namespace: MODULE_NAME + (Math.random() * 10e16)
+				};
+				this._state = {
+					groupStatus: {},
+					groups: [],
+					lazyLoading: true,
+					dimensions: {
+						top: null,
+						bottom: null,
+						height: null
+					}
+				};
+
+				var scrollEventName = _getNamespaceFor.call(this, 'scroll');
+				var resizeEventName = _getNamespaceFor.call(this, 'resize');
+
+				$window.on(scrollEventName, _requestRender.bind(this, _scrollHandler));
+				$window.on(resizeEventName, _requestRender.bind(this, _resizeHandler));
+				this._trigger('ready');
+
+				this._timer = setInterval(_DOMChangeListener.bind(this), 200);
+			},
+
+			/**
+			 * Обновление состояния группы/групп
+			 * @param {boolean} isForced  Принудительное обновление (без оптимизаций)
+			 * @returns {SpringsContainer}
+			 */
+			update: function (isForced) {
+				var scroll = getScrollPosition();
+
+				this._state.groups.forEach(function (group) {
+					group.update(scroll, group.getIndex(scroll), !!isForced);
+				});
+
+				this._state.processing = false;
+				return this;
+			},
+
+			/**
+			 * Добавляет группу элементов
+			 * @param {Array} nodes - массив объектов вида {$: <jQuery>, options: <Object>}
+			 * @param {Object} groupOpts - опции для создания новой группы айтемов
+			 *   @property {object} options.groupNode - контейнер, в котором будет искаться anchorTop при апдейте стейта
+			 */
+			addGroup: function (nodes, groupOpts) {
+				groupOpts = groupOpts || {};
+
+				var commonOpts = this._Opts;
+
+				// Получаем объект опций, сформированный по их приоритету для группы
+				var groupMergedOpts = getGroupOpts([
+					'alwaysShowFirst', 'paddingTop', 'itemPaddingBottom', 'minSegmentHeight', 'groupParams'
+				], groupOpts, commonOpts);
+
+				extend(groupMergedOpts, {
+					itemWrapTemplate: commonOpts.itemWrapTemplate,
+					parentNode: this._elems.top,
+					lazyTimeout: commonOpts.lazyTimeout,
+					filters: groupOpts.filters || commonOpts.filters,
+					onGroupStatusChange: function (groupId, status) {
+						if (this._state.groupStatus[groupId] !== status) {
+							this._state.groupStatus[groupId] = status;
+
+							// универсальное событие для всех модулей cpf
+							this._elems.parent.trigger('documentHeightChange');
+							// и окошко заодно
+							$window.trigger('resize');
+
+							this._trigger('groupStatusChange', groupId, status);
+						}
+					}.bind(this)
+				});
+
+				var anchorTop = getAnchor(groupOpts.anchorTop, this._elems.top);
+				var anchorBottom = getAnchor(groupOpts.anchorBottom, this._elems.bottom);
+
+				var group = new cpf.Modules.SpringsGroup(nodes, groupMergedOpts, commonOpts.itemOptions, {
+					top: anchorTop,
+					bottom: anchorBottom,
+					groupNode: groupOpts.groupNode
+				});
+				this._state.groups.push(group);
+
+				if (commonOpts.autostart) {
+					this.resetState();
+					group.initialize();
+				}
+
+				group.ready(function () {
+					this.resetState();
+				}.bind(this));
+
+				this.resetState();
+				return this;
+			},
+
+			initGroups: function () {
+				if (this._state) {
+					this._state.groups.forEach(function (group) {
+						group.revert().initialize();
+					});
+					this.resetState();
+				}
+				return this;
+			},
+
+			getDimensions: function () {
+				var scroll = getScrollPosition();
+
+				var topRect;
+				var bottomRect;
+
+				try {
+					topRect = this._Elems.top.get(0).getBoundingClientRect();
+					bottomRect = this._Elems.bottom.get(0).getBoundingClientRect();
+				} catch (e) {
+					topRect = {top: 0};
+					bottomRect = {top: 0};
+				}
+
+				var top = topRect.top + scroll.top;
+				var bottom = bottomRect.top + scroll.top;
+				var height = bottom - top;
+
+				return {
+					top: top,
+					bottom: bottom,
+					height: height
+				};
+			},
+
+			resetState: function () {
+				var elems = this._elems;
+				var parent = elems.parent;
+				var sels = this._opts.cssSels;
+				var topSel = sels.Main.top;
+				var botSel = sels.Main.bottom;
+				var dimensions = this.getDimensions();
+
+				// Обновить якоря (могли измениться при динамическом обновлении страницы)
+				elems.top = parent.find(topSel).add(parent.filter(topSel)).eq(0);
+				elems.bottom = parent.find(botSel);
+
+				this._state.groups.forEach(function (g, i, groups) {
+					var topSel = sels.groupTop;
+					var botSel = sels.groupBottom;
+					var $group = g._groupNode;
+					var anchors = g.getAnchors();
+					var $top = anchors.top;
+					var $bottom = anchors.bottom;
+
+					// Обновить якоря групп (могли измениться при динамическом обновлении страницы)
+					if ($group) {
+						$top = $top || $group.filter(topSel).add($group.find(topSel)).eq(0);
+						$bottom = $bottom || $group.find(botSel).eq(0);
+					}
+					if (!($top && $top.length)) {
+						$top = elems.top;
+					}
+					if (!($bottom && $bottom.length)) {
+						$bottom = elems.bottom;
+					}
+					g.resetState({
+						isFirstGroup: i === 0,
+						isLastGroup: i === groups.length - 1,
+						dimensions: dimensions,
+						anchorTop: $top,
+						anchorBottom: $bottom
+					});
+				});
+				this._state.dimensions = dimensions;
+				this._state.processing = false;
+
+				return this;
+			}
+		};
+	}()), defaultOptions, null, MODULE_NAME);
+
+	window.getNameSpace('Modules', cpf)[MODULE_NAME] = SpringsContainer;
+}(this, this.jQuery || this.$, this.ru.mail.cpf));

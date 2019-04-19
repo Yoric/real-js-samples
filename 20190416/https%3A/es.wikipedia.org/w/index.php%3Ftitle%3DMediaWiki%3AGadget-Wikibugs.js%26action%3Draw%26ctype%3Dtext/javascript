@@ -1,0 +1,359 @@
+/*
+ * Original version: http://pl.wikipedia.org/wiki/MediaWiki:Wikibugs.js (2008-12-17)
+ * Russian version by [[User:Александр Сигачёв]], [[User:Putnik]], [[User:LEMeZza]]
+ * Converted to OOjs (2017-05-20) by [[User:Putnik]]
+ * Spanish version (2018-03-06) by [[User:Leoncastro]]
+ */
+( function ( mw, $ ) {
+	'use strict';
+
+	var wb$bugsPage = 'Wikipedia:Informes_de_error';
+	var wb$badPages = [
+		"Wikipedia:Portada", "Wikipedia:Informes_de_error",
+		"MSN", "Hotmail", "Facebook", "Twitter", "Skype", "Amazon",
+		"Windows_Live_Messenger", "Correo_Yahoo!", "Windows_Live", "Internet_Explorer"
+	];
+
+	if ( $.inArray( mw.config.get( 'wgNamespaceNumber' ), [ -1 , 6 , 7 , 8 ]) > -1 ||
+		 $.inArray( mw.config.get( 'wgPageName' ), wb$badPages ) > -1 ) {
+		$( '#n-bug_in_article' ).hide();
+	}
+	var wb$link = function ( page ) {
+		return mw.config.get( 'wgArticlePath' ).replace( /\$1/, page.replace( / /g, '_' ) );
+	};
+
+	var wb$i18n = {
+		nsFile: 'Archivo:',
+		nsSpecial: 'Especial:',
+		nsCat: 'Categoría:',
+		title: 'Informe de errores',
+		btnFix: 'Voy a arreglarlo',
+		btnReport: 'Informar del error',
+		btnCancel: 'Cancelar',
+		btnSend: 'Enviar',
+		fldPage: 'Título de la página',
+		fldText: 'Texto del mensaje',
+		fldTextInfo: 'Por favor, danos la máxima información posible acerca del error que has encontrado. ' +
+			'A ser posible indica una referencia o sitio web que permita una verificación del dato.',
+		fldCaptcha: 'Código de verificación',
+		fldSign: 'Firma',
+		alertShort: 'El reporte es demasiado corto, por favor, añade más detalles.',
+		alertNoPage: 'Introduce el nombre del artículo.',
+		alertCaptcha: 'Su texto contiene enlaces externos. Por favor,' +
+			' ingrese el código de la imagen y envíe el mensaje nuevamente.',
+		alertError: 'Se produjo un error al enviar. Intenta nuevamente.',
+		msgSign: '\n\nEnviado por:',
+		newTopic: 'Sección nueva:',
+		htmlIpWarn: '<p><b>Atención.</b> Tu dirección IP quedará registrada en el historial y podrá verse.' +
+			' Puedes crearte una <a href="//es.wikipedia.org/w/index.php?title=Especial:Entrar&type=signup"' +
+			' target="_blank">cuenta de usuario</a>.</p>',
+		htmlInfo: '<div style="float:right;width:200px;padding:4px 10px;' +
+			'margin:2px 0px 0px 10px;font-size:90%;border:2px solid #a6170f;' +
+			'border-radius:3px">' +
+				'<p><b>No informes</b> de errores en otros sitios ' +
+					'(como <b>Facebook</b> o <b>Twitter</b>); no lo atenderemos.</p>' +
+				'<p>Por favor, no informes sobre artículos que faltan; lo correcto es enviar' +
+					' una <a href="' + wb$link( 'Wikipedia:Artículos_solicitados' ) +
+					'">solicitud de creación</a>.</p>' +
+			'</div>' +
+			'<p><b>Este sistema sirve <u>únicamente</u> para informar sobre' +
+				' errores en los artículos de Wikipedia</b>.</p>' +
+			'<p style="margin-top:0">Si has encontrado un error, por favor, intenta arreglarlo tú mismo; la ' +
+				'<a href="' + wb$link( 'wiki' ) + '" target="_blank">tecnología wiki</a> permite que cualquiera pueda ' +
+				'<b><a href="' + wb$link( 'Ayuda:Introducción' ) + '" target="_blank">editar artículos</a></b>.' +
+			'</p>' +
+			'<p>No dudes en hacerlo, una de las reglas de Wikipedia dice «¡<a href="' +
+				wb$link( 'Wikipedia:Sé_valiente_al_editar_páginas' ) +
+				'" target="_blank">sé valiente editando páginas</a>!».' +
+			'</p>' +
+			'<p>Si no puedes o no sabes arreglar el error, entonces infórmanos de él usando este formulario.</p>' +
+			'<p><b>Si el error ya se ha corregido, no lo informes.</b></p>' +
+			'<p style="color:red"><b><u>No</u> dejes tu número de teléfono ni tu correo electrónico</b>.</p>' +
+			'<p><a href="' + wb$link( wb$bugsPage ) + '" target="_blank">Ver los informes de error actuales</a>.</p>' +
+			'<p>Lee los <a href="//wikimediafoundation.org/wiki/Términos_de_Uso"' +
+				' target="_blank">términos de uso</a> y la ' +
+				'<a href="//wikimediafoundation.org/wiki/Política_de_privacidad"' +
+				' target="_blank">política de privacidad</a>.</p>'
+	};
+
+	var wb$isValidPageName = function (name) {
+		if ( !name || name.substr( 0, name.indexOf( ':' ) + 1 ) === wb$i18n.nsSpecial ) {
+			return false;
+		}
+		name = name.replace( /_/g, ' ' );
+		for ( var i = 0; i < wb$badPages.length; i++ ) {
+			if ( name === wb$badPages[i] ) {
+				return false;
+			}
+		}
+		return true;
+	};
+
+	var wb$popWikibug = function () {
+		// Info popup
+		var canEdit = false,
+			$editLink = $( '#ca-edit a' );
+		if ( $editLink.length ) {
+			canEdit = true;
+		}
+
+		// Prepare messages
+		var $infoHtml = $( '<div>' ).html( $.parseHTML( wb$i18n.htmlInfo ) );
+		if ( !mw.config.get( 'wgUserName' ) ) {
+			$infoHtml.append( $( '<p>' ).html( $.parseHTML( wb$i18n.htmlIpWarn ) ) );
+		}
+
+		// OOjs window
+		var windowManager = new OO.ui.WindowManager();
+		var infoDialog = new OO.ui.MessageDialog();
+		$( 'body' ).append( windowManager.$element );
+		windowManager.addWindows( [ infoDialog ] );
+		windowManager.openWindow( infoDialog, {
+			title: wb$i18n.title,
+			message: $infoHtml,
+			actions: [
+				{ label: wb$i18n.btnFix, action: 'edit', flags: 'progressive' },
+				{ label: wb$i18n.btnReport, action: 'report', flags: 'progressive' },
+				{ label: wb$i18n.btnCancel },
+			],
+			size: 'large',
+		} ).then( function ( opened ) {
+			function ReportDialog( config ) {
+				ReportDialog.parent.call( this, config );
+			}
+			opened.then( function ( closing, data ) {
+				if ( data && data.action === 'edit' ) {
+					// Go to edit page
+					var $editLink = $( '#ca-edit a' ),
+						editUrl = mw.config.get( 'wgArticlePath' ).replace( /\$1/, wb$bugsPage );
+					if ( $editLink.length ) {
+						editUrl = $editLink.attr( 'href' );
+					}
+					window.location.assign( editUrl );
+
+				} else if ( data && data.action === 'report' ) {
+					// Prepare form
+					var inputPage = new OO.ui.TextInputWidget( {
+						placeholder: wb$i18n.fldPage,
+						value: mw.config.get( 'wgPageName' ).replace( /_/g, ' ' ),
+						disabled: wb$isValidPageName( mw.config.get( 'wgPageName' ) ) && !mw.config.get( 'wgNamespaceNumber' ),
+					} );
+
+					var inputText = new OO.ui.MultilineTextInputWidget( {
+						placeholder: wb$i18n.fldTextInfo,
+						rows: 5
+					} );
+
+					var inputCaptcha = new OO.ui.TextInputWidget( {
+						placeholder: wb$i18n.fldCaptcha,
+					} );
+
+					var panelCaptcha = new OO.ui.FieldLayout( inputCaptcha, {
+						label: wb$i18n.fldCaptcha,
+					} );
+					panelCaptcha.toggle( false );
+
+					var imageCaptcha = new OO.ui.ToggleWidget();
+					imageCaptcha.$element.css( 'text-align', 'right' );
+					imageCaptcha.$element.append( $( '<img>' )
+						.attr( 'id', 'wikibugs-captcha-img' )
+						.attr( 'width', 249 )
+						.attr( 'height', 63 ) );
+					imageCaptcha.toggle( false );
+
+					var inputSign = new OO.ui.TextInputWidget( {
+						placeholder: wb$i18n.fldSign,
+						value: mw.config.get( 'wgUserName' ) ? '~~' + '~~' : '',
+						disabled: mw.config.get( 'wgUserName' )
+					} );
+
+					var fieldset = new OO.ui.FieldsetLayout( {
+						classes: [ 'container' ],
+					} );
+
+					fieldset.addItems( [
+						new OO.ui.FieldLayout( inputPage, {
+							label: wb$i18n.fldPage,
+							align: 'top'
+						} ),
+						new OO.ui.FieldLayout( inputText, {
+							label: wb$i18n.fldText,
+							align: 'top'
+						} ),
+						panelCaptcha,
+						imageCaptcha,
+						new OO.ui.FieldLayout( inputSign, {
+							label: wb$i18n.fldSign,
+						} ),
+					] );
+
+					// Add the FieldsetLayout to a FormLayout.
+					var form = new OO.ui.FormLayout( {
+						items: [ fieldset ],
+					} );
+
+					// Open window with report form
+					OO.inheritClass( ReportDialog, OO.ui.MessageDialog );
+					ReportDialog.static.name = 'reportDialog';
+					ReportDialog.prototype.getActionProcess = function ( action ) {
+						var dialog = this;
+						if ( action ) {
+							return new OO.ui.Process( function () {
+								if ( action === 'send' ) {
+									dialog.getActions().setAbilities({ send: false });
+
+									// Send message
+									var content = inputText.getValue();
+									if ( content === '' || content.length < 20 || !content.match( ' ' ) ) {
+										mw.notify( wb$i18n.alertShort );
+										inputText.focus();
+										dialog.getActions().setAbilities({ send: true });
+										return;
+									}
+
+									var page = inputPage.getValue()
+											.replace( /^https?:\/\/es\.wikipedia\.org\/wiki\/(.+)$/, '$1' )
+											.replace( /_/g, ' ' );
+									page = decodeURIComponent( page );
+
+									var section;
+
+									if ( page === mw.config.get( 'wgPageName' ).replace( /_/g, ' ' ) &&
+										wb$isValidPageName( mw.config.get( 'wgPageName' ) )
+									) {
+										if ( mw.config.get( 'wgNamespaceNumber' ) === 6 ) {
+											section = '[[:' + wb$i18n.nsFile + mw.config.get( 'wgTitle' ) + '|' + window.wgTitle + ']]';
+											content = '[[' + wb$i18n.nsFile + mw.config.get( 'wgTitle' ) +
+													'|thumb|left|100px]]\n* ' + content + '\n{{clear}}';
+										} else {
+											var re = new RegExp( '^('+ wb$i18n.nsCat + '|'+ wb$i18n.nsFile + '|\\/)' );
+											section = page.replace( re, ':$1' );
+											section = '[[' + section + ']]';
+										}
+									} else {
+										page = page
+											.replace( /\[\[([^\[\]\|]+)\|[^\[\]\|]+\]\]/g, '$1' )
+											.replace( /[\[\]\|]/g, '' )
+											.replace( /^\s+/g, '' )
+											.replace( /\s+$/g, '' );
+
+										if ( !wb$isValidPageName( page ) ) {
+											mw.notify( wb$i18n.alertNoPage );
+											if ( wb$isValidPageName( mw.config.get( 'wgPageName' ) ) ) {
+												inputPage.setValue( mw.config.get( 'wgPageName' ) );
+											} else {
+												inputPage.setValue( '' );
+												inputPage.focus();
+											}
+											dialog.getActions().setAbilities({ send: true });
+											return;
+										}
+										if ( page.indexOf( ':' ) > 0 ) {
+											section = '[[:' + page + ']]';
+										} else {
+											section = '[[' + page + ']]';
+										}
+									}
+
+									content += wb$i18n.msgSign;
+									if ( !mw.config.get( 'wgUserName' ) ) {
+										content += ' ' + inputSign.getValue().trim();
+									}
+									content += ' ~~' + '~~';
+
+									dialog.getActions().get()[0].pushPending();
+
+									var data = {
+										format: 'json',
+										action: 'edit',
+										title: wb$bugsPage,
+										section: 'new',
+										sectiontitle: section,
+										summary: wb$i18n.newTopic + ' /* ' + page + ' */',
+										text: content.trim(),
+										token: mw.user.tokens.get( 'editToken' )
+									};
+									var captchaId = $( '#wikibugs-captcha-img' ).data( 'id' );
+									if ( captchaId ) {
+										data.captchaid = captchaId;
+										data.captchaword = inputCaptcha.getValue().trim();
+									}
+
+									$.ajax( {
+										url: '/w/api.php',
+										type: 'POST',
+										data: data,
+										success: function ( xhr ) {
+											if ( xhr && xhr.edit && xhr.edit.result === 'Success' ) {
+												// Success
+												var url = mw.config.get( 'wgArticlePath' )
+														.replace( /\$1/, wb$bugsPage )
+														.replace( / /g, '_' );
+												window.location.href = url + '#' + page;
+											} else if ( xhr &&
+												xhr.edit &&
+												xhr.edit.captcha &&
+												xhr.edit.captcha.type === 'image'
+											) {
+												// Captcha
+												$( '#wikibugs-captcha-img' )
+													.attr( 'src', xhr.edit.captcha.url )
+													.data( 'id', xhr.edit.captcha.id );
+												imageCaptcha.toggle( true );
+												inputCaptcha.setValue( '' );
+												panelCaptcha.toggle( true );
+												dialog.getActions().get()[0].popPending();
+												mw.notify( wb$i18n.alertCaptcha );
+												dialog.getActions().setAbilities({ send: true });
+											} else {
+												// Error
+												dialog.getActions().get()[0].popPending();
+												mw.notify( wb$i18n.alertError );
+												dialog.getActions().setAbilities({ send: true });
+											}
+										},
+										error: function() {
+											dialog.getActions().get()[0].popPending();
+											mw.notify( wb$i18n.alertError );
+											dialog.getActions().setAbilities({ send: true });
+										}
+									} );
+								} else {
+									dialog.close();
+								}
+							} );
+						}
+						return ReportDialog.parent.prototype.getActionProcess.call( this, action );
+					};
+
+					var reportDialog = new ReportDialog();
+					windowManager.addWindows( [ reportDialog ] );
+
+					windowManager.openWindow( reportDialog, {
+						title: wb$i18n.title,
+						message: form.$element,
+						actions: [
+							{ label: wb$i18n.btnSend, action: 'send', flags: 'progressive' },
+							{ label: wb$i18n.btnCancel },
+						],
+						size: 'medium',
+					} );
+				}
+			} );
+		} );
+	};
+
+	// Click event
+	$( function() {
+		$( '#n-bug_in_article a' ).click( function ( e ) {
+			e.preventDefault();
+			mw.loader.using( [
+				'mediawiki.api',
+				'oojs-ui-core',
+				'oojs-ui-widgets',
+				'oojs-ui-windows'
+			] ).then( wb$popWikibug );
+		} );
+	} );
+
+}( mediaWiki, jQuery ) );

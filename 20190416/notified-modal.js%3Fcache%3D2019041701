@@ -1,0 +1,1 @@
+function closeModal(){isNotifiedObj.key,isNotifiedObj.hash;var o=isNotifiedObj.modalId,i=isNotifiedObj.notificationId,t=isNotifiedObj.token;$j.ajax({url:isNotifiedObj.ajaxUrl,data:{token:t,notificationId:i},type:"post",success:function(i){setCookie("notified_sponsor_"+isNotifiedObj.liuId,1,365),setTimeout(function(){$j("#"+o).hide(200)},5e3)}})}

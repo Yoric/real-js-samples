@@ -1,0 +1,304 @@
+// 30个NBA球队在各系统中的id对应关系
+
+var _QQNBA_TEAM_IDS = {
+  "hawks": {
+    "ch_name": "老鹰",
+    "kbs_id": "1",
+    "cms_pic_id": "teamhawks",
+    "cms_col_id": "hawks_nba",
+    "pinyin": "laoying",
+    "tubd_id": "22_1",
+    "region": "east",
+    "res_id": "119357"
+  },
+  "cavaliers": {
+    "ch_name": "骑士",
+    "kbs_id": "5",
+    "cms_pic_id": "teamcavs",
+    "cms_col_id": "cavs_nba",
+    "pinyin": "qishi",
+    "tubd_id": "22_5",
+    "region": "east",
+    "res_id": "119367"
+  },
+  "bulls": {
+    "ch_name": "公牛",
+    "kbs_id": "4",
+    "cms_pic_id": "teambulls",
+    "cms_col_id": "bulls_nba",
+    "pinyin": "gongniu",
+    "tubd_id": "22_4",
+    "region": "east",
+    "res_id": "119540"
+  },
+  "raptors": {
+    "ch_name": "猛龙",
+    "kbs_id": "28",
+    "cms_pic_id": "teamraptors",
+    "cms_col_id": "raptors_nba",
+    "pinyin": "menglong",
+    "tubd_id": "22_28",
+    "region": "east",
+    "res_id": "119412"
+  },
+  "wizards": {
+    "ch_name": "奇才",
+    "kbs_id": "27",
+    "cms_pic_id": "teamwizards",
+    "cms_col_id": "wizards_nba",
+    "pinyin": "qicai",
+    "tubd_id": "22_27",
+    "region": "east",
+    "res_id": "119385"
+  },
+  "bucks": {
+    "ch_name": "雄鹿",
+    "kbs_id": "15",
+    "cms_pic_id": "teambucks",
+    "cms_col_id": "bucks_nba",
+    "pinyin": "xionglu",
+    "tubd_id": "22_15",
+    "region": "east",
+    "res_id": "156217"
+  },
+  "celtics": {
+    "ch_name": "凯尔特人",
+    "kbs_id": "2",
+    "cms_pic_id": "teamceltics",
+    "cms_col_id": "celtics_nba",
+    "pinyin": "kaierteren",
+    "tubd_id": "22_2",
+    "region": "east",
+    "res_id": "119373"
+  },
+  "nets": {
+    "ch_name": "篮网",
+    "kbs_id": "17",
+    "cms_pic_id": "newjersey",
+    "cms_col_id": "yinets",
+    "pinyin": "lanwang",
+    "tubd_id": "22_17",
+    "region": "east",
+    "res_id": "155531"
+  },
+  "pacers": {
+    "ch_name": "步行者",
+    "kbs_id": "11",
+    "cms_pic_id": "teampacers",
+    "cms_col_id": "pacers_nba",
+    "pinyin": "buxingzhe",
+    "tubd_id": "22_11",
+    "region": "east",
+    "res_id": "155542"
+  },
+  "heat": {
+    "ch_name": "热火",
+    "kbs_id": "14",
+    "cms_pic_id": "teamheat",
+    "cms_col_id": "heat_nba",
+    "pinyin": "rehuo",
+    "tubd_id": "22_14",
+    "region": "east",
+    "res_id": "119572"
+  },
+  "hornets": {
+    "ch_name": "黄蜂",
+    "kbs_id": "30",
+    "cms_pic_id": "teambobcats",
+    "cms_col_id": "bobcats_nba",
+    "pinyin": "huangfeng",
+    "tubd_id": "22_30",
+    "region": "east",
+    "res_id": "119411"
+  },
+  "pistons": {
+    "ch_name": "活塞",
+    "kbs_id": "8",
+    "cms_pic_id": "teampistons",
+    "cms_col_id": "pistons_nba",
+    "pinyin": "huosai",
+    "tubd_id": "22_8",
+    "region": "east",
+    "res_id": "119457"
+  },
+  "magic": {
+    "ch_name": "魔术",
+    "kbs_id": "19",
+    "cms_pic_id": "teammagic",
+    "cms_col_id": "magic_nba",
+    "pinyin": "moshu",
+    "tubd_id": "22_19",
+    "region": "east",
+    "res_id": "119419"
+  },
+  "sixers": {
+    "ch_name": "76人",
+    "kbs_id": "20",
+    "cms_pic_id": "team76ers",
+    "cms_col_id": "sixers_nba",
+    "pinyin": "76ren",
+    "tubd_id": "22_20",
+    "region": "east",
+    "res_id": "119565"
+  },
+  "knicks": {
+    "ch_name": "尼克斯",
+    "kbs_id": "18",
+    "cms_pic_id": "teamknicks",
+    "cms_col_id": "knicks_nba",
+    "pinyin": "nikesi",
+    "tubd_id": "22_18",
+    "region": "east",
+    "res_id": "155595"
+  },
+  "warriors": {
+    "ch_name": "勇士",
+    "kbs_id": "9",
+    "cms_pic_id": "teamwarriors",
+    "cms_col_id": "warriors_nba",
+    "pinyin": "yongshi",
+    "tubd_id": "22_9",
+    "region": "west",
+    "res_id": "119577"
+  },
+  "rockets": {
+    "ch_name": "火箭",
+    "kbs_id": "10",
+    "cms_pic_id": "houston",
+    "cms_col_id": "yaoming0607",
+    "pinyin": "huojian",
+    "tubd_id": "22_10",
+    "region": "west",
+    "res_id": "119359"
+  },
+  "clippers": {
+    "ch_name": "快船",
+    "kbs_id": "12",
+    "cms_pic_id": "teamclippers",
+    "cms_col_id": "clippers_nba",
+    "pinyin": "kuaichuan",
+    "tubd_id": "22_12",
+    "region": "west",
+    "res_id": "119510"
+  },
+  "blazers": {
+    "ch_name": "开拓者",
+    "kbs_id": "22",
+    "cms_pic_id": "teamblazers",
+    "cms_col_id": "blazers_nba",
+    "pinyin": "kaituozhe",
+    "tubd_id": "22_22",
+    "region": "west",
+    "res_id": "119508"
+  },
+  "grizzlies": {
+    "ch_name": "灰熊",
+    "kbs_id": "29",
+    "cms_pic_id": "teamgrizzles",
+    "cms_col_id": "grizzles_nba",
+    "pinyin": "huixiong",
+    "tubd_id": "22_29",
+    "region": "west",
+    "res_id": "119425"
+  },
+  "spurs": {
+    "ch_name": "马刺",
+    "kbs_id": "24",
+    "cms_pic_id": "teamspurs",
+    "cms_col_id": "spurs_nba",
+    "pinyin": "maci",
+    "tubd_id": "22_24",
+    "region": "west",
+    "res_id": "119403"
+  },
+  "mavericks": {
+    "ch_name": "小牛",
+    "kbs_id": "6",
+    "cms_pic_id": "teammavericks",
+    "cms_col_id": "mavericks_nba",
+    "pinyin": "xiaoniu",
+    "tubd_id": "22_6",
+    "region": "west",
+    "res_id": "119570"
+  },
+  "pelicans": {
+    "ch_name": "鹈鹕",
+    "kbs_id": "3",
+    "cms_pic_id": "teamhornets",
+    "cms_col_id": "hornets_nba",
+    "pinyin": "tihu",
+    "tubd_id": "22_3",
+    "region": "west",
+    "res_id": "119470"
+  },
+  "thunder": {
+    "ch_name": "雷霆",
+    "kbs_id": "25",
+    "cms_pic_id": "teamthunder",
+    "cms_col_id": "thunders_nba",
+    "pinyin": "leiting",
+    "tubd_id": "22_25",
+    "region": "west",
+    "res_id": "119365"
+  },
+  "suns": {
+    "ch_name": "太阳",
+    "kbs_id": "21",
+    "cms_pic_id": "teamsuns",
+    "cms_col_id": "suns_nba",
+    "pinyin": "taiyang",
+    "tubd_id": "22_21",
+    "region": "west",
+    "res_id": "119550"
+  },
+  "jazz": {
+    "ch_name": "爵士",
+    "kbs_id": "26",
+    "cms_pic_id": "teamjazz",
+    "cms_col_id": "jazz_nba",
+    "pinyin": "jueshi",
+    "tubd_id": "22_26",
+    "region": "west",
+    "res_id": "119521"
+  },
+  "nuggets": {
+    "ch_name": "掘金",
+    "kbs_id": "7",
+    "cms_pic_id": "teamnuggets",
+    "cms_col_id": "nuggets_nba",
+    "pinyin": "juejin",
+    "tubd_id": "22_7",
+    "region": "west",
+    "res_id": "119352"
+  },
+  "kings": {
+    "ch_name": "国王",
+    "kbs_id": "23",
+    "cms_pic_id": "teamkings",
+    "cms_col_id": "kings_nba",
+    "pinyin": "guowang",
+    "tubd_id": "22_23",
+    "region": "west",
+    "res_id": "119551"
+  },
+  "lakers": {
+    "ch_name": "湖人",
+    "kbs_id": "13",
+    "cms_pic_id": "lalakers",
+    "cms_col_id": "lakerssun",
+    "pinyin": "huren",
+    "tubd_id": "22_13",
+    "region": "west",
+    "res_id": "119511"
+  },
+  "timberwolves": {
+    "ch_name": "森林狼",
+    "kbs_id": "16",
+    "cms_pic_id": "teamwolves",
+    "cms_col_id": "wolves_nba",
+    "pinyin": "senlinlang",
+    "tubd_id": "22_16",
+    "region": "west",
+    "res_id": "119473"
+  }
+};

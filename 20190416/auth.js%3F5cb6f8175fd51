@@ -1,0 +1,109 @@
+var ttUserIsLoggedIn = false;
+var v_ttAuth_Exec = false;
+var v_ttAuth_scrollTop;
+
+function ttAuthGetCookie(name) {
+  var matches = document.cookie.match(new RegExp(
+    "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, "\\$1") + "=([^;]*)"
+  ));
+  return matches ? decodeURIComponent(matches[1]) : undefined;
+}
+
+function OpenAuth(o, w, h)
+{
+   window.open(o.attr('href'),"oauth_popup"+Math.random(),"scrollbars=1,resizable=1,menubar=0,toolbar=0,status=0,left="+(screen.width-w)/2+",top="+(screen.height-h)/2+",width="+w+",height="+h).focus();
+}
+
+function ttAuth()
+{
+   v_ttAuth_scrollTop = jQtnk(window).scrollTop();
+   var ttAuthDate = new Date(new Date().getTime() + 10 * 60000);
+   document.cookie = "v_ttAuth_scrollTop="+encodeURIComponent(v_ttAuth_scrollTop)+"; path=/; expires=" + ttAuthDate.toUTCString()+"; domain=."+document.domain.replace('guides.', '');
+   document.cookie = "v_ttAuth_Exec="+encodeURIComponent(v_ttAuth_Exec)+"; path=/; expires=" + ttAuthDate.toUTCString()+"; domain=."+document.domain.replace('guides.', '');
+   document.cookie = "v_ttAuth_URL="+encodeURIComponent(window.location)+"; path=/; expires=" + ttAuthDate.toUTCString()+"; domain=."+document.domain.replace('guides.', '');
+   window.location = '//'+document.domain.replace('guides.', '')+'/myaccount/';
+   return false;
+}
+
+function ttAuth_response(mes)
+{
+   if (mes.errors != null) {
+      window.location = '/myaccount/';
+   }
+   else if (mes.res == 1)
+   {
+      jQtnk('.header_tt_user_name').text(mes.user_name);
+      jQtnk('.header_tt_user').show();
+      jQtnk('.header_tt_auth_registration').hide();
+
+      ttUserIsLoggedIn = true;
+      jQtnk('.ttUser_nick_in_form').html(mes.user_info);
+      if (typeof ttAuthAdditionalAction === 'function') {
+          ttAuthAdditionalAction(mes);
+      }
+   }
+   else if (mes.res == 2)
+   {
+      jQtnk('.ttUser_nick_in_form').html(mes.user_info);
+   }
+}
+
+function ttAuthLogout()
+{
+   jQtnk.post(
+      '/oauth/get_data.php',
+      {
+         'logout': 1
+      },
+      function(data){
+         if (data.RES == 1)
+         {
+            jQtnk('.header_tt_user').hide();
+            jQtnk('.header_tt_auth_registration').show();
+            jQtnk('.header_tt_user_name').text('');
+
+            ttUserIsLoggedIn = false;
+            jQtnk('.ttUser_nick_in_form').html('');
+
+             if (window.location.pathname.indexOf('/myaccount/') != -1 || window.location.pathname.indexOf('/account/') != -1) window.location.reload();
+         }
+         else
+         {
+            window.location = '/myaccount/';
+         }
+      },
+      'json'
+   );
+   return false;
+}
+
+jQtnk(document).ready(function(){
+   jQtnk('.oauth-btn').click(function(){
+      o = jQtnk(this);
+      switch(o.attr("data-service")) {
+         case"facebook":OpenAuth(o,800,520);break;
+         case"twitter":OpenAuth(o,650,520);break;
+         case"vkontakte":OpenAuth(o,670,420);break;
+      }
+      return false;
+   });
+
+   if (ttUserIsLoggedIn)
+   {
+      if (window.location == ttAuthGetCookie("v_ttAuth_URL"))
+      {
+         document.cookie = "v_ttAuth_URL="+encodeURIComponent('')+"; path=/; domain=."+document.domain.replace('guides.', '');
+         if (ttAuthGetCookie("v_ttAuth_scrollTop") != undefined) 
+         {
+            jQtnk(window).scrollTop( ttAuthGetCookie("v_ttAuth_scrollTop") );
+            document.cookie = "v_ttAuth_scrollTop="+encodeURIComponent('')+"; path=/; domain=."+document.domain.replace('guides.', '');
+         }
+         if (ttAuthGetCookie("v_ttAuth_Exec") != undefined) 
+         {
+            eval(ttAuthGetCookie("v_ttAuth_Exec"));
+            v_ttAuth_Exec = false;
+            document.cookie = "v_ttAuth_Exec="+encodeURIComponent('')+"; path=/; domain=."+document.domain.replace('guides.', '');
+         }
+      }
+   }
+});

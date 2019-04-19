@@ -1,0 +1,11 @@
+window.ONEAD_etag_cscb({
+  "dnt": 0,
+  "guid": "dbb86486-6076-11e9-a347-0242ac120003",
+  "guid_exist": true,
+  "ip": "82.255.69.194",
+  "oid": "dbb86486-6076-11e9-a347-0242ac120003",
+  "oid_isnew": false,
+  "success": true,
+  "ts": 1555439922,
+  "ts_s": "2019-04-17 02:38:42 +0800 CST"
+});

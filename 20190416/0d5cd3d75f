@@ -1,0 +1,1 @@
+(function () {try{var u=document.URL,k=u.match(/ncp_beusably_viewer=([^&#]*)/),a="//naverrum.beusable.net/script/checker/b180208e182800u63/0d5cd3d75f?url=",b="//ncp.beusably.net/script/";__beusablerumclient__.load(k&&k[1]?b+k[1]:a+encodeURIComponent(u));}catch(e){__beusablerumclient__.load(k&&k[1]?b+k[1]:a);}})()

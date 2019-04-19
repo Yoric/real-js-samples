@@ -1,0 +1,48 @@
+/**
+ * Плагины MV модулей
+ * @requires 'lib/basic.js'
+ * @requires 'lib/constructors.js'
+ */
+
+(function (window, cpf) {
+	var basic = cpf.Basic;
+	var typeOf = basic.typeOf;
+	var serviceProps = basic.Constructors._getServiceProps().concat(['_Plugins', '_Init', '_Opts']);
+	var baseName = '_plugin',
+		pluginUid = 0;
+	/**
+	 * Регистрирует плагин модуля
+	 * @param {function|string} module Конструктор модуля, для которого регистрируется плагин или его имя
+	 * @param {object} pluginDef Объект плагина, содержащий служебные свойства и свойства, для расширения прототипа модуля
+	 * @param {object} [addOptions] Опции, расширяющие набор опций по-умолчанию
+	 * @param {string} [pluginName] имя плагина
+	 */
+	function registerPlugin (module, pluginDef, addOptions, pluginName) {
+		if (typeOf(module, 'string')) {
+			module = basic.Constructors._repo.get(module);
+		}
+		if (!(typeOf(module, 'function') && typeOf(pluginDef, 'object'))) {
+			throw new TypeError('Arguments must refer to a function and object respectively');
+		}
+		var modulePrototype = module.prototype;
+		var fPluginInit = pluginDef._Init;
+		var oHandlers = pluginDef._Handlers;
+		// удаляем служебные свойства из объекта плагина
+		serviceProps.forEach(function (propName) {
+			delete pluginDef[propName];
+		});
+		if (!(modulePrototype.hasOwnProperty('_Plugins'))) {
+			modulePrototype._Plugins = [];
+		}
+		modulePrototype._Plugins.push({
+			name: pluginName || (baseName + pluginUid++),
+			_Init: fPluginInit,
+			_Handlers: oHandlers,
+			_Opts: addOptions,
+			methods: pluginDef
+		});
+	}
+	basic.Extend(basic.Constructors, {
+		addPlugin: registerPlugin
+	});
+}(this, this.ru.mail.cpf));

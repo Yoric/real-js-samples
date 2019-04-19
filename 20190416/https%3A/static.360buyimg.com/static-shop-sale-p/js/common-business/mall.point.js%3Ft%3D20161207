@@ -1,0 +1,44 @@
+/**
+ * 店铺PC浏览埋点文件
+ * */
+window.ja_heat_map = 1;
+var jaq = jaq || [],
+    shopId = $('#shop_id').val(),
+    pageId = $('#pageInstance_id').val();
+
+var hkFlag = false;
+// hk店铺
+if ($('#hkFlag').length && $('#hkFlag').val() == 'true') {
+    hkFlag = true;
+    jaq.push(['account', 'JA2015_111140']);
+    jaq.push(['domain', 'jd.hk']);
+} else {
+    // 3：1号店店铺；2：京东店铺。
+    if ($('#J_AppType').val() === '3') {
+        jaq.push(['account', 'JA2017_111805']); //站点编号
+        jaq.push(['domain', 'yhd.com']); //站点域名
+    } else {
+        jaq.push(['account', 'JA2017_113712']); //站点编号
+        jaq.push(['domain', 'mall.jd.com']);  //站点域名
+    }
+}
+
+var hasExtParam = false;
+$.each(jaq, function (index, item) {
+    if (item.join('').indexOf('extParams') != -1) {
+        hasExtParam = true;
+    }
+});
+// 如果没有开启个性化，那么只是不上传groupkey
+if (!hasExtParam) {
+    jaq.push(['extParams', 'shopId=' + shopId + '&pageId='+ pageId +'&groupKey=&Rurl=' + window.location.href]);
+}
+
+(function () {
+    var ja = document.createElement('script');
+    ja.type = 'text/javascript';
+    ja.async = true;
+    ja.src = '//wl.jd.com/joya.js';
+    var s = document.getElementsByTagName('script')[0];
+    s.parentNode.insertBefore(ja, s);
+})();

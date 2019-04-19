@@ -1,0 +1,3 @@
+if (self.CavalryLogger) { CavalryLogger.start_js(["0gNUw"]); }
+
+__d("getAutoURLRangesForContentState",["requireCond","cr:830759","cr:832181"],(function(a,b,c,d,e,f){"use strict";__p&&__p();function a(a){return a.getBlockMap().map(function(a){var c=[];b("cr:830759")!==null&&b("cr:830759")(a,function(a,b,d){c.push({start:a,end:b,match:d})});b("cr:832181")!==null&&b("cr:832181")(a,function(a,b,d,e){c.push({start:a,end:b,match:d,hovercard_endpoint:e})});return c}).toArray()}e.exports=a}),null);

@@ -1,0 +1,44 @@
+(function($, window, document, console, undefined) {
+
+    if (!console || !$.isFunction(console.log)) {
+        console = {
+            log:   function(){},
+            error: function(){}
+        };
+    }
+
+    window.Quests = {
+
+        showProfilePopup: function() {
+            Popup.showAjax('Бонус за заполнение анкеты', '/quests/profile', {}, {
+                width: 404
+            });
+        },
+
+        showFirstPaymentPopup: function() {
+            var data = {
+                first: true
+            };
+            Popup.showAjax('Купить золото', '/payments/add', data, {
+                width: 640
+            });
+        },
+
+        activateDailyQuest: function(id) {
+            Popup.confirm('Выполнить задание?', function() {
+                $.post('/quests/daily', {id:id}, Quests.questResponse);
+            });
+        },
+
+        questResponse: function(response) {
+            if (response.redirect) {
+                window.open(response.redirect, '_blank');
+            }
+            else {
+                Profile.alertResponse(response);
+            }
+        }
+
+    };
+
+})(jQuery, window, document, window.console);

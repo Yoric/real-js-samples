@@ -1,0 +1,41 @@
+(function ($, window, oNS, oFest, oAjsUI) {
+	var oPortalMenu = window.__PM;
+	if (!oPortalMenu) {
+		return;
+	}
+	oPortalMenu.whenLoaded(function () {
+		var jCitiesListCont = $('.js-cities_list');
+		if (!jCitiesListCont.length) {
+			return;
+		}
+		var oBasic = oNS.Basic;
+		var typeOf = oBasic.typeOf;
+		var fListTemplate = oFest.city_dropdown;
+		var oFavCities = window.ru.mail.weather.Instances.favoriteCities;
+		var sListReqUrl = '/ext/cities/';
+		var oClss = {
+			requestFail: 'portal-menu__buttons__item_error',
+			listLoading: 'portal-menu__buttons__item_loading'
+		};
+		function hOnCitiesList(mData) {
+			if (typeOf(mData, 'object') && mData.status === 'OK') {
+				mData.current = jCitiesListCont.attr('data-id');
+				mData.pageURI = encodeURIComponent(document.location.protocol + '//' + document.location.hostname + '/');
+				jCitiesListCont.html(fListTemplate(mData));
+			} else {
+				hOnRequestFail();
+			}
+		}
+		function hOnRequestFail() {
+			jCitiesListCont.addClass(oClss.requestFail);
+		}
+		function getCitiesData() {
+			jCitiesListCont.addClass(oClss.listLoading).removeClass(oClss.requestFail);
+			$.getJSON(sListReqUrl).done(hOnCitiesList).fail(hOnRequestFail).always(function () {
+				jCitiesListCont.removeClass(oClss.listLoading);
+			});
+		}
+		getCitiesData();
+		oFavCities.on('status_toggle', getCitiesData);
+	});
+}(this.jQuery, this, this.ru.mail.cpf, this.fest));

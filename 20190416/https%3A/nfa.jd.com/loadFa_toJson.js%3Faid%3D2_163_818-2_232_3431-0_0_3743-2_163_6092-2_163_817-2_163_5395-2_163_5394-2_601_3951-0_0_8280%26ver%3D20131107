@@ -1,0 +1,194 @@
+/* main-1.0.12 ad.js Date:2016-01-19 19:36:01 */
+!function(){var a=[934270,1204614,937436,195285,1400281,1013590,969855,1223123,738362,1583844,1204649,1832014,1297237,1924310,1722324,1583852,1831720,1329382,1353146,684658,1099655,1500480,1158645,1209094,1297235,1365623];var b=!0;var c="-"+a.join("-")+"-";c.indexOf("-"+pageConfig.product.skuid+"-")>-1&&b&&$("#summary-jiadian-quan").remove()}(),function(a){$("#choose");a.product.cat;+new Date(2015,11,3,0,0,0);+new Date(2015,11,12,23,59,59);+new Date;/debug=31/.test(location.href)}(pageConfig);
+$('#comments-list .m-tab-trigger [href="javascript:;"]').each(function() {
+    if ($(this).attr('href') == 'javascript:;') {
+        $(this).attr('href', '#none')
+    };
+});
+
+
+
+;(function() {
+    var ids = [];
+    
+        ids.push('0_0_5702');
+
+    if (ids.length) {
+        $.ajax({ 
+            url: '//nfa.jd.com/loadFa_toJson.js?aid=' + ids.join('-'),
+            dataType: 'script',
+            cache: false
+        });
+    }
+})();
+
+pageConfig.insertStyles = function (a){var b=document,c=b.getElementsByTagName("head"),d=b.createElement("style"),e=b.createElement("link");if(/\.css$/.test(a))e.rel="stylesheet",e.type="text/css",e.href=a,c.length?c[0].appendChild(e):b.documentElement.appendChild(e);else{if(d.setAttribute("type","text/css"),d.styleSheet)d.styleSheet.cssText=a;else{var f=b.createTextNode(a);d.appendChild(f)}c.length&&c[0].appendChild(d)}};
+
+pageConfig.insertStyles('.p-parameter ul li .detail { min-height: 0px; }body .track .extra {z-index:4}');
+pageConfig.insertStyles('.crumb-wrap {z-index:5}.loc-map{ padding-bottom: 8px; }');
+
+(function($, cfg) {
+    var $name = $('.sku-name,#name h1')
+    var text = $.trim($name.text())
+    if (text === '') {
+        $.ajax({
+            url: '//yx.3.cn/service/info.action?ids='+ cfg.skuid +'&u_source=weidian',
+            dataType: 'jsonp',
+            success: function(r) {
+                if (r && r[cfg.skuid]) {
+                    $name.text(r[cfg.skuid].name)
+                }
+            }
+        })
+    }
+})(jQuery, pageConfig.product);
+
+(function($) {
+    if ($('#choose-period-buy').length) {
+        pageConfig.insertStyles('#track .extra {z-index:0;}')
+    }
+})(jQuery);
+
+
+(function(cfg) {
+    if (true) { return false; }
+    if (/debug=tb/.test(location.href)) { return false; }
+
+    function setToolbar(r) {
+        var aid = r && (r.materials[0].imagePath || r.materials[0].link)
+
+        var sid = cfg.cat[2] === 832 ? '737542' : '992349'
+        var phoneNetwork = cfg.phoneNetwork
+            ? cfg.phoneNetwork.join(',')
+            : ''
+
+        var hallEnable = cfg.cat[2] === 655
+        var hallUrl = {
+            url: '//ctc.jd.com/hall/index?',
+            param: {
+                sku: cfg.skuid,
+                cat: cfg.cat.join(','),
+                mode: phoneNetwork
+            }
+        }
+
+        var ad_entry = {
+            enabled: false,
+            startTime: +new Date(1970, 1, 1, 0, 0, 0) / 1000,
+            endTime: +new Date(3017, 1, 1, 0, 0, 0) / 1000
+        }
+
+        if (aid) {
+            ad_entry.enabled = true
+            ad_entry.id = '0_0_' + aid
+        }
+
+        seajs.use(
+            ['//static.360buyimg.com/devfe/toolbar/1.0.0/js/main'],
+            function(toolbar) {
+                pageConfig.toolbar = new toolbar({
+                    pType: 'item',
+                    bars: {
+                        hall: {
+                            index: 0.5,
+                            title: 'ÓªÒµÌü',
+                            login: true,
+                            enabled: hallEnable,
+                            iframe: hallUrl.url + $.param(hallUrl.param)
+                        },
+                        cart: {
+                            enabled: true
+                        },
+                        
+                        history: {
+                            enabled: true
+                        },
+                        
+                        coupon: {
+                            index: 1.5,
+                            enabled: true,
+                            title: 'ÓÅ»ÝÈ¯',
+                            login: true,
+                            iframe: '//cd.jd.com/coupons?' +
+                                $.param({
+                                    skuId: cfg.skuid,
+                                    cat: cfg.cat.join(','),
+                                    venderId: cfg.venderId
+                                })
+                        },
+                        jimi: {
+                            iframe: '//jimi.jd.com/index.action?productId=' +
+                                cfg.skuid +
+                                '&source=jdhome'
+                        }
+                    },
+                    links: {
+                        feedback: {
+                            href: '//surveys.jd.com/index.php?r=survey/index/sid/323814/newtest/Y/lang/zh-Hans'
+                        },
+                        top: { anchor: '#' }
+                    },
+                    ad: ad_entry
+                })
+            }
+        )
+    }
+
+    if ($('#name h1').length) {
+        setToolbar()
+    }
+
+})(pageConfig.product);(function(cfg, doc, el) {
+    var element = doc.getElementById(el);
+    var data = [
+        
+        {
+            width: 990,
+            src: "//img12.360buyimg.com/da/jfs/t1849/27/987855696/767242/6ba27d36/563b20eaNce07a058.jpg",
+            widthB: 770,
+            href: "//c-nfa.jd.com/adclick?keyStr=z5AXFoIimt1jiDK32+w4mW0bjVYOHZSLtG+kxxFj84wd1CxH/fv6f/B9W56+bpjMXaO4vyEsoB7IH+QXnjgsfD4r5P0AG9d7eXFBuivDLQVa4eG9P+LQ+i7XDdn0nvJz1oEwRbUsC6tQMin70asoRy+FLA/RxgylPM+ZTgFbTAcQJYBZFFwDEHcgVbbJ+CiQRrXMp2+ycxophKJuXxJAtM3BydpbTN2Y+4DF2jalqzVBwxyTloGozKXBS60OyqxSyMTdD/JGInS6PAEw154QTRrBe/XEh242cmge20Jsi/36NLa04BFWucMokbWKz1SYuHf8Nt6E0Ab3XO+o12tjjg==&cv=2.0&url=//sale.jd.com/act/1pChm0RcanBPYXIS.html?cpdad=1DLSUE",
+            srcB: "//img20.360buyimg.com/da/jfs/t2503/214/1066594900/519238/5b232190/563b20efN12eed1bd.jpg"
+        }
+    ];
+    var currentItem;
+    var result = [];
+
+    pageConfig.FN_GetCompatibleData=function(object){
+        var flag=(screen.width<1210);
+        if(flag){
+            object.width=object.widthB?object.widthB:object.width;
+            object.height=object.heightB?object.heightB:object.height;
+            object.src=object.srcB?object.srcB:object.src;
+        }
+        return object
+    };
+
+    for( var i = 0; i < data.length; i++ ) {
+        currentItem = pageConfig.FN_GetCompatibleData(data[i]);
+        var html = '<img data-img="1" src="'+ currentItem.src +'" width="'+ currentItem.width +'" >';
+        result.push(html);
+    }
+
+    var link = '<a clstag="shangpin|keycount|product|jingdongfuwu-1" href="'+ data[0].href +'" target="_blank">\u66f4\u591a\u4eac\u4e1c\u670d\u52a1\u76f8\u5173\u6d3b\u52a8 &gt; </a>';
+    if ( element ) {
+        element.innerHTML = result.join('') + link;
+    }
+})(pageConfig, document, 'J-yb-tab-img');
+(function(d){
+    var c=d.createElement("div");
+    var o=d.getElementById("o-header-2013");
+    var h=d.getElementById("header-2013");
+    var w=(pageConfig.compatible&&screen.width>=1210)?1210:990;
+return;
+            var s = (pageConfig.compatible&&screen.width>= 1210)?"//img30.360buyimg.com/da/jfs/t2575/365/255791293/31886/65912b70/565281fcN8932acb6.jpg":"//img10.360buyimg.com/da/jfs/t2560/25/531854916/26671/9dca8680/56528206N6f3bfa28.jpg";
+        var href = "//c-nfa.jd.com/adclick?keyStr=z5AXFoIimt1jiDK32+w4mT5oo+Nl3saT8WKbq9m0C1+iHIFrKFRf+YIGYSz11pCVT6KIzUNlCPzC0KpR91vyoBVLRxnNTCQX0ke0K1Ib2yda4eG9P+LQ+i7XDdn0nvJz1oEwRbUsC6tQMin70asoRybdR14B/nbNg0qsTuOG65QBV/cSjpqdaREC8pr1FcY8I41uZJouYb1WKndKVzSAT76uO37CY0Gpq2F6VJodSxa+LcM/29HoFWRR+IS3JwzGX9Bp73GHZ79P1hYK54ixq3JUyYon4u6OguV+SYB+YpNilRuhHxyLJHkfid7fVu5mhiN6+Mc28apMMzd+icNrBA==&cv=2.0&url=//sale.jd.com/act/j0liJtnL5rh.html?cpdad=1DLSUE";
+    if ( typeof s !== 'undefined' ) {
+        c.id="top-banner";
+        c.className="_guanggao_xiaoyumi hide";
+        c.style.width=w+"px";
+        c.style.height="70px";
+        c.style.margin="2px auto 0";
+        c.style.position="relative";
+        c.innerHTML="<a href='"+href+"' target='_blank'><img src='"+s+"' width='"+w+"' height='70' /></a><div style='position:absolute;top:0px;right:0px;width:25px;height:25px;background:#fff;filter:alpha(opacity=0);opacity:0;cursor:pointer' onclick='document.getElementById(\"o-header-2013\").removeChild(document.getElementById(\"top-banner\"));'></div>";o.insertBefore(c,h);
+    }
+})(document);

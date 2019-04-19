@@ -1,0 +1,187 @@
+/**
+ * Кроссплатформенная валидация полей формы
+ * @requires 'lib/basic.js'
+ */
+(function ($, window, oCpf) {
+	var oBasic = oCpf.Basic;
+	var oModuleOpts = oBasic.moduleOpts;
+	var typeOf = oBasic.typeOf;
+	var fExtend = oBasic.Extend;
+
+	var defaultOpts = {
+		cssClss: {
+			invalidField: 'invalid'
+		},
+		cssSels: {
+			fieldCont: '.js-field__cont',
+			fieldErrorText: '.js-field__error',
+			Input: 'input,textarea,select,button',
+			Checkable: 'input[type=radio],input[type=checkbox]'
+		},
+		Attrs: {
+			errorText: 'data-errortext'
+		}
+	};
+
+	function getOptions (options) {
+		return fExtend(true, {}, defaultOpts, oModuleOpts.get('Validation'), options);
+	}
+
+	var aValidateAttrs = ['required', 'pattern'];
+
+	function isValueValid (fieldVal, oValidate) {
+		var bIsValid = true,
+			sAttrVal;
+
+		for (var validateAttr in oValidate) {
+			if (oValidate.hasOwnProperty(validateAttr)) {
+				switch (validateAttr) {
+					case aValidateAttrs[0]:
+						bIsValid = bIsValid && fieldVal !== null && fieldVal.length > 0;
+						break;
+					case aValidateAttrs[1]:
+						sAttrVal = oValidate[validateAttr];
+						if (sAttrVal.length) {
+							try {
+								bIsValid = new RegExp(sAttrVal, 'igm').test(fieldVal);
+							} catch (ex) {
+								bIsValid = true;
+							}
+						}
+						break;
+				}
+			}
+		}
+		return bIsValid;
+	}
+
+	/**
+	 * Производит проверку значений полей, на основании атрибутов валидайии (required, patterrn)
+	 * @param {Object} jContainer контейнер, в котором осуществляется поиск полей
+	 * @param {Object} [options] набор опций
+	 * @see defaultOpts
+	 * @returns {Array} массив имен полей, содержащих ошибки
+	 */
+	function getInvalidFields (jContainer, options) {
+		var oOpts = getOptions(options);
+		var oSels = oOpts.cssSels;
+		var aInvalidFields = [],
+			oCheckedFields = {};
+
+		jContainer.find(oSels.Input).each(function () {
+			var jField = $(this);
+			var sFieldName = jField.attr('name');
+			var oValidate = {},
+				bHasAttrs = false,
+				attrName, fieldVal;
+			if (this.disabled || oCheckedFields[sFieldName] === true) {
+				return;
+			}
+
+			for (var attrNo = aValidateAttrs.length; attrNo--;) {
+				attrName = aValidateAttrs[attrNo];
+				if (jField.is('[' + attrName + ']')) {
+					bHasAttrs = true;
+					oValidate[attrName] = jField.attr(attrName);
+				}
+			}
+			if (bHasAttrs) {
+				fieldVal = jField.val();
+				if (jField.is(oSels.Checkable)) {
+					fieldVal = jField.is(':checked') ? fieldVal : '';
+				}
+				oCheckedFields[sFieldName] = isValueValid(fieldVal, oValidate);
+			}
+		});
+
+		for (var fieldName in oCheckedFields) {
+			if (oCheckedFields.hasOwnProperty(fieldName) && oCheckedFields[fieldName] === false) {
+				aInvalidFields.push(fieldName);
+			}
+		}
+		return aInvalidFields;
+	}
+
+	/**
+	 * Отмечает поля, содержащие ошибки
+	 * @param {Object} jContainer контейнер, в котором осуществляется поиск полей
+	 * @param {Object|Array} mErrors список имен полей с ошибками или словарь соответствий имя поля => текст ошибки
+	 * @param {Object} [options] набор опций
+	 * @see defaultOpts
+	 * @property {Boolean} [markInvalid] флаг, определяющий, будут ли помечены поля с ошибками
+	 * если false – только снимет модификатор с ранее помеченых
+	 */
+	function processInvalidFields (jContainer, mErrors, options) {
+		var bMarkInvalid;
+		// XXX в старом формате третий аргумент был флагом
+		if (typeOf(options, 'object')) {
+			bMarkInvalid = options.markInvalid;
+		} else {
+			bMarkInvalid = options;
+			options = null;
+		}
+		var oOpts = getOptions(options);
+		var oClss = oOpts.cssClss;
+		var oSels = oOpts.cssSels;
+		var oAttrs = oOpts.Attrs;
+		var fieldContSel = oSels.fieldCont;
+		var bHasErrors = !!mErrors;
+		var bErrorsArray = bHasErrors && Array.isArray(mErrors);
+
+		jContainer.find(fieldContSel).add(jContainer.filter(fieldContSel)).each(function () {
+			var jFieldCont = $(this);
+			var jFieldError, defErrorText;
+			var bHasInvalid = false;
+
+			// Есть поля, не одинокие в своем контейнере
+			var aErrorTexts = jFieldCont.find(oSels.Input)
+				.toArray()// В Nodes.js нет своего map, как в jQuery
+				.map(function (currentField) {
+					var sFieldName = currentField.getAttribute('name');
+					var bIsInvalid = bHasErrors && (bErrorsArray ? mErrors.indexOf(sFieldName) > -1 : sFieldName in mErrors);
+					bHasInvalid = bHasInvalid || bIsInvalid;
+					return bIsInvalid && !bErrorsArray && mErrors[sFieldName] || null;
+				});
+
+			if (bHasInvalid) {
+				if (!bMarkInvalid) {
+					return;
+				}
+				jFieldError = jFieldCont.find(oSels.fieldErrorText);
+				if (jFieldError.length) {
+					defErrorText = jFieldError.attr(oAttrs.errorText);
+					if (!defErrorText) {
+						defErrorText = jFieldError.text();
+						jFieldError.attr(oAttrs.errorText, defErrorText);
+					}
+					jFieldError.text(!bErrorsArray && aErrorTexts.join('') || defErrorText);
+				}
+			}
+			jFieldCont.toggleClass(oClss.invalidField, bHasInvalid);
+		});
+	}
+
+	function getFieldCont (jField) {
+		var oOpts = getOptions();
+		var oSels = oOpts.cssSels;
+		return jField.closest(oSels.fieldCont);
+	}
+	fExtend(true, oCpf, {
+		Tools: {
+			Forms: {
+				Validation: {
+					getFieldCont: getFieldCont,
+					processInvalidFields: processInvalidFields,
+					getInvalidFields: getInvalidFields,
+					validateFields: function (jContainer, options) {
+						var invalidFields = getInvalidFields(jContainer, options);
+						processInvalidFields(jContainer, invalidFields, fExtend({
+							markInvalid: true
+						}, options));
+						return invalidFields;
+					}
+				}
+			}
+		}
+	});
+}(this.jQuery || this.$ || this.$f, this, this.ru.mail.cpf));

@@ -1,0 +1,1 @@
+define(["vendors/domReady","common/cookie-manipulation","common/config"],function(n,i,o){"use strict";function c(){function c(){n(function(){require(["vendors/mailmunch"],function(){})})}o.trackerScripts.includes("mailmunch")||i.executeScriptByFamily(i.COOKIE_CATEGORY.PERSONALISATION,c,"post-module")}return c});

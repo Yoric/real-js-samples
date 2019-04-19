@@ -1,0 +1,3 @@
+if (self.CavalryLogger) { CavalryLogger.start_js(["\/Wr6f"]); }
+
+__d("AdsCanvasSearchEntryProviderPlugin",["AdsCanvasSearchEntryDataManager","LoadObjectMap"],(function(a,b,c,d,e,f){"use strict";a={initialState:function(a){return b("LoadObjectMap").create(function(c){a(function(a){return a.setLoading(c)}),c.forEach(function(a){return b("AdsCanvasSearchEntryDataManager").searchCanvasID(a)})})}};e.exports=a}),null);

@@ -1,0 +1,1311 @@
+/*
+ * author:wanghaixin@jd.com
+ * date:20130418
+ * ver:v1.0.0
+ */
+
+/*
+ * Banner module logics based pseudo-attributes framework
+ */
+(function($,w){
+   if(!window.JShop) {
+        window.JShop = {};
+    }
+	
+    var browser = $.browser;
+	
+	// clear():删除所有值；Firefox中没有实现
+	// getItem(name):根据指定的名字name获取对应的值
+	// key(index):获得index位置处的值的名字
+	// removeItem(name):删除由name指定的名值对儿
+	// setItem(name, value):为指定的name设置一个对应的值
+    function initByLocalStorage() {
+        // for IE8+, FF 3+, Chrome 4.1+, Safari 4+, Opera 10.5+
+        oStorage = localStorage;
+
+        _setItem = function(key, value) {
+            oStorage.setItem(key, value);
+        };
+
+        _getItem = function(key) {
+            return oStorage.getItem(key);
+        };
+
+        _removeItem = function(key) {
+            oStorage.removeItem(key);
+        };
+
+        _clear = function() {
+            oStorage.clear();
+        };
+    }
+
+    function initByUserData() {
+        var IE_STORE_NAME = 'IELocalDataStore';
+		
+		// by wanchuan 创建一个link元素并指定userData行为；
+        generateDOMStorage();
+		
+		// by wanchuan 一旦该元素使用了userData行为，那么就可以使用setAttribute方法在上面保存数据了。为了将数据提交到浏览器缓存中，
+		// 还必须调用save()方法并告诉它要保存到的数据空间的名字。数据空间名字完全任意，仅用于区分不同的数据集。
+		
+        _setItem = function(key, value) {
+            /*
+             * 添加try...catch的原因是：某些用户的IE，可能将安全级别设置得过高，或当前站点被添加至"受限站点"中(会
+             * 禁用掉"安全"tab下的"持续使用用户数据"选项，从而导致userData无法使用，这里通过try...catch来避免此
+             * 情况下的JS报错，下同。
+             */
+            try {
+                oStorage.setAttribute(key, value);
+                oStorage.save(IE_STORE_NAME);
+            } catch (e) {}
+        };
+
+        _getItem = function(key) {
+            try {
+                oStorage.load(IE_STORE_NAME);
+                return oStorage.getAttribute(key);
+            } catch (e) {}
+        };
+
+        _removeItem = function(key) {
+            try {
+                oStorage.removeAttribute(key);
+                oStorage.save(IE_STORE_NAME);
+            } catch (e) {}
+        };
+
+        _clear = function() {
+            try {
+                oStorage.expires = getUTCString();
+                oStorage.save(IE_STORE_NAME);
+
+                // 重新生成一个 elem, 因为 clear() 之后 setItem() 会失效
+                reGenerateDOMStorage();
+            } catch (e) {}
+        };
+    }
+	
+	// by wanchuan 创建一个link元素并指定userData行为；微软通过一个自定义行为引入了持久化用户数据的概念。每个文档最多128KB，每个域名最多1MB；
+    function generateDOMStorage() {
+        var doc = document;
+
+        // borrowed from https://github.com/andris9/jStorage/blob/master/jstorage.js
+        oStorage = doc.createElement('link');
+        if (oStorage.addBehavior) { /* Use a DOM element to act as userData storage */
+            oStorage.style.behavior = 'url(#default#userData)';
+
+            /* userData element needs to be inserted into the DOM! */
+            doc.getElementsByTagName('head')[0].appendChild(oStorage);
+        }
+    }
+
+    function reGenerateDOMStorage() {
+        // 如果存在 oStorage 则删除
+        if (oStorage) {
+            try {
+                document.body.removeChild(oStorage);
+            } catch (e) {}
+        }
+
+        generateDOMStorage();
+    }
+
+    function getUTCString() {
+        // @see: http://msdn.microsoft.com/en-us/library/ms531095(v=vs.85).aspx
+        var n = new Date;
+        n.setMinutes(n.getMinutes() - 1);
+        return n.toUTCString();
+    }
+	
+	// by wanchuan 支持localStorage对象的浏览器，用此对象原生的方法；如果是小于ie8的浏览器
+    function init() {
+        if (typeof localStorage !== 'undefined') {
+            initByLocalStorage();
+        } else if (browser.msie /*&& parseInt(browser.version, 10) < 8*/) {
+            initByUserData();
+        }
+    }
+
+    init();
+
+    var ret = {
+        setItem: _setItem,
+        getItem: _getItem,
+        removeItem: _removeItem,
+        clear: _clear
+    };
+
+    window.JShop.JLocalStorage = ret;
+})(jQuery,window);
+
+/**
+ * NOTES:
+ *  originally writen by changtian
+ *
+ * [+] 增加 clear() 方法
+ * [x] 创建 LINK 元素 instead of INPUT 元素, 避免 BODY 前调用出错
+ */
+
+(function($){
+
+	var FORWARD = 'forward',
+        BACKWARD = 'backward';
+
+    var localStorage = window.JShop.JLocalStorage;
+
+	function JSlide(container, config) {
+		var self = this,
+			_config = {
+				// 当前轮播显示的第一个item的index
+				// positionIndex: 0,
+				// 当前高亮的轮播item
+				// activeIndex: 0,
+				// 轮播时间间隔
+				slideInterval: 5000,
+				// 轮播滚动持续事件
+				slideDuration: 500,
+				// 轮播图滚动效果 swing/linear
+				slideEasing: 'swing',
+				// slideEasing: 'linear',
+				// 是否自动轮播
+				autoSlide: true,
+				// 轮播item mouseover时是否停止自动轮播
+				isMouseoverStop: true,
+				steps: 1
+			};
+		if(!container) {return false;}
+
+		self.container = $(container);
+		self.timer = null;
+		self.config = $.extend(_config, config);
+
+		self._init();
+	}
+
+	JSlide.prototype = {			
+		/**
+		 * 创建select结构
+		 */
+		_init: function() {					
+			var self = this;
+			// 解析html结构
+			self._parseMarkup();
+			// 初始化滚动位置
+			self.positionIndex = 0;
+			// 初始化设置滚动位置
+			self.direction = FORWARD;
+			// 获取当前高亮item和滚动位置
+			self._getActive();
+			// 设置当前高亮item和滚动位置
+			self._setActive();
+			// 初始化滚动
+			self._initSlide();
+			// 绑定事件
+			self._bind();
+		},
+		/**
+		 * 解析html结构
+		 */
+		_parseMarkup: function() {
+			var self = this,
+				cfg = self.config,
+				container = self.container,
+				items = container.find(cfg.items);
+			// 每个滚动item的width
+			self.stepWidth = items.eq(0).outerWidth(true);
+			self.len = items.length;
+
+			if(container.find(cfg.content).length) {
+
+				items.parent().css('position', 'relative');
+
+				// 轮播item设置index
+				items.each(function(i, item) {
+					item = $(item);
+					item.attr('data-slide-idx', i);
+				});
+			}
+		},
+		/**
+		 * 事件绑定
+		 */
+		_bind: function() {
+			var self = this,
+				cfg = self.config,
+				container = self.container;
+			
+			if(container.find(cfg.content).length) {
+				self._bindContent();
+			}
+			self._bindTrigger();
+		},
+		/**
+		 * 轮播区域 事件绑定
+		 */
+		_bindContent: function() {
+			var self = this,
+				cfg = self.config,
+				container = self.container,
+				imgs = container.find(cfg.itemImgs);
+				
+			// by wanchuan 点击专题时，将点击专题的编号、当前左边显示的第一个专题的编号、点击专题的链接地址添加到本地存储里。
+			container.delegate(cfg.items, 'click', function(ev) {
+				// console.log(ev.currentTarget);
+				var target = $(ev.currentTarget);
+					ls = {};
+				self.activeIndex = target.attr('data-slide-idx');
+				self.positionIndex = self.positionIndex;
+				self.href = target.find('a').attr('href');
+				self.__setActive();
+			});
+				
+			if(!cfg.isMouseoverStop) {return true;} //如果条件为真（这里取反了参数，参数传的是真，取反了就为假，条件应该不成立？），则继续执行
+
+			container.delegate(cfg.items, 'mouseenter mouseleave', function(ev) {
+				// console.log('items mouse event:', ev.target, ev.type);
+				// 鼠标移到、移出轮播图item时 
+				var type = ev.type;
+				if(type === 'mouseenter') {
+					self._clearTimer();
+				}else {
+					self._initSlide();
+				}
+			});
+		},
+		/**
+		 * 轮播trigger 事件绑定
+		 */
+		_bindTrigger: function() {
+			var self = this,
+				cfg = self.config,
+				container = self.container;
+
+			container.delegate(cfg.prevTrigger, 'click', function(ev) {
+				var target = $(ev.currentTarget),
+					idx = self.positionIndex - cfg.steps;
+				if(target.hasClass(cfg.prevTriggerDisableCls)) { return false;}
+
+				self.direction = BACKWARD;
+
+				if(idx < 0) {
+					idx = 0;
+				}
+				self._slideTo(idx);
+			});
+
+			container.delegate(cfg.nextTrigger, 'click', function(ev) {
+				var target = $(ev.currentTarget), 
+					steps = cfg.steps,
+					idx = self.positionIndex + steps,
+					len = self.len;
+				if(target.hasClass(cfg.nextTriggerDisableCls)) { return false;}
+
+				self.direction = FORWARD;
+
+				if(idx + steps > len) {
+					idx = len - steps;
+				}
+				self._slideTo(idx);
+			});
+
+			container.delegate(cfg.prevTrigger, 'mouseenter mouseleave', function(ev) {
+				var type = ev.type,
+					target = $(ev.currentTarget);
+
+				if(type === 'mouseenter') {
+					target.removeClass(cfg.prevTriggerOutCls);
+					target.addClass(cfg.prevTriggerOverCLs);
+				}else {
+					target.removeClass(cfg.prevTriggerOverCLs);
+					target.addClass(cfg.prevTriggerOutCls);
+				}
+			});
+
+			container.delegate(cfg.nextTrigger, 'mouseenter mouseleave', function(ev) {
+				var type = ev.type,
+					target = $(ev.currentTarget);
+
+				if(type === 'mouseenter') {
+					target.removeClass(cfg.nextTriggerOutCls);
+					target.addClass(cfg.nextTriggerOverCls);
+				}else {
+					target.removeClass(cfg.nextTriggerOverCls);
+					target.addClass(cfg.nextTriggerOutCls);
+				}
+			});
+		},
+		/**
+		 * 设置滚动
+		 */
+		_initSlide: function() {
+			var self = this,
+				cfg = self.config,
+				container = self.container;
+
+			if(!cfg.autoSlide) {return false;}
+
+			self.timer = setInterval(function() {
+				var index = self.positionIndex,
+					lastIdx = self.len - 1;
+
+				if(self.direction === BACKWARD) {
+					index -= 7;
+					if(index < 0) {
+						index = 0;
+					}
+				}else {
+					index += 7;
+					if(index + 7 > lastIdx) {
+						index = lastIdx - 6;
+					}
+				}
+
+				self._slideTo(index);
+			}, cfg.slideInterval);
+		},
+		/**
+		 * 滚动
+		 * @param index {Number} 滚动到的序号
+		 */
+		_slideTo: function(index) {
+			var self = this,
+				cfg = self.config,
+				container = self.container,
+				content = container.find(cfg.content),
+				positionIndex = self.positionIndex,
+				left,
+				slideContent = container.find(cfg.items).parent();
+			slideContent.stop(true, true);
+
+			left = slideContent.css('left');
+			if(left === 'auto') {
+				left = 0;
+			}else {
+				left = parseInt(left, 10);
+			}
+			distance = index * self.stepWidth + left;
+			// console.log('slide to:', index, left, distance);
+
+			$(self).trigger('slideStart', [self.positionIndex, index]);
+
+			self._dealTrigger(index);
+			slideContent.animate({"left": "-=" + distance +"px"}, cfg.slideDuration, cfg.slideEasing, function() {
+
+				$(self).trigger('slideEnd', [self.positionIndex, index]);
+				// self.__setActive();
+			});
+		},
+		/**
+		 * 处理向前、向后按钮状态
+		 * @param index {Number} 滚动的位置
+		 */
+		_dealTrigger: function(index) {
+			var self = this,
+				cfg = self.config,
+				container = self.container,
+				prevTrigger = container.find(cfg.prevTrigger),
+				prevTriggerDisableCls = cfg.prevTriggerDisableCls,
+				nextTrigger = container.find(cfg.nextTrigger),
+				nextTriggerDisableCls = cfg.nextTriggerDisableCls;
+
+			self.positionIndex = index;
+
+			prevTrigger.removeClass(prevTriggerDisableCls);
+			nextTrigger.removeClass(nextTriggerDisableCls);
+
+			if(index === 0) {
+				prevTrigger.addClass(prevTriggerDisableCls);
+				self.direction = FORWARD;
+			}else if(index + cfg.steps === self.len) {
+				nextTrigger.addClass(nextTriggerDisableCls);
+				self.direction = BACKWARD;	
+			}
+		},		
+		/**
+		 * 获取当前高亮item和滚动位置
+		 */
+		_getActive: function() {
+			var self = this,
+				cfg = self.config,
+				href = window.location.href,
+				items = self.container.find(cfg.items),
+				len = self.len,
+				steps = cfg.steps,
+				ls;
+			try{
+				ls = $.parseJSON(localStorage.getItem(cfg.uid)) || {};
+			}catch(e) {
+				ls = {};
+			}
+			if(href === ls.href) {
+				self.activeIndex = ls.activeIndex;
+				self.positionIndex = ls.positionIndex;
+			}else {
+				items.each(function(i, item) {
+					if($(item).find('a').attr('href') === href) {
+						self.activeIndex = i;
+
+						self.positionIndex = i;
+						if(i + steps > len - 1) {
+							self.positionIndex = len - steps;
+						}
+					}
+				});
+			}
+
+			
+
+			/*if(self.activeIndex < 0) {
+				self.activeIndex = 0;
+				self.positionIndex = 0;
+			}*/			
+			
+			self.href = href;
+			self.__setActive();
+
+			return self;
+		},		
+		/**
+		 * 设置当前高亮item和滚动位置
+		 */
+		_setActive: function() {
+			var self = this,
+				cfg = self.config,
+				container = self.container,
+				activeCls = cfg.activeCls,
+				items = container.find(cfg.items),
+				idx = self.activeIndex;
+
+			items.removeClass(activeCls);
+
+			if(idx >= 0) {
+				items.eq(idx).addClass(activeCls);
+			}
+
+			self._slideTo(self.positionIndex);
+		},			
+		/**
+		 * 本地存储数据
+		 */
+		__setActive: function() {	
+			var self = this,
+				ls = [];
+			/*// 当前高亮的轮播index
+			ls.activeIndex = self.activeIndex;
+			// 滚动到的序号index
+			ls.positionIndex = self.positionIndex;
+			// 当前页面href
+			ls.href = self.href;*/	
+			// console.log(JSON.stringify(ls));
+			// localStorage.setItem(self.config.uid, JSON.stringify(ls));
+			ls.push('{"activeIndex":');
+			ls.push(self.activeIndex + ',');	
+			ls.push('"positionIndex":');
+			ls.push(self.positionIndex + ',');	
+			ls.push('"href":');
+			ls.push('"' + self.href + '"}');
+			// console.log(ls.join(''));
+			localStorage.setItem(self.config.uid, ls.join(''));
+		},			
+		/**
+		 * 清空timer
+		 */
+		_clearTimer: function() {
+			var self = this;
+			if(self.timer) {
+				clearInterval(self.timer);
+				self.timer = null;
+			}
+		}
+	}
+
+	
+	
+
+   jshop.module.Banner = {};
+   $.extend(jshop.module.Banner, jshop.module);
+   
+   $.extend(jshop.module.Banner, {
+	   /*
+	    * @author huyu
+	    */
+		JSlide:function(args) {
+			if(args == undefined){
+				if(validateData($(this).attr("module-param"))){
+					var args = eval('('+$(this).attr("module-param")+')');
+				}
+			}
+			
+			var container = this;
+			slide = new JSlide(container, args);					
+		},
+	   /*
+		 * @function 基本滑动（增加提示消息判断） 20121109
+		 * @description 1、判断当前是否处于装修页面，如果是且同时大图片宽度不等于布局的宽度，显示提示消息； 2、当图片宽度不等于布局宽度时，自动拉伸或缩小图片宽度以撑满布局。3、轮播图高度等于图片高度，用户不用再选择轮播图高度和宽度，只需要确定自己想在哪个布局下做轮播图即可。4、html结构及样式可以自定义修改，只需将节点class调用传入即可。
+		 * @author bjwanchuan 
+		 * @example <div class="j-module" module-function="baseSlide" module-param="{imgArea:".jbannerImg", imgNode:".jbannerImg dl", tabArea:".jbannerTab", tabNode:".jbannerTab span", photoName:".jDesc", arrowLeft:".jPreOut", arrowRight:".jNextOut", arrowLeftOver:"jPreOver", arrowRightOver:"jNextOver", defaultClass:"show", message:".jMessageRemind", pageMode:".j-edit-page"}">; 
+		 也可以不传使用默认参数：<div class="j-module" module-function="baseSlide" module-param="{}">;
+		 
+	    * 参数说明
+	    * imgArea:".jbannerImg"  所有大图最外层的div
+	    * imgNode:".jbannerImg dl" 每一个大图外层的dl
+	    * tabArea:".jbannerTab" 所有缩略小图最外层的div
+	    * tabNode:".jbannerTab span" 每一个缩略小图的span
+	    * photoName:".jDesc" 图片描述
+	    * arrowLeft:".jPreOut" arrowRight:".jNextOut" 左箭头和右箭头
+	    * arrowLeftOver:"jPreOver", arrowRightOver:"jNextOver" 左箭头和右箭头鼠标移动效果
+	    * defaultClass:"show" 给当前显示的图片增加一个样式
+	    * message:".jMessageRemind" pageMode:".j-edit-page" 当处于装修页面，同时图片尺寸不符合布局宽度时，显示提示消息
+	    * slideDirection:"left" 滑动方向：默认水平向左，可传入"top"，垂直向上滑动
+	    * timer:"3" 每一张图片滑动的时间（单位：秒）
+	    */
+	   
+		// 插入提示消息和10秒后删除提示消息
+		errorMessage:function(message){
+			message.show(); setTimeout(function(){message.animate({top:-message.outerHeight(true)},200);},10000);
+		},
+		baseSlide:function(args){
+			if(args == undefined){
+				if(validateData($(this).attr("module-param"))){
+					var args = eval('('+$(this).attr("module-param")+')');
+				}
+			}
+			if(!$(this)[0]) return;
+			
+			// 定义传入的CSS调用变量
+			var _this=this,
+				param=$.extend({imgArea:".jbannerImg", imgNode:".jbannerImg dl", tabArea:".jbannerTab", tabNode:".jbannerTab span", photoName:".jDesc", arrowLeft:".jPreOut", arrowRight:".jNextOut", arrowLeftOver:"jPreOver", arrowRightOver:"jNextOver", defaultClass:"show", message:".jMessageRemind", pageMode:".j-edit-page", slideDirection:"left", timer:"3"}, args),
+				imgArea = $(_this).find(param.imgArea),
+				imgNode = $(_this).find(param.imgNode),
+				tabArea = $(_this).find(param.tabArea),
+				tabNode = $(_this).find(param.tabNode),
+				photoName = $(_this).find(param.photoName),
+				arrowLeft = $(_this).find(param.arrowLeft),
+				arrowRight = $(_this).find(param.arrowRight),
+				arrowLeftOver = param.arrowLeftOver,
+				arrowRightOver = param.arrowRightOver,
+				defaultClass = param.defaultClass,
+				message = $(_this).find(param.message),
+				pageMode = $(param.pageMode),
+				slideDirection = param.slideDirection,
+				timer = param.timer*1000,
+				scroll;
+			
+			scroll = (slideDirection == "top")?"scrollTop":"scrollLeft";
+
+			// 当处于装修页面，同时获取到的图像宽度和布局宽度不同时显示提示消息
+			if(imgArea.find("img").width() != $(_this).width()){
+				if(pageMode[0]){jshop.module.Banner.errorMessage.call(this, message);}
+			}
+			
+			// 初始化显示第一个
+			imgNode.eq(0).addClass(defaultClass);
+			tabNode.eq(0).addClass(defaultClass);
+			photoName.text(imgNode.eq(0).find("img").attr("title"));
+
+			// 定义局部变量
+			var	index = 0,
+				moveRange,
+				partTime,
+				direction = 1,
+				time,
+				img = new Image();
+			img.addEventListener('load', function(){
+				// 初始化部分动态css属性
+				var imgHeight = imgNode.find("img").height();
+				$(_this).css({height:imgHeight});
+				imgArea.css({width:$(_this).parent().width(), height:$(_this).parent().height()});
+				if(slideDirection == "top"){
+					imgArea.children().css({height:10000, width:"auto"});
+					imgNode.css({width:$(_this).parent().width(),height:"auto","float":"none"});
+				}else{
+					imgArea.children().css({width:10000, height:"auto"});
+					imgNode.css({width:$(_this).parent().width(),height:"100%","float":"left"});
+				};//将这个宽度写在css里，在ie6下面，获取到的父级宽度是被这个元素撑开的宽度
+				
+				imgNode.find("img").css({height:imgHeight,width:"100%"});//img的宽度写在css里，在ie6/7下面图片的高度会自动跟随宽度变化而变形
+				
+				if(slideDirection == "top"){moveRange = imgNode.height()}else{moveRange = imgNode.width()}
+				imgArea[0][scroll] = index * moveRange;
+				
+				// 默认循环显示图片
+				time = setInterval(imgMove, timer);
+			});
+			$(img).attr('src', imgArea.find('img').attr('src'));
+			
+			// 给每个tab缩略图绑定事件
+			tabNode.each(function(i,elem){
+				$(this).click(function(){
+					imgNode.eq(index).removeClass(defaultClass);
+					tabNode.eq(index).removeClass(defaultClass);
+					index = i;
+					imgNode.eq(index).addClass(defaultClass);
+					tabNode.eq(index).addClass(defaultClass);
+					photoName.text(imgNode.eq(index).find("img").attr("title"));
+					allImgMove();
+				});
+			});
+			
+			// 每一张图片和所有图片
+			function allImgMove(){
+				clearInterval(partTime);
+				clearInterval(time);
+				partTime = setInterval(oneImgMove, 30);
+				time = setInterval(imgMove, timer);
+			}
+			
+			// 每一张图片分10次移动
+			function oneImgMove(){
+				var nowMoveRange = (index * moveRange) - imgArea[0][scroll],
+					partImgRange = nowMoveRange > 0 ? Math.ceil(nowMoveRange / 10) : Math.floor(nowMoveRange / 10);
+					imgArea[0][scroll] += partImgRange;
+				if (partImgRange == 0){
+					clearInterval(partTime);
+					imgNode.eq(index).addClass(defaultClass);
+					tabNode.eq(index).addClass(defaultClass);
+					photoName.text(imgNode.eq(index).find("img").attr("title"));
+					partImgRange = null;
+				}
+			}
+			
+			// 所有图片移动
+			function imgMove(){
+				if (direction == 1){
+					if (index < imgNode.length - 1){
+						classOper([imgNode,tabNode],defaultClass,true);
+					}else{
+						direction = 0;
+						classOper([imgNode,tabNode],defaultClass,false);
+					}
+				}else{
+					if (index > 0){
+						classOper([imgNode,tabNode],defaultClass,false);
+					}else{
+						direction = 1;
+						classOper([imgNode,tabNode],defaultClass,true);
+					}
+				}
+				photoName.text(imgNode.eq(index).find("img").attr("title"));
+				allImgMove();
+			}
+			
+			// 节点css类名操作
+			function classOper(arr,className,flag){
+				arr.each(function(ind,n){
+					n.eq(index).removeClass(className);
+				})
+				flag?(index++):(index--);
+				arr.each(function(ind,n){
+					n.eq(index).addClass(className);
+				});
+			}
+			
+			// 上一张图片
+			arrowLeft.bind({
+				click:function(){
+					// 判断当前是不是第一张
+					if(index != 0){
+						classOper([imgNode,tabNode],defaultClass,false);
+						allImgMove();
+					}
+				},
+				mouseover:function(){$(this).addClass(arrowLeftOver);},
+				mouseout:function(){$(this).removeClass(arrowLeftOver);}
+			});
+			
+			// 下一张图片
+			arrowRight.bind({
+				click:function(){
+					// 判断当前是不是最后一张
+					if(index < imgNode.length - 1){
+						classOper([imgNode,tabNode],defaultClass,true);
+						allImgMove();
+					}
+				},
+				mouseover:function(){$(this).addClass(arrowRightOver);},
+				mouseout:function(){$(this).removeClass(arrowRightOver);}
+			});
+		},
+		/*
+		 * @function 滑动 20130207
+		 * @description 1、重新整理轮播图方法，增加图片透明效果。
+		 * @author bjwanchuan
+		 */
+		slide:function(args){
+			if(args == undefined){
+				if(validateData($(this).attr("module-param"))){
+					var args = eval('('+$(this).attr("module-param")+')');
+				}
+			}
+			
+			// 定义传入的CSS调用变量
+			var _this=this,
+				param=$.extend({imgArea:'.jbannerImg', imgNodeArea:'.jImgNodeArea', imgNode:'.jbannerImg dl', tabArea:'.jbannerTab', tabNode:'.jbannerTab span', photoName:'.jDesc', arrowLeft:'.jPreOut', arrowRight:'.jNextOut', arrowLeftOver:'jPreOver', arrowRightOver:'jNextOver', defaultClass:'show', slideDirection:'left', timer:'3', subFunction:'transparentEffect', eventType:'click'}, args),
+				imgArea = $(_this).find(param.imgArea),
+				imgNode = $(_this).find(param.imgNode),
+				tabArea = $(_this).find(param.tabArea),
+				tabNode = $(_this).find(param.tabNode),
+				photoName = $(_this).find(param.photoName),
+				defaultClass = param.defaultClass,
+				eventType = param.eventType,
+				timer = !param.timer*1000?3000:param.timer*1000,
+				scroll,
+				imgNodeArea = $(_this).find(param.imgNodeArea),
+				isFull = param.isFull;
+			
+			//全局变量
+			var index = 0,direction = 1,time = null,moveRange = 0,partTime = null,animate = null;
+			if(!imgNode.length) return;
+			
+			/**
+			 * 轮播图所有效果
+			 */
+			// jshop.module.ridLazy(_this);
+			var banner = {
+				transparentEffect : function(){
+					//初始化
+					$(_this).css({'background-color':imgNode.eq(index).attr('background')});
+					
+					// 调用函数
+					init();
+					triggerThumbnail();
+					triggerDirection();
+					animate = transparent;
+					time = setTimeout(imgMove, timer);
+				},
+				moveEffect : function(){
+					var isTop = (param.slideDirection == 'top')?true:false;
+					scroll = (isTop)?"scrollTop":"scrollLeft";
+					
+					//初始化
+					$(_this).css({'background-color':imgNode.eq(index).attr('background')});
+					if(isTop){
+						imgNodeArea.css({height:20000, width:$(_this).width()});
+						imgNode.css({width:imgNodeArea.width(),height:"auto","float":"none"});
+						moveRange = imgNode.height();
+						imgArea[0][scroll] = index * moveRange;
+					}else{
+						imgNodeArea.css({width:20000});
+						imgNode.css({width:imgNode.find("img").width(),height:"100%","float":"left"});//将这个宽度写在css里，在ie6下面，获取到的父级宽度是被这个元素撑开的宽度
+						moveRange = imgNode.width();
+						imgArea[0][scroll] = index * moveRange;
+					};
+					
+					// 调用函数
+					init();
+					triggerThumbnail();
+					triggerDirection();	
+					animate = oneImgMove;
+					time = setTimeout(imgMove, timer);
+				}
+			};
+			
+			/**
+			 * 根据传入的子方法名执行对应的子方法
+			 */
+			if(banner[param.subFunction])
+				banner[param.subFunction].call(_this);
+			
+			/**
+			 * 轮播图初始化
+			 */
+			function init(){
+				$(_this).css({cursor:'pointer'});
+				imgArea.css({width:imgNode.find("img").width(),height:imgNode.find("img").height()});
+				imgNode.eq(0).addClass(defaultClass);
+				tabNode.eq(0).addClass(defaultClass);
+				photoName.text(imgNode.eq(0).find("img").attr("title"));
+
+				$(_this).click(function(){
+					window.open(imgNode.eq(index).attr('ref'));
+				});
+				
+				autoMiddle();
+				$(window).resize(function(){
+					autoMiddle();
+				});
+			}
+			
+			/**
+			 * 轮播图自适应居中于屏幕中间
+			 */
+			function autoMiddle(){
+				var extra = imgArea.width()-$(_this).width();
+				if(extra>0){
+					imgArea.css({'margin-left':-extra/2});
+				}else{
+					imgArea.css('margin','0 auto');
+				}
+			}
+			
+			/**
+			 * 给每个tab缩略图绑定事件
+			 */ 
+			function triggerThumbnail(){
+				tabNode.each(function(i,elem){
+					$(elem)[eventType](function(){
+						imgNode.eq(index).removeClass(defaultClass);
+						tabNode.eq(index).removeClass(defaultClass);
+						index = i;
+						imgNode.eq(index).addClass(defaultClass);
+						tabNode.eq(index).addClass(defaultClass);
+						photoName.text(imgNode.eq(index).find("img").attr("title"));
+						animate();
+						return false;
+					});
+				});
+			}
+			
+			/**
+			 * 点击箭头或数字时，重置时间
+			 */
+			function _stop(){
+				clearTimeout(time);
+				time = null;
+				clearTimeout(partTime);
+				partTime = null;
+				imgNodeArea.clearQueue();
+				imgNode.eq(index).clearQueue();
+			}
+			
+			/**
+			 * 切换图片和缩略图
+			 */ 
+			function imgMove(){
+				if (direction == 1){
+					if (index < imgNode.length - 1){
+						classOper([imgNode,tabNode],defaultClass,true);
+					}else{
+						direction = 0;
+						classOper([imgNode,tabNode],defaultClass,false);
+					}
+				}else{
+					if (index > 0){
+						classOper([imgNode,tabNode],defaultClass,false);
+					}else{
+						direction = 1;
+						classOper([imgNode,tabNode],defaultClass,true);
+					}
+				}
+				photoName.text(imgNode.eq(index).find("img").attr("title"));
+				animate();
+			}
+			
+			/**
+			 * 处理左右移动箭头
+			 */
+			function triggerDirection(){
+				var arrowLeft = $(_this).find(param.arrowLeft),arrowRight = $(_this).find(param.arrowRight),
+					arrowLeftOver = param.arrowLeftOver, arrowRightOver = param.arrowRightOver;
+				
+				arrowLeft.bind({
+					click:function(){
+						if(index != 0){// 判断当前是不是第一张
+							classOper([imgNode,tabNode],defaultClass,false);
+							animate();
+						}
+						return false;
+					},
+					mouseover:function(){$(this).addClass(arrowLeftOver);},
+					mouseout:function(){$(this).removeClass(arrowLeftOver);}
+				});
+				arrowRight.bind({
+					click:function(){
+						if(index < imgNode.length - 1){// 判断当前是不是最后一张
+							classOper([imgNode,tabNode],defaultClass,true);
+							animate();
+						}
+						return false;
+					},
+					mouseover:function(){$(this).addClass(arrowRightOver);},
+					mouseout:function(){$(this).removeClass(arrowRightOver);}
+				});
+			}
+			
+			/**
+			 * 透明效果
+			 */
+			function transparent(){
+				imgNode.animate({
+				    opacity: 0
+				  }, 0, function() {
+				  });
+				$(_this).css({'background-color':imgNode.eq(index).attr('background')});
+				imgNode.eq(index).animate({
+				    opacity: 1
+				  }, 1000, function() {
+					  _stop();
+					  time = setTimeout(imgMove, timer);
+				  });
+			}
+			
+			/** 
+			 * 移动效果：每一张图片分10次移动
+             * 备注：cdhewu, 20190116，有的浏览器不支持每次scrollLeft为1的滚动，所以需要加判断，每次至少滚动2px
+             *
+			 */
+			function oneImgMove(){
+				var nowMoveRange = (index * moveRange) - imgArea[0][scroll],
+                    partImgRange;
+				if (nowMoveRange > 10) {
+                    partImgRange = Math.ceil(nowMoveRange / 10);
+                } else if (nowMoveRange <= 10 && nowMoveRange > 1) {
+                    partImgRange = 2;
+                } else if (nowMoveRange < -10) {
+                    partImgRange = Math.floor(nowMoveRange / 10)
+                } else if (nowMoveRange >= -10 && nowMoveRange < -1) {
+                    partImgRange = -2;
+                } else if (nowMoveRange === 0) {
+                    partImgRange = 0;
+                } else {
+                    partImgRange = 1;
+                }
+                if (partImgRange === 1) {
+                    imgArea[0][scroll] = index * moveRange;
+                } else {
+                    imgArea[0][scroll] += partImgRange;
+                }
+				if (partImgRange === 0){
+					imgNode.eq(index).addClass(defaultClass);
+					tabNode.eq(index).addClass(defaultClass);
+					photoName.text(imgNode.eq(index).find("img").attr("title"));
+					partImgRange = null;
+					_stop();
+					time = setTimeout(imgMove, timer);
+				}
+				else{
+					partTime = setTimeout(oneImgMove,30);	
+				}
+				$(_this).css({'background-color':imgNode.eq(index).attr('background')});
+			}
+
+			/**
+			 * 节点css类名操作
+			 */ 
+			function classOper(arr,className,flag){
+				arr.each(function(ind,n){
+					n.eq(index).removeClass(className);
+				})
+				flag?(index++):(index--);
+				arr.each(function(ind,n){
+					n.eq(index).addClass(className);
+				});
+			}
+		}
+	});
+})(jQuery,window);
+/*
+ * author:wanghaixin@jd.com
+ * date:20130418
+ * ver:v1.0.0
+ */
+
+/*
+ * User-definition module logics based pseudo-attributes framework
+ */
+(function($,w){
+
+	w.jshop.module.UserDefine = {};
+
+	$.extend(w.jshop.module.UserDefine,{
+		 /*
+		 * @function 侧滑 20121213
+		 * @description 用于当页链接锚点或专题入口跳转
+		 * @author bjwanchuan
+		 * @example <div class="j-module" module-function="sideSlip" module-param="{vertical:'top', verticalValue:170, horizontal:'left', horizontalValue:0}">;
+		 * 也可以不传使用默认参数：<div class="j-module" module-function="sideSlip" module-param="{}">;
+
+	     * 参数说明
+	     * vertical:字符串，样式里面的垂直位置参数，可选值top、bottom
+	     * verticalValue:数字，当垂直位置为top时，此值必须大于170，不然无效。（因京东头高度为170px，此功能展示界面不能遮挡京东头）
+	     * horizontal:字符串，样式里面的水平位置参数，可选值left、right
+	     * horizontalValue:数字，无限制
+	     * zindex:数字，前后位置
+	   */
+
+		sideSlip : function(args){
+			var _this = $(this),
+
+				_para = $.extend({
+					vertical : 'top',
+					verticalValue : 170,
+					horizontal : 'left',
+					horizontalValue : 0,
+					zIndex : 10
+				},args || {}),
+
+				_ie6 = $.browser.msie&&$.browser.version == '6.0', _min_value = 170;
+
+			// w.jshop.module.ridLazy(_this);
+
+
+			function _ie6_string(){
+				var __string = '{position:"absolute",', __temp = '';
+
+				__temp = _para.vertical == 'top'?'top:"' + Math.max(_min_value,_para.verticalValue) + $(w).scrollTop()+'px"':'bottom:"'+$(w).scrollTop() + $(w).height() - _para.verticalValue + 'px"';
+				__string += __temp + ',';
+				__temp = _para.horizontal == 'left'? 'left:"' + _para.horizontalValue + 'px"' : 'right:"' + _para.horizontalValue + 'px"';
+				__string += __temp;
+				__string += '}';
+				return __string;
+			}
+
+			function _no_ie6_sting(){
+				var __string = '{position:"fixed",', __temp = '';
+
+				__temp = _para.vertical == 'top'?'top:"' + Math.max(_min_value,_para.verticalValue) + 'px"':'bottom:"' + _para.verticalValue + 'px"';
+				__string += __temp + ',';
+				__temp = _para.horizontal == 'left'?'left:"' + _para.horizontalValue + 'px"' : 'right:"' + _para.horizontalValue + 'px"';
+				__string += __temp;
+
+				__string += '}';
+				return __string;
+			}
+
+			function _event_register(){
+				if(_ie6){
+					$(window).scroll(function(){
+						var __css = eval('(' + _ie6_string() + ')');
+						_this.css(__css);
+					});
+				}
+
+				$(window).resize(function(){
+					_DOM_init();
+				});
+			}
+
+
+			function _DOM_init(){
+				var __css = null;
+				if(_ie6){
+					__css = eval('(' + _ie6_string() + ')');
+				}
+				else{
+					__css = eval('(' + _no_ie6_sting() + ')');
+				}
+				_this.css(__css);
+			}
+			function _init(){
+				_DOM_init();
+				_event_register();
+			}
+
+			_init();
+		},
+		addFavorite : function(args){
+			var tip = '对不起，您的浏览器不支持才操作！\n请您使用菜单栏或者Ctrl+D收藏本站';
+			var _this = $(this),
+				_para = $.extend({
+					title : '京东',
+					url : '//www.jd.com'
+				},args || {});
+
+			_this.css('cursor','pointer').click(function(){
+				if(document.all){
+					window.external.addFavorite(_para.url,_para.title);
+				}
+				else if(window.sidebar){
+					try {
+						window.sidebar.addPanel(_para.title,_para.url,'');
+					} catch (e) {
+						alert(tip);
+					}
+				}
+				else{
+					alert(tip);
+				}
+			});
+		}
+	});
+
+})(jQuery,window);
+/*
+	
+*/
+
+(function($,w){
+	w.jshop.module.collocation = {};
+	
+	$.extend(w.jshop.module.collocation,{
+		detail : function(args){	
+			if(args == undefined){
+				if(validateData($(this).attr("module-param"))){
+					var args = eval('('+$(this).attr("module-param")+')');
+				}
+			}
+			var __item = (function(){
+				var _timer = null,
+					_curobj = null;
+					_node = $('<div style="position:absolute;left:-100px;top:-100px;display:none;z-index:30000;">'),
+					_clear = function () {
+						if (_timer != null) {
+						  clearTimeout(_timer);
+						  _timer = null;
+						}
+					},
+					_hide = function () {
+						_clear();
+						if (_timer == null) {
+						  _timer = setTimeout(function () {
+							_node.hide();
+							_timer = null;
+						  }, 500);
+						}
+					},
+					_show = function (c, o) {
+						_clear();
+						_timer = setTimeout(function () {
+							var _offset = $(c).offset();
+							_node.hide().empty().append(o);
+							var _left = $(window).width() < (_offset.left + $(c).width() + _node.width())? (_offset.left - _node.width() -3):_offset.left + $(c).width() + 3;
+							_node.css({
+								left : _left + 'px',
+								top : _offset.top + 'px'
+							}).show();
+						}, 500);
+					};
+				_node.hover(_clear, _hide);
+				$(document).ready(function () {
+					_node.appendTo('body').hide();
+				});
+				return {
+				  clear: _clear,
+				  hide: _hide,
+				  show: _show
+				};		
+			})();
+			
+			var _this = this,_infoList = args.infoList, _cms_id = args.cms_id;
+			if(!args.infoList || !$(_this).find(_infoList).length) return;
+			$.each($(_this).find(_infoList),function(index,n){
+				var _id =  '#setimg_' + _cms_id + '_' + $(n).attr('publishid'),
+					_width = $(_id).width();
+				if(!_width){
+					_width = 600;
+					$(_id).css({width:_width + 'px',height:_width + 'px'});
+				}
+				
+				var _scall = _width/600;
+
+				$.each($(n).find(args.specific),function(index,q){
+					var m = eval('('+$(q).attr('para')+')');
+					m.x = m.x * _scall;
+					m.y = m.y * _scall;
+					m.w = m.w * _scall;
+					m.h = m.h * _scall;
+					switch(parseInt(m.itemType)){
+						case 2 : {
+							$('<a class="rect"><div class="rectinner">'+($.browser.msie?'<div class="ie"></div>':'')+'</div></a>').css({
+								left: m.x + 'px',
+								top:m.y + 'px',
+								width:m.w + 'px',
+								height:m.h + 'px',
+								zIndex:m.z,
+								position:'absolute'
+							}).attr({href:'#',title1:m.title}).appendTo($(_id)).click(function(){return false;}).hover(function(){
+								//var _link = 'http://item.jd.com/' + m.skuId + '.html',
+								//var _link = m.domainUrl + 'product/productDetail.html?id=' +m.relationId +'&cid='+m.collocateRelationId+'&s='+m.skuId + '&type=4',
+								var _link = m.domainUrl,
+									_description = $('<div class="toolItemInfo"><dl><dt><a h$ef="'+_link+'" target="_blank"'+'"><img src="' + m.IMGSRC + '" alt="" /></a></dt>'+(!m.title?"":'<dd class="iIname"><a href="'+_link+'" target="_blank">'+m.title+'</a></dd>')+(m.Brand?'<dd class="iIbrand">品牌：'+m.Brand+'</dd>':'')+'<dd class="iImore" style="display:none;"><a href="'+_link+'" target="_blank"'+'">查看这件单品的更多搭配 »</a></dd><dd class="iImore"><a href="'+_link+'" target="_blank"'+'"/">详细信息 »</a></dd>'+(!_link?"":'<dd class="iIbuy"><a href="'+(_link)+'" target="_blank"></a></dd>')+'</dl></div>');
+									__item.show($(this),_description);},function(){
+										__item.hide();
+							});
+							break;
+						}
+						case 0 :
+							break;
+					}
+				});
+			});	
+		}
+	});
+})(jQuery,window);
+
+/*
+ * author:wanghaixin@jd.com
+ * date:20130418
+ * ver:v1.0.0
+ */
+
+/*
+ * Goods-sort module logics based pseudo-attributes framework
+ */
+(function($,w){
+    w.jshop.module.GoodsSort = {};
+    
+    $.extend(w.jshop.module.GoodsSort,{
+        tabSort:function(args){
+            var _this = this,
+                param = $.extend({node:'.jOneLevel li', currentNode:'.jOneLevel .current', defaultClass:'current',nodeContent:'.jOneLevelarea'}, args),
+                elems = $(_this).find(param.node),
+                elem = elems.eq(0),
+                nodeContent = $(_this).find(param.nodeContent);
+            
+            //初始化结构
+            $(_this).find(param.node).eq(0).addClass(param.defaultClass);
+            nodeContent.eq(0).addClass(param.defaultClass);
+            elems.eq(elems.length-1).find('span').css({background:'none'});
+            nodeContent.eq(nodeContent.length-1).css({background:'none'});
+            elems.each(function(i,n){
+                $(n).attr('data-num',i);
+            });
+            /*
+            var currentNode = $(_this).find(param.currentNode),
+                width = (elems.parent().parent().width() - currentNode.outerWidth(true) - 0.03)/(elems.length - 1);
+            currentNode.siblings().css({width: width});
+            */
+            $(param.node).css({width:($(param.node).parent().outerWidth(true)-0.5)/$(param.node).length});
+            
+            //绑定鼠标移动事件
+            elems.bind({
+                mouseenter: function(){
+                    //$(this).removeAttr('style');
+                    $(this).addClass(param.defaultClass).siblings().removeClass(param.defaultClass);
+                    //$(this).siblings().css({width: width});
+                    nodeContent.eq($(this).attr('data-num')).addClass(param.defaultClass).siblings().removeClass(param.defaultClass);
+                }
+            });    
+        },
+        extendMenu : function(args){
+            var _this = this,
+                param = $.extend({twoLevel:'.jTwoLevel', threeLevel:'.jThreeLevel', iconArrow:'.jTwoLevel .jIconArrow',defaultClass:'current',needSelected:false, isOpen:true},args),
+				twoLevel = $(_this).find(param.twoLevel),
+				threeLevel = $(_this).find(param.threeLevel),
+				iconArrow = $(_this).find(param.iconArrow),
+				defaultClass = param.defaultClass;
+			
+			twoLevel.each(function(i,n){
+				if(param.isOpen){
+					$(n).attr('data-num',0);//打开
+				}else{
+					$(n).attr('data-num',1);//不打开
+					threeLevel.hide();
+					twoLevel.addClass(defaultClass);
+				}
+			});
+            
+            iconArrow.each(function(index,n){
+                $(n).click(function(){
+                    var currentNode = $(this).parent();
+                    if(currentNode.attr('data-num') == '0'){
+                        currentNode.addClass(defaultClass);
+                        currentNode.siblings().hide();
+                        currentNode.attr('data-num','1');
+                    }else{
+                        currentNode.removeClass(defaultClass);
+                        currentNode.siblings().show();
+                        currentNode.attr('data-num','0');
+                    }
+                });
+            });
+            
+            if(param.needSelected){
+                var _selectedKey = location.origin + location.pathname;
+                $(this).find("a[href='" + _selectedKey + "']").addClass("selected");
+            }
+        }
+    });
+    
+})(jQuery,window);

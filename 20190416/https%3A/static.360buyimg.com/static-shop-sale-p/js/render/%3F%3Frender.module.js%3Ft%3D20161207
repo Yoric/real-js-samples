@@ -1,0 +1,3890 @@
+/*
+ * author:wanghaixin@jd.com
+ * date:2013-04-11
+ * ver:v1.0.0
+ */
+
+/*
+ * 伪属性模块加载框架
+ */
+(function ($, w) {
+    w.jshop = {};
+    w.jshop.module = {};
+
+    $.extend(w.jshop.module, {
+        /*
+         * 去除图片懒加载
+         */
+        ridLazy: function (obj) {
+            $(obj).find('img.J_imgLazyload').each(function () {
+                $(this).attr('src', $(this).attr('original'));
+                $(this).removeAttr('original');
+                $(this).removeClass('J_imgLazyload');
+            });
+        },
+        /*
+         * @function：瀑布流：将图片或商品列表错位布局，错位高度可设置。
+         * @description：主要应用于图片或商品列表类模块，如商品推荐、图片show等模块。
+         * @param：如{area:'.goodsArea', node:"li", topSpac:10}。area需要重设高度的父级节点；node需要使用瀑布流的节点；topSpac顶部错位的距离。
+         * @author：20130114 by bjwanchuan
+         */
+        waterfallFlow: function (args) {
+            var param = jQuery.extend({ area: '.goodsArea', node: 'li', topSpac: 10 }, args),
+                _this = $(this),
+                area = _this.find(param.area),
+                elem = _this.find(param.node),
+                outerWidth = parseInt(elem.data('outerWidth') || elem.outerWidth(true)),
+                qty = parseInt(elem.parent().width() / outerWidth),
+                topPos,
+                array = [];
+            elem.data({ 'outerWidth': outerWidth });
+
+            elem.each(function (index, e) {
+                //获取行数
+                var row = parseInt(index / qty),
+                    //获取列数：通过每一个的位置除去每一行的数量，剩下的余数就是每一列
+                    col = index % qty,
+                    //获取每一个的左边距：离最左边的距离
+                    leftPos = col * jQuery(e).outerWidth(true);
+
+                //如果是第一行
+                if (row == 0) {
+                    topPos = parseInt((col % 2) * param.topSpac);
+                }
+                else {
+                    var topNode = jQuery(elem.get((row - 1) * qty + col));
+                    topPos = topNode.outerHeight(true) + parseInt(topNode.css('top'));
+                }
+                jQuery(e).css({ left: leftPos, top: topPos });
+
+                //将每一个的top和自身的高度之和保存到数组里
+                array.push(parseInt(jQuery(e).css('top')) + jQuery(e).outerHeight(true));
+            });
+
+            //数组排序，获取最大的高度
+            function compare(value1, value2) {
+                if (value1 < value2) {
+                    return -1;
+                } else if (value1 > value2) {
+                    return 1;
+                } else {
+                    return 0;
+                }
+            }
+
+            array.sort(compare);
+
+            //重设父级的高度，以达到背景自适应
+            area.css('height', array[array.length - 1]);
+        },
+        /*
+         * 旧方法，和changeClass一样。
+         */
+        changeStyle: function (args) {
+            var param = $.extend({ node: 'li', defaultClass: 'jCurrent', defaultShow: 0 }, args),
+                elem = $(this).find(param.node),
+                defaultClass = param.defaultClass,
+                defaultShow = param.defaultShow;
+
+            elem.eq(defaultShow).addClass(defaultClass);
+
+            elem.each(function (index, n) {
+                $(n).mouseover(function (e) {
+                    $(this).addClass(defaultClass).siblings().removeClass(defaultClass);
+                });
+            });
+        },
+        /*
+         * @function：改变样式：默认显示一个，鼠标移动到节点上时增加当前样式，同时去除其兄弟节点的当前样式
+         * @description：主要应用于190布局宽度下，因宽度有限，默认只显示商品标题，当鼠标移动到标题上时显示更多的商品信息。
+         * @param：如{node:'li', defaultClass:'jCurrent', defaultShow:0}。参数node为单个节点名；参数defaultClass可任意命名，只要css里面有这个名字。
+         * @author：20130114 by bjwanchuan
+         */
+        changeClass: function (args) {
+            var param = $.extend({ node: 'li', defaultClass: 'jCurrent', defaultShow: 0 }, args),
+                elem = $(this).find(param.node),
+                defaultClass = param.defaultClass,
+                defaultShow = param.defaultShow;
+
+            elem.eq(defaultShow).addClass(defaultClass);
+
+            elem.each(function (index, n) {
+                $(n).mouseover(function (e) {
+                    $(this).addClass(defaultClass).siblings().removeClass(defaultClass);
+                });
+            });
+        },
+        /*
+         * @function：切换样式：鼠标移动到节点上时增加一个样式，移出时去除增加的样式
+         * @description：主要应用于商品列表类模块，如商品推荐、分页显示商品等模块，默认显示商品图片等，鼠标移动上去时显示更多商品信息。
+         * @param：如{node:'li', defaultClass:'current', defaultShow:0}。参数node为单个节点名；参数defaultClass可任意命名，只要css里面有这个名字。
+         * @author：20130114 by bjwanchuan
+         */
+        tabClass: function (args) {
+            var param = $.extend({ node: 'li', defaultClass: 'current' }, args),
+                elem = $(this).find(param.node).length ? $(this).find(param.node) : $(this),
+                defaultClass = param.defaultClass,
+                defaultShow = param.defaultShow;
+
+            if (defaultShow) {
+                elem.eq(defaultShow).addClass(defaultClass);
+            }
+
+            elem.bind({
+                mouseenter: function () {
+                    $(this).addClass(defaultClass).siblings().removeClass(defaultClass);
+                },
+                mouseleave: function () {
+                    $(this).removeClass(defaultClass);
+                }
+            });
+        },
+        /*
+         * @function：切换：鼠标移动到不同的tab，切换相对应的内容
+         * @description：主要应用在商品分类推荐模块中，点击不同的标题，切换相对应的内容。
+         * @param：如{tabNode:'.jSortTab span', tabContent:'.jSortContent ul', arrow:'.jSortTabArrow', defaultClass:'current, setUpWidth:0}。setUpWidth值：0，1；其中0表示平均分配宽度，1表示默认宽度；
+         * @author：20130114 by bjwanchuan
+         */
+        tab: function (args) {
+            var param = $.extend({
+                    tabNode: '.jSortTab span',
+                    arrow: '.jSortTabArrow',
+                    defaultClass: 'current',
+                    tabContent: '.jSortContent ul'
+                }, args),
+                _this = this,
+                tabNode = $(_this).find(param.tabNode),
+                tabContent = $(_this).find(param.tabContent),
+                arrow = $(_this).find(param.arrow);
+
+            //初始化结构
+            tabNode.eq(0).addClass(param.defaultClass);
+            tabContent.eq(0).addClass(param.defaultClass);
+            tabNode.each(function (i, n) {
+                $(n).attr('data-num', i);
+            });
+
+            var width = 0;
+            //自适应宽度
+            if (param.setUpWidth) {
+                if (tabNode.width() > 0) {
+                    width = tabNode.width();
+                } else {
+                    width = (tabNode.parent().parent().width() - 0.03) / tabNode.length;
+                }
+            } else {
+                width = (tabNode.parent().parent().width() - 0.03) / tabNode.length;
+            }
+            tabNode.css({ width: width });
+            arrow.css({ width: width });
+
+            //绑定鼠标移动事件
+            tabNode.bind({
+                mouseenter: function () {
+                    $(this).addClass(param.defaultClass).siblings().removeClass(param.defaultClass);
+                    tabContent.eq($(this).attr('data-num')).addClass(param.defaultClass).siblings().removeClass(param.defaultClass);
+                    arrow.animate({ left: ($(this).attr('data-num')) * width }, 300, function () {
+                    });
+                }
+            });
+        },
+        /*
+         * @function：切换显示：通过触发一个元素，切换其他元素的显示。可选择闭环切换、前进后退及随机切换显示。
+         * @description：可应用于任意模块，只要有使用场景。
+         * @param：如{eventNode:'.jClick', parentNode:'.jSortContent', childNode:'ul', defaultClass:'current', eventType:'click', num:0, tabTime:500, subFunction:'circle'}
+         * eventNode触发切换的节点；parent切换节点的父节点；child切换节点；defaultClass显示样式；eventType触发的事件类型；
+         * num初始显示第几个；tabTime每一屏切换的时间；subFunction显示方式：闭环circle、前进倒退direction、随机random；
+         * @author：20140117 by bjwanchuan
+         */
+        tabShow: function (args) {
+            var param = $.extend({
+                    eventNode: '.jClick',
+                    parentNode: '.jSortContent',
+                    childNode: 'ul',
+                    defaultClass: 'current',
+                    eventType: 'click',
+                    num: 0,
+                    tabTime: 500,
+                    subFunction: 'circle'
+                }, args),
+                _this = $(this),
+                eventNode = _this.find(param.eventNode),//触发切换的节点
+                parent = _this.find(param.parentNode),//切换节点的父节点
+                child = _this.find(param.childNode),//切换节点
+                defaultClass = param.defaultClass,//显示样式
+                eventType = param.eventType,//触发的事件类型
+                num = (param.num === Number && param.num <= len) ? param.num : 0,//初始显示第几个
+                tabTime = param.tabTime,//每一屏切换的时间
+                subFunction = param.subFunction,//显示方式：闭环circle、前进倒退direction、随机random
+                len = child.length,
+                isLeft = true;
+
+            //初始化显示
+            child.eq(num).addClass(defaultClass);
+
+            //事件触发
+            eventNode[eventType](function () {
+                if (param.subFunction) {
+                    showStyle[param.subFunction].call(_this);
+                }
+                callBack();
+            });
+
+            var showStyle = {
+                circle: function () {
+                    num = (num + 1) % len;
+                },
+                direction: function () {
+                    if (isLeft) {
+                        num++;
+                        if (num == len - 1) {
+                            isLeft = false;
+                        }
+                    } else {
+                        num--;
+                        if (num == 0) {
+                            isLeft = true;
+                        }
+                    }
+                },
+                random: function () {
+                    num = parseInt(Math.random() * len);
+                }
+            };
+
+            function callBack() {
+                child.eq(num).addClass(defaultClass).siblings().removeClass(defaultClass);
+                child.animate({ opacity: 0 }, 0, function () {
+                });
+                child.eq(num).animate({ opacity: 1 }, param.tabTime, function () {
+                });
+            }
+        },
+        /*
+         * @function：自适应布局：根据布局的宽度判断能放下的一行数量，并将平均宽度转化为百分比形式。转化好的class类将自动写入节点。
+         * @description：主要应用于不同的宽度布局，如190、390、590、790、990等布局，同一套模板显示的列表个数会根据布局宽度自动计算，并撑满布局。这个方法和autoWidth类似，各有各的使用效果。
+         * @param：如{node:'li', spacingType:'margin', size:1}。node为需要计算宽度的节点；spacingType为节点的间距类型，其值为：margin和padding；size为间距的宽度，其值为0.5和1，其中0.5代表左右间距为0.5%，1代表左右间距为1%。
+         * @author：20130114 by bjwanchuan
+         */
+        autoLayout: function (args) {
+            var _para = $.extend({ node: 'li', spacingType: 'margin', size: 1 }, args || {}),
+                _this = $(this),
+                _elem = _this.find(_para.node),
+                _qty = parseInt(_elem.parent().parent().width() / _elem.outerWidth(true)),
+                _ie = $.browser.msie && parseInt($.browser.version) <= 7 ? 'i' : '',
+                _spacing = _para.spacingType.match(/^m/) ? 'm' : 'p',
+                _size = _para.size == 0.5 ? 'OneHalf' : 'One',
+                _arr = ['qOne', 'qTwo', 'qThree', 'qFour', 'qFive', 'qSix', 'qSeven', 'qEight', 'qNine', 'qTen', 'qEleven', 'qTwelve'];
+
+            _elem.addClass(_ie + _arr[_qty - 1] + _size).addClass(_spacing + _size);
+        },
+        /*
+         * @function：自适应宽度：根据布局的宽度判断能放下的一行数量，并将多余的宽度平均分配给每一个列表项。支持css对象传入。
+         * @description：主要应用于不同的宽度布局，如190、390、590、790、990等布局，同一套模板显示的列表个数会根据布局宽度自动计算，并撑满布局。
+         * @param：如{node:'li', extra:{margin:'0 5px', padding:'5px 0'}}。node为需要计算宽度的节点；extra为给需要计算宽度的节点增加一些css样式，这样可适应不同的效果需求。
+         * @author：20130114 by bjwanchuan
+         */
+        autoWidth: function (args) {
+            var _para = $.extend({ node: 'li', extra: {} }, args || {}),
+                _this = this,
+                elems = $(_this).find(_para.node),
+                elem = elems.eq(0);
+
+            elems.css(_para.extra);
+
+            var outerWidth = parseInt(elem.data('outerWidth') || elem.outerWidth(true)),
+                width = parseInt(elem.data('width') || elem.css('width')),
+                qty = parseInt(elem.parent().parent().width() / outerWidth);
+
+            elem.data({ 'outerWidth': outerWidth, 'width': width });
+
+            var extraWidth = outerWidth - width;
+            var newWidth = (elem.parent().parent().width() - extraWidth * qty - 0.03) / qty;
+            elems.css({ width: newWidth });
+        },
+        /*
+         * @function：自动填充宽度：通过传入不同的参数，让商品呈现不同的间距排列。
+         * @description：可应用于列表类模块。
+         * @param：如{autoFillNode:'li', xInner:0, yInner:0, minWidth:' ', xOuter:' ', yOuter:' '}
+         * autoFillNode为需要计算宽度的节点，默认为li；xInner为节点之间的横向间距；yInner为节点之间的纵向间距。
+         * minWidth为节点除内外边距、边框之后的宽度，如果没传则自动获取。如果最终算出来的宽度小于最小宽度，则不做改变。
+         * xOuter为节点父级左右边距，默认为空，表示两边没有间距；如果传入值大于0，则两边增加传入的间距值；如果等于0，则表示两边完全不要间距，包括每一行第一个节点和最后一个节点的边距。
+         * yOuter和xOuter相反
+         * length 每一行的数量有三种方式：1是自定义传；2是根据每一行的宽度和单个的宽度计算能放下的数量；3是当一行的数量不够占一行的数量
+         * @author：20140321 by bjwanchuan
+         */
+        autoFill: function (args) {
+            var param = $.extend({
+                    autoFillNode: 'li',
+                    xInner: 0,
+                    yInner: 0,
+                    minWidth: ' ',
+                    xOuter: ' ',
+                    yOuter: ' ',
+                    isEqual: false,
+                    length: ''
+                }, args || {}),
+                _this = $(this),
+                node = _this.find(param.autoFillNode),
+                xInner = parseInt(param.xInner),
+                yInner = parseInt(param.yInner),
+                minWidth = parseInt(param.minWidth) ? parseInt(param.minWidth) : node.width(),
+                xOuter = param.xOuter,
+                yOuter = param.yOuter,
+                isEqual = param.isEqual,
+                _thisWidth = _this.css('display') != 'none' ? _this.width() : _this.parent().width(),
+                length;
+
+            //有最外层横向两边距
+            if (xOuter !== 0) {
+                //是否需要平均节点宽度
+                if (isEqual) {
+                    length = node.length;
+                } else if (param.length > 0) {
+                    length = param.length;
+                } else {
+                    length = parseInt((_thisWidth - xOuter * 2) / minWidth);
+                }
+
+                var width = (_thisWidth - (length + 1) * xInner - xOuter * 2 - length * (parseFloat(node.css('padding-left')) + parseFloat(node.css('padding-right')) + parseFloat(node.css('border-left-width')) + parseFloat(node.css('border-right-width')))) / length;
+
+                if (width < (minWidth - 1)) {
+                    return;
+                }
+                ;
+
+                init();
+                _this.css('padding-left', xOuter);
+            }
+
+            //不要最外层横向两边距
+            if (xOuter === 0) {
+                //是否需要平均节点宽度
+                if (isEqual) {
+                    length = node.length;
+                } else if (param.length > 0) {
+                    length = param.length;
+                } else {
+                    length = parseInt(_thisWidth / minWidth);
+                }
+
+                var width = (_thisWidth - (length - 1) * xInner - length * (parseFloat(node.css('padding-left')) + parseFloat(node.css('padding-right')) + parseFloat(node.css('border-left-width')) + parseFloat(node.css('border-right-width')))) / length;
+
+                // 20170705, hewu, 防止因为节点的宽度是小数，导致width()方法取到的宽度四舍五入后大于了当前节点应该渲染的宽度。所以这里减去1
+                if (width < (minWidth - 1)) {
+                    return;
+                }
+                ;
+
+                init();
+                getRowFirst();
+            }
+
+            //默认状态，最外层横向两边距不存在
+            if (xOuter === ' ') {
+                //是否需要平均节点宽度
+                if (isEqual) {
+                    length = node.length;
+                } else if (param.length > 0) {
+                    length = param.length;
+                } else {
+                    length = parseInt(_thisWidth / minWidth);
+                }
+
+                var width = (_thisWidth - (length + 1) * xInner - length * (parseFloat(node.css('padding-left')) + parseFloat(node.css('padding-right')) + parseFloat(node.css('border-left-width')) + parseFloat(node.css('border-right-width')))) / length;
+
+                if (width < (minWidth - 1)) {
+                    return;
+                }
+                ;
+
+                init();
+            }
+
+            //有最外层纵向两边距
+            if (yOuter != 0) {
+                _this.css('padding-bottom', yInner + yOuter);
+                _this.css('padding-top', yOuter);
+            }
+
+            //不要最外层纵向两边距
+            if (yOuter === 0) {
+                getRow();
+            }
+
+            //默认状态，最外层纵向两边距不存在
+            if (yOuter === ' ') {
+                _this.css('padding-bottom', yInner);
+            }
+
+            node.css('width', width);
+
+            //初始化节点
+            function init() {
+                _this.css('overflow', 'hidden');
+
+                if (node.css('margin-left') || node.css('margin-right')) {
+                    node.css({ 'margin-left': 0, 'margin-right': 0 });
+                }
+
+                node.css('margin-top', yInner);
+                node.css('margin-left', xInner);
+            }
+
+            //获取每一行的第一个节点
+            function getRowFirst() {
+                node.each(function (i, e) {
+                    if (i % length === 0) {
+                        $(e).css('margin-left', 0);
+                    }
+                });
+            }
+
+            //获取任意多行节点
+            function getRow() {
+                var number = [1];
+                node.each(function (i, e) {
+                    for (var j = 0; j < number.length; j++) {
+                        if (i >= length * (number[j] - 1) && i < length * number[j]) {
+                            $(e).css('margin-top', 0);
+                        }
+                    }
+                });
+            }
+
+        },
+        /*
+         * @function：平均宽度：根据父节点宽度，平均分配子节点宽度。
+         * @description：主要应用于导航、商品分类推荐等模块中。避免因数量较少而容器右边出现空白的情况。
+         * @param：如{equallyNode:'.jSortTab span', equallyParentNode:null}。equallyNode需要平均父级宽度的节点；equallyParentNode为父级节点，如果此参数没传则默认为当前引用此方法的节点。
+         * @author：20130114 by bjwanchuan
+         */
+        equallyWidth: function (args) {
+            var param = $.extend({ equallyNode: '.jSortTab span', equallyParentNode: null }, args),
+                _this = $(this),
+                nodeParent = (_this.find(param.equallyParentNode).length > 0) ? _this.find(param.equallyParentNode) : _this,
+                elems = _this.find(param.equallyNode),
+                elem = elems.eq(0);
+
+            var outerWidth = parseInt(elem.data('outerWidth') || elem.outerWidth(true)),
+                width = parseInt(elem.data('width') || elem.css('width')),
+                qty = elems.length;
+
+            elem.data({ 'outerWidth': outerWidth, 'width': width });
+
+            var extraWidth = outerWidth - width;
+            var newWidth = (nodeParent.width() - extraWidth * qty - 0.03) / qty;
+            elems.css({ width: newWidth });
+        },
+        /*
+         * @function：100%高度：用在相对定位里面有绝对定位时，背景透明图层以父节点为基准将高度撑满。
+         * @description：主要应用于不同尺寸图片需要遮罩的效果中，由于高度100%存在浏览器兼容，这个方法会自动获取传入的基准容器高度，并赋给遮罩层。
+         * @param：如{fullHeightNode:'li', fullNode:'.jShade'}。fullHeightNode需要参照高度的基准节点；fullNode需要撑满高度的遮罩节点。
+         * @author：20130114 by bjwanchuan
+         */
+        fullHeight: function (args) {
+            var param = $.extend({ fullHeightNode: 'li', fullNode: '.jShade' }, args),
+                elem = $(this).find(param.fullHeightNode),
+                fullNode;
+
+            elem.bind({
+                mouseenter: function () {
+                    fullNode = $(this).find(param.fullNode);
+                    fullNode.css({ height: $(this).height() });
+
+                }
+            });
+        },
+
+        /*
+         * @function 图片轮播：1、根据用户设置的宽度和高度来确定轮播图的大小。2、可自定义向左、向上轮播和渐变轮播参数。3、可设置图片轮播时间。
+         * @description 主要应用于图片轮播模块。
+         * @param：
+         * @author 20130114 by bjwanchuan
+         */
+        slidePhoto: function (args) {
+
+            // 定义传入的CSS调用变量
+            var _this = this,
+                param = $.extend({
+                    imgArea: '.jbannerImg',
+                    imgNodeArea: '.jImgNodeArea',
+                    imgNode: '.jbannerImg dl',
+                    tabArea: '.jbannerTab',
+                    tabNode: '.jbannerTab span',
+                    photoName: '.jDesc',
+                    arrowLeft: '.jPreOut',
+                    arrowRight: '.jNextOut',
+                    arrowLeftOver: 'jPreOver',
+                    arrowRightOver: 'jNextOver',
+                    defaultClass: 'show',
+                    slideDirection: 'left',
+                    timer: '3',
+                    subFunction: 'transparentEffect',
+                    eventType: 'click',
+                    showArrow: 1
+                }, args),
+                imgArea = $(_this).find(param.imgArea),
+                imgNode = $(_this).find(param.imgNode),
+                tabArea = $(_this).find(param.tabArea),
+                tabNode = $(_this).find(param.tabNode),
+                photoName = $(_this).find(param.photoName),
+                defaultClass = param.defaultClass,
+                eventType = param.eventType,
+                timer = !param.timer * 1000 ? 3000 : param.timer * 1000,
+                scroll,
+                imgNodeArea = $(_this).find(param.imgNodeArea),
+                isFull = param.isFull;
+
+            //全局变量
+            var index = 0, direction = 1, time = null, moveRange = 0, partTime = null, animate = null;
+            if (!imgNode.length) return;
+
+            /**
+             * 轮播图所有效果
+             */
+            var banner = {
+                transparentEffect: function () {
+                    //初始化
+                    $(_this).css({ 'background-color': imgNode.eq(index).attr('background') });
+
+                    // 调用函数
+                    init();
+                    triggerThumbnail();
+                    triggerDirection();
+                    if (param.showArrow != 1) {
+                        triggerArrow();
+                    }
+                    animate = transparent;
+                    time = setTimeout(imgMove, timer);
+                },
+                moveEffect: function () {
+                    var isTop = (param.slideDirection == 'top') ? true : false;
+                    scroll = (isTop) ? 'scrollTop' : 'scrollLeft';
+
+                    //初始化
+                    $(_this).css({ 'background-color': imgNode.eq(index).attr('background') });
+                    if (isTop) {
+                        imgNodeArea.css({ height: 20000, width: $(_this).width() });
+                        imgNode.css({ width: imgNodeArea.width(), height: 'auto', 'float': 'none' });
+                        moveRange = imgNode.height();
+                        imgArea[0][scroll] = index * moveRange;
+                    } else {
+                        imgNodeArea.css({ width: 20000 });
+                        imgNode.css({ width: imgNode.find('img').width(), height: '100%', 'float': 'left' });//将这个宽度写在css里，在ie6下面，获取到的父级宽度是被这个元素撑开的宽度
+                        moveRange = imgNode.width();
+                        imgArea[0][scroll] = index * moveRange;
+                    }
+                    ;
+
+                    // 调用函数
+                    init();
+                    triggerThumbnail();
+                    triggerDirection();
+                    if (param.showArrow != 1) {
+                        triggerArrow();
+                    }
+                    animate = oneImgMove;
+                    time = setTimeout(imgMove, timer);
+                }
+            };
+
+            /**
+             * 根据传入的子方法名执行对应的子方法
+             */
+            if (banner[param.subFunction])
+                banner[param.subFunction].call(_this);
+
+            /**
+             * 轮播图初始化
+             */
+            function init() {
+                $(_this).css({ cursor: 'pointer' });
+                imgArea.css({ width: imgNode.find('img').width(), height: imgNode.find('img').height() });
+                imgNode.eq(0).addClass(defaultClass);
+                tabNode.eq(0).addClass(defaultClass);
+                photoName.text(imgNode.eq(0).find('img').attr('title'));
+
+                $(_this).click(function () {
+                    window.open(imgNode.eq(index).attr('ref'));
+                });
+
+                autoMiddle();
+                $(window).resize(function () {
+                    autoMiddle();
+                });
+            }
+
+            /**
+             * 轮播图自适应居中于屏幕中间
+             */
+            function autoMiddle() {
+                var extra = imgArea.width() - $(_this).width();
+                if (extra > 0) {
+                    imgArea.css({ 'margin-left': -extra / 2 });
+                } else {
+                    imgArea.css('margin', '0 auto');
+                }
+            }
+
+            /**
+             * 给每个tab缩略图绑定事件
+             */
+            function triggerThumbnail() {
+                tabNode.each(function (i, elem) {
+                    $(elem)[eventType](function () {
+                        imgNode.eq(index).removeClass(defaultClass);
+                        tabNode.eq(index).removeClass(defaultClass);
+                        index = i;
+                        imgNode.eq(index).addClass(defaultClass);
+                        tabNode.eq(index).addClass(defaultClass);
+                        photoName.text(imgNode.eq(index).find('img').attr('title'));
+                        animate();
+                        return false;
+                    });
+                });
+            }
+
+            /**
+             * 点击箭头或数字时，重置时间
+             */
+            function _stop() {
+                clearTimeout(time);
+                time = null;
+                clearTimeout(partTime);
+                partTime = null;
+                imgNodeArea.clearQueue();
+                imgNode.eq(index).clearQueue();
+            }
+
+            /**
+             * 切换图片和缩略图
+             */
+            function imgMove() {
+                if (direction == 1) {
+                    if (index < imgNode.length - 1) {
+                        classOper([imgNode, tabNode], defaultClass, true);
+                    } else {
+                        direction = 0;
+                        classOper([imgNode, tabNode], defaultClass, false);
+                    }
+                } else {
+                    if (index > 0) {
+                        classOper([imgNode, tabNode], defaultClass, false);
+                    } else {
+                        direction = 1;
+                        classOper([imgNode, tabNode], defaultClass, true);
+                    }
+                }
+                photoName.text(imgNode.eq(index).find('img').attr('title'));
+                animate();
+            }
+
+            /**
+             * 鼠标移动显示左右移动箭头
+             */
+            function triggerArrow() {
+                var arrowLeft = $(_this).find(param.arrowLeft), arrowRight = $(_this).find(param.arrowRight);
+                $(_this).bind({
+                    mouseover: function () {
+                        arrowLeft.show();
+                        arrowRight.show();
+                    },
+                    mouseout: function () {
+                        arrowLeft.hide();
+                        arrowRight.hide();
+                    }
+                });
+            }
+
+            /**
+             * 处理左右移动箭头
+             */
+            function triggerDirection() {
+                var arrowLeft = $(_this).find(param.arrowLeft), arrowRight = $(_this).find(param.arrowRight),
+                    arrowLeftOver = param.arrowLeftOver, arrowRightOver = param.arrowRightOver;
+
+                arrowLeft.bind({
+                    click: function () {
+                        if (index != 0) {// 判断当前是不是第一张
+                            classOper([imgNode, tabNode], defaultClass, false);
+                            animate();
+                        }
+                        return false;
+                    },
+                    mouseover: function () {
+                        $(this).addClass(arrowLeftOver);
+                    },
+                    mouseout: function () {
+                        $(this).removeClass(arrowLeftOver);
+                    }
+                });
+                arrowRight.bind({
+                    click: function () {
+                        if (index < imgNode.length - 1) {// 判断当前是不是最后一张
+                            classOper([imgNode, tabNode], defaultClass, true);
+                            animate();
+                        }
+                        return false;
+                    },
+                    mouseover: function () {
+                        $(this).addClass(arrowRightOver);
+                    },
+                    mouseout: function () {
+                        $(this).removeClass(arrowRightOver);
+                    }
+                });
+            }
+
+            /**
+             * 透明效果
+             */
+            function transparent() {
+                imgNode.animate({
+                    opacity: 0
+                }, 0, function () {
+                });
+                $(_this).css({ 'background-color': imgNode.eq(index).attr('background') });
+                imgNode.eq(index).animate({
+                    opacity: 1
+                }, 1000, function () {
+                    _stop();
+                    time = setTimeout(imgMove, timer);
+                });
+            }
+
+            /**
+             * 移动效果：每一张图片分10次移动
+             */
+            function oneImgMove() {
+                var nowMoveRange = (index * moveRange) - imgArea[0][scroll],
+                    partImgRange = nowMoveRange > 0 ? Math.ceil(nowMoveRange / 10) : Math.floor(nowMoveRange / 10);
+                imgArea[0][scroll] += partImgRange;
+                if (partImgRange == 0) {
+                    imgNode.eq(index).addClass(defaultClass);
+                    tabNode.eq(index).addClass(defaultClass);
+                    photoName.text(imgNode.eq(index).find('img').attr('title'));
+                    partImgRange = null;
+                    _stop();
+                    time = setTimeout(imgMove, timer);
+                }
+                else {
+                    partTime = setTimeout(oneImgMove, 30);
+                }
+                $(_this).css({ 'background-color': imgNode.eq(index).attr('background') });
+            }
+
+            /**
+             * 节点css类名操作
+             */
+            function classOper(arr, className, flag) {
+                arr.each(function (ind, n) {
+                    n.eq(index).removeClass(className);
+                });
+                flag ? (index++) : (index--);
+                arr.each(function (ind, n) {
+                    n.eq(index).addClass(className);
+                });
+            }
+        },
+        /*
+         * @function 片段轮播：1、根据用户设置的宽度和高度来确定轮播图的大小。2、可自定义向左、向上轮播和渐变轮播参数。3、可设置轮播时间。
+         * @description 主要应用于html片段轮播，即雷宁轮播模块。此模块和图片轮播功能类似，差异之处在于图片轮播的数据是用户自己上传的图片，html片段轮播每一屏都是一个自定义编辑器，里面的内容全部由用户自定义。
+         * @param：
+         * @author 20130114 by bjwanchuan
+         */
+        slideHtml: function (args) {
+
+            // 定义传入的CSS调用变量
+            var _this = this,
+                param = $.extend({
+                    imgArea: '.jbannerImg',
+                    imgNodeArea: '.jImgNodeArea',
+                    imgNode: '.jbannerImg li',
+                    tabArea: '.jbannerTab',
+                    tabNode: '.jbannerTab span',
+                    arrowLeft: '.jPreOut',
+                    arrowRight: '.jNextOut',
+                    arrowLeftOver: 'jPreOver',
+                    arrowRightOver: 'jNextOver',
+                    defaultClass: 'show',
+                    slideDirection: 'left',
+                    timer: '3',
+                    subFunction: 'transparentEffect',
+                    eventType: 'click',
+                    showArrow: 1
+                }, args),
+                imgArea = $(_this).find(param.imgArea),
+                imgNode = $(_this).find(param.imgNode),
+                tabArea = $(_this).find(param.tabArea),
+                tabNode = $(_this).find(param.tabNode),
+                photoName = $(_this).find(param.photoName),
+                defaultClass = param.defaultClass,
+                eventType = param.eventType,
+                timer = !param.timer * 1000 ? 3000 : param.timer * 1000,
+                scroll,
+                ul = $(_this).find(param.imgNodeArea + '>ul'),
+                imgNodeArea = $(_this).find(param.imgNodeArea),
+                isFull = param.isFull;
+
+            //全局变量
+            var index = 0, direction = 1, time = null, moveRange = 0, partTime = null, animate = null;
+            if (!imgNode.length) return;
+
+            /**
+             * 轮播图所有效果
+             */
+            var banner = {
+                transparentEffect: function () {
+                    //初始化
+                    $(_this).css({ 'background-color': imgNode.eq(index).attr('background') });
+
+                    // 调用函数
+                    init();
+                    triggerThumbnail();
+                    triggerDirection();
+                    if (param.showArrow != 1) {
+                        triggerArrow();
+                    }
+                    animate = transparent;
+                    time = setTimeout(imgMove, timer);
+                },
+                moveEffect: function () {
+                    var isTop = (param.slideDirection == 'top') ? true : false;
+                    scroll = (isTop) ? 'scrollTop' : 'scrollLeft';
+
+                    //初始化
+                    $(_this).css({ 'background-color': imgNode.eq(index).attr('background') });
+                    if (isTop) {
+                        imgNodeArea.css({ height: 20000 });
+                        imgNode.css({ width: imgNode.attr('width'), height: imgNode.attr('height') });
+                        moveRange = imgNode.height();
+                        imgArea[0][scroll] = index * moveRange;
+                    } else {
+                        imgNodeArea.css({ width: 20000 });
+                        imgNode.css({ width: imgNode.attr('width'), height: imgNode.attr('height'), 'float': 'left' });//将这个宽度写在css里，在ie6下面，获取到的父级宽度是被这个元素撑开的宽度
+                        moveRange = imgNode.width();
+                        imgArea[0][scroll] = index * moveRange;
+                    }
+
+                    // 调用函数
+                    init();
+                    triggerThumbnail();
+                    triggerDirection();
+                    if (param.showArrow != 1) {
+                        triggerArrow();
+                    }
+                    animate = oneImgMove;
+                    time = setTimeout(imgMove, timer);
+                }
+            };
+
+            /**
+             * 根据传入的子方法名执行对应的子方法
+             */
+            if (banner[param.subFunction])
+                banner[param.subFunction].call(_this);
+
+            /**
+             * 轮播图初始化
+             */
+            function init() {
+                imgArea.css({ width: imgNode.attr('width'), height: imgNode.attr('height') });
+                imgNode.eq(0).addClass(defaultClass);
+                tabNode.eq(0).addClass(defaultClass);
+                autoMiddle();
+                $(window).resize(function () {
+                    autoMiddle();
+                });
+            }
+
+            /**
+             * 轮播图自适应居中于屏幕中间
+             */
+            function autoMiddle() {
+                var extra = imgArea.width() - $(_this).width();
+                if (extra > 0) {
+                    imgArea.css({ 'margin-left': -extra / 2 });
+                } else {
+                    imgArea.css('margin', '0 auto');
+                }
+            }
+
+            /**
+             * 给每个tab缩略图绑定事件
+             */
+            function triggerThumbnail() {
+                tabNode.each(function (i, elem) {
+                    $(elem)[eventType](function () {
+                        imgNode.eq(index).removeClass(defaultClass);
+                        tabNode.eq(index).removeClass(defaultClass);
+                        index = i;
+                        imgNode.eq(index).addClass(defaultClass);
+                        tabNode.eq(index).addClass(defaultClass);
+                        animate();
+                        return false;
+                    });
+                });
+            }
+
+            /**
+             * 点击箭头或数字时，重置时间
+             */
+            function _stop() {
+                clearTimeout(time);
+                time = null;
+                clearTimeout(partTime);
+                partTime = null;
+                ul.clearQueue();
+                imgNode.eq(index).clearQueue();
+            }
+
+            /**
+             * 切换图片和缩略图
+             */
+            function imgMove() {
+                if (direction == 1) {
+                    if (index < imgNode.length - 1) {
+                        classOper([imgNode, tabNode], defaultClass, true);
+                    } else {
+                        direction = 0;
+                        classOper([imgNode, tabNode], defaultClass, false);
+                    }
+                } else {
+                    if (index > 0) {
+                        classOper([imgNode, tabNode], defaultClass, false);
+                    } else {
+                        direction = 1;
+                        classOper([imgNode, tabNode], defaultClass, true);
+                    }
+                }
+                animate();
+            }
+
+            /**
+             * 鼠标移动显示左右移动箭头
+             */
+            function triggerArrow() {
+                var arrowLeft = $(_this).find(param.arrowLeft), arrowRight = $(_this).find(param.arrowRight);
+                $(_this).bind({
+                    mouseover: function () {
+                        arrowLeft.show();
+                        arrowRight.show();
+                    },
+                    mouseout: function () {
+                        arrowLeft.hide();
+                        arrowRight.hide();
+                    }
+                });
+            }
+
+            /**
+             * 处理左右移动箭头
+             */
+            function triggerDirection() {
+                var arrowLeft = $(_this).find(param.arrowLeft), arrowRight = $(_this).find(param.arrowRight),
+                    arrowLeftOver = param.arrowLeftOver, arrowRightOver = param.arrowRightOver;
+
+                arrowLeft.bind({
+                    click: function () {
+                        if (index != 0) {// 判断当前是不是第一张
+                            classOper([imgNode, tabNode], defaultClass, false);
+                            animate();
+                        }
+                        return false;
+                    },
+                    mouseover: function () {
+                        $(this).addClass(arrowLeftOver);
+                    },
+                    mouseout: function () {
+                        $(this).removeClass(arrowLeftOver);
+                    }
+                });
+                arrowRight.bind({
+                    click: function () {
+                        if (index < imgNode.length - 1) {// 判断当前是不是最后一张
+                            classOper([imgNode, tabNode], defaultClass, true);
+                            animate();
+                        }
+                        return false;
+                    },
+                    mouseover: function () {
+                        $(this).addClass(arrowRightOver);
+                    },
+                    mouseout: function () {
+                        $(this).removeClass(arrowRightOver);
+                    }
+                });
+            }
+
+            /**
+             * 透明效果
+             */
+            function transparent() {
+                imgNode.animate({
+                    opacity: 0
+                }, 0, function () {
+                });
+                $(_this).css({ 'background-color': imgNode.eq(index).attr('background') });
+                imgNode.eq(index).animate({
+                    opacity: 1
+                }, 1000, function () {
+                    _stop();
+                    time = setTimeout(imgMove, timer);
+                });
+
+            }
+
+            /**
+             * 移动效果：每一张图片分10次移动
+             */
+            function oneImgMove() {
+                var nowMoveRange = (index * moveRange) - imgArea[0][scroll],
+                    partImgRange = nowMoveRange > 0 ? Math.ceil(nowMoveRange / 10) : Math.floor(nowMoveRange / 10);
+                imgArea[0][scroll] += partImgRange;
+                if (partImgRange == 0) {
+                    imgNode.eq(index).addClass(defaultClass);
+                    tabNode.eq(index).addClass(defaultClass);
+                    partImgRange = null;
+                    _stop();
+                    time = setTimeout(imgMove, timer);
+                }
+                else {
+                    partTime = setTimeout(oneImgMove, 30);
+                }
+                $(_this).css({ 'background-color': imgNode.eq(index).attr('background') });
+            }
+
+            /**
+             * 节点css类名操作
+             */
+            function classOper(arr, className, flag) {
+                arr.each(function (ind, n) {
+                    n.eq(index).removeClass(className);
+                });
+                flag ? (index++) : (index--);
+                arr.each(function (ind, n) {
+                    n.eq(index).addClass(className);
+                });
+            }
+        },
+        /*
+         * @function：改变图片：事件触发小图查看大图。
+         * @description：主要应用于商品推荐、主从商品等模块，能取到同一张不同尺寸大小的图片，这样就可以实现事件触发小图查看大图的效果。
+         * @param：
+         * @author：20130114 by bjwanchuan
+         */
+        changePhoto: function (args) {
+            var param = $.extend({
+                    changePhotoNode: '.jPic img',
+                    smallPhoto: '.jScrollWrap li',
+                    title: '.jDesc a',
+                    defaultClass: 'jCurrent',
+                    eventType: 'click'
+                }, args || {}),
+                _this = $(this),
+                largePhoto = _this.find(param.changePhotoNode),
+                smallPhoto = _this.find(param.smallPhoto),
+                title = _this.find(param.title);
+
+            //初始化
+            largePhoto.attr('src', smallPhoto.eq(0).attr('data-src'));
+            largePhoto.parent().attr('href', smallPhoto.eq(0).attr('data-href'));
+            title.attr('href', smallPhoto.eq(0).attr('data-href'));
+
+            smallPhoto.eq(0).addClass(param.defaultClass);
+
+            //触发小图
+            smallPhoto[param.eventType](function () {
+                var _target = this;
+
+                largePhoto.attr('src', $(_target).attr('data-src'));
+                largePhoto.parent().attr('href', $(_target).attr('data-href'));
+                title.attr('href', $(_target).attr('data-href'));
+
+                //切换大图的时候 同时切换关注商品的input 结点ID
+                var goodsFollow = $(_target).parents('li.jSubObject');
+                if (typeof goodsFollow != 'undefined' && typeof $(_target).attr('sid') != 'undefined') {
+                    var btnColl = jQuery(goodsFollow).find('.btn-coll');
+                    if (typeof btnColl.attr('id') != 'undefined') {
+                        btnColl.attr('id', 'coll' + $(_target).attr('sid'));
+                    }
+                }
+
+                $(_target).addClass(param.defaultClass).siblings().removeClass(param.defaultClass);
+            });
+        },
+        /*
+         * @function：改变图片：事件触发小图查看大图。
+         * @description：主要应用于商品推荐、主从商品等模块，能取到同一张不同尺寸大小的图片，这样就可以实现事件触发小图查看大图的效果。
+         * 实现同一个商品，多个sku分开关注
+         * @param：
+         * @author：20160630by bjwanchuan
+         */
+        changeThumbnail: function (args) {
+            var param = $.extend({
+                    node: '.jSubObject',
+                    changePhotoNode: '.jPic img',
+                    smallPhoto: '.jScrollWrap li',
+                    title: '.jDesc a',
+                    defaultClass: 'jCurrent',
+                    eventType: 'click'
+                }, args || {}),
+                _this = $(this),
+                node = _this.find(param.node),
+                largePhoto = _this.find(param.changePhotoNode),
+                smallPhoto = _this.find(param.smallPhoto),
+                title = _this.find(param.title);
+
+            //初始化
+            smallPhoto.eq(0).addClass(param.defaultClass);
+
+            //触发小图
+            smallPhoto.each(function (i, e) {
+                jQuery(e).find('a')[param.eventType](function () {
+                    var _target = jQuery(this).parents();
+
+                    largePhoto.attr('src', _target.attr('data-src'));
+                    largePhoto.parent().attr('href', _target.attr('data-href'));
+                    title.attr('href', _target.attr('data-href'));
+
+                    _target.addClass(param.defaultClass).siblings().removeClass(param.defaultClass);
+                });
+            });
+        },
+        /*
+         * @function：移动图片：点击左右箭头移动图片。
+         * @description：主要应用于主从商品等模块，当容器宽度有限，图片却很多时，点击左右箭头就可移动图片。
+         * @param：
+         * @author：20130114 by bjwanchuan
+         */
+        movePhoto: function (args) {
+            var param = $.extend({
+                    movePhotoNode: '.jScrollWrap li',
+                    arrowPrev: '.jScrollPrev',
+                    arrowNext: '.jScrollNext',
+                    defaultClass: 'disabled'
+                }, args || {}),
+                _this = $(this),
+                node = _this.find(param.movePhotoNode),
+                prev = _this.find(param.arrowPrev),
+                next = _this.find(param.arrowNext),
+                visibleNode = parseInt(node.parent().parent().width() / node.width()),
+                index = 0,
+                length = node.length;
+
+            //初始化结构
+            if (length > visibleNode) {
+                prev.addClass(param.defaultClass).show();
+                next.show();
+                node.parent().css('width', node.width() * length);
+            }
+
+            //向右移动
+            next.click(function () {
+                var _this = this;
+
+                if (length - visibleNode) {
+                    prev.removeClass(param.defaultClass);
+                }
+
+                if (index < length - visibleNode) {
+                    index++;
+                    node.parent().animate({
+                        left: -node.eq(0).outerWidth(true) * index
+                    }, function () {
+                        if (index + visibleNode == length) {
+                            $(_this).addClass(param.defaultClass);
+                        }
+                    });
+                }
+            });
+
+            //向左移动
+            prev.click(function () {
+                var _this = this;
+                if (index + visibleNode <= length) {
+                    next.removeClass(param.defaultClass);
+                }
+
+                if (index > 0) {
+                    index--;
+                    node.parent().animate({
+                        left: -node.eq(0).outerWidth(true) * index
+                    }, function () {
+                        if (!index) {
+                            $(_this).addClass(param.defaultClass);
+                        }
+                    });
+                }
+            });
+        },
+        /*
+         * @function：操作节点：通过不同的条件，调用不同的方法，查找对象里面的某一个或一些节点，并对这些节点做操作，默认为增加一个样式。
+         * @description：可应用于任意模块，只要有使用场景。
+         * @param：如{operateNode:'li', operateParentNode:null, defaultClass:'jCurrent', length:0, subFunction:null, number:[], callBack:null}
+         * operateNode为需要查找的节点；operateParentNode为查找节点的父级节点；defaultClass为默认样式名；length为每一行的节点个数；subFunction为此方法里面的子方法；
+         * number为数组对象，当使用getNode方法时，表示数组里面指定的节点，当使用getColumn方法时，表示指定的列节点。当使用getRow方法时，表示指定的行节点；
+         * callBack为函数体，参数接收一个节点对象，可在函数体里对接收的这个对象做操作。
+         * @author：20130114 by bjwanchuan
+         */
+        operateNode: function (args) {
+            var param = $.extend({
+                    operateNode: 'li',
+                    operateParentNode: null,
+                    defaultClass: 'jCurrent',
+                    length: 0,
+                    subFunction: null,
+                    number: [],
+                    callBack: null
+                }, args || {}),
+                _this = $(this),
+                node = _this.find(param.operateNode),
+                nodeParent = (_this.find(param.operateParentNode).length > 0) ? _this.find(param.operateParentNode) : _this.parent().parent().parent(),
+                defaultClass = param.defaultClass,
+                number = param.number,
+                length = (param.length != 0) ? param.length : parseInt(nodeParent.outerWidth(true) / node.outerWidth(true)),
+                callBack = typeof(param.callBack) === 'function' ? param.callBack : function (a) {
+                    a.addClass(defaultClass);
+                };
+
+            if (node.length === 0) return;
+
+            //ie9下获取nodeParent.outerWidth(true)有差异。为避免此问题，1、可传入明确知道宽度的节点；2、程序会取this的父级的父级的父级定义了宽度的层。
+            //此段尚未使用，当元素隐藏后获取不到元素的偏移值
+            var rowLen = 0;
+            var nowTop = $(node[0]).offset().top;
+            node.each(function (index, dom) {
+                if (index > 0) {
+                    rowLen++;
+                    var _top = $(dom).offset().top;
+                    if (nowTop !== _top) {
+                        return false;
+                    } else {
+                        nowTop = _top;
+                    }
+                }
+            });
+
+            var operate = {
+                //获取任意节点
+                getNode: function () {
+                    return node.map(function (i, e) {
+                        for (var j = 0; j < number.length; j++) {
+                            if (i + 1 === number[j]) {
+                                return e;
+                            }
+                        }
+                    });
+                },
+                //获取所有奇数列节点
+                getAllOdd: function () {
+                    return node.map(function (i, e) {
+                        if (i % 2 === 0) {
+                            return e;
+                        }
+                    });
+                },
+                //获取所有偶数列节点
+                getAllEven: function () {
+                    return node.map(function (i, e) {
+                        if (i % 2 === 1) {
+                            return e;
+                        }
+                    });
+                },
+                //获取任意多列节点
+                getColumn: function () {
+                    return node.map(function (i, e) {
+                        for (var j = 0; j < number.length; j++) {
+                            if (i % length === number[j] - 1) {
+                                return e;
+                            }
+                        }
+                    });
+                },
+                //获取任意多行节点
+                getRow: function () {
+                    return node.map(function (i, e) {
+                        for (var j = 0; j < number.length; j++) {
+                            if (i >= length * (number[j] - 1) && i < length * number[j]) {
+                                return e;
+                            }
+                        }
+                    });
+                },
+                //获取每一行的奇数节点
+                getRowOdd: function () {
+                    return node.map(function (i, e) {
+                        if (i % length % 2 === 0) {
+                            return e;
+                        }
+                    });
+                },
+                //获取每一行的偶数节点
+                getRowEven: function () {
+                    return node.map(function (i, e) {
+                        if (i % length % 2 === 1) {
+                            return e;
+                        }
+                    });
+                },
+                //获取第一个节点
+                getFirst: function () {
+                    return node.eq(0);
+                },
+                //获取最后一个节点
+                getLast: function () {
+                    return node.eq(node.length - 1);
+                },
+                //获取每一行的第一个节点
+                getRowFirst: function () {
+                    return node.map(function (i, e) {
+                        if (i % length === 0) {
+                            return e;
+                        }
+                    });
+                },
+                //获取每一行的最后一个节点
+                getRowLast: function () {
+                    return node.map(function (i, e) {
+                        if (i % length === length - 1) {
+                            return e;
+                        }
+                    });
+                },
+                //获取每一行的第一个节点和最后一个节点
+                getRowFirstAndLast: function () {
+                    return node.map(function (i, e) {
+                        if (i % length === 0 || i % length === length - 1) {
+                            return e;
+                        }
+                    });
+                }
+            };
+
+            if (operate[param.subFunction]) {
+                callBack(operate[param.subFunction]());
+            }
+        },
+        /*
+         * @function： 移动节点
+         * @description：点击左右箭头移动节点，可移动单个节点，也可移动一屏节点，可左右移动，也可左右循环移动
+         * @param：moveNode需要移动的节点；arrowPrev左箭头；arrowNext右箭头；disabled箭头不可用样式；showNum一屏显示数量，可传入正确的一屏数量，没传则程序计算；
+         cssValue改变的css属性名；isLoop是否循环，默认为真；isScreen是否是移动一屏，默认为真；timer每一次移动的时间，默认为1，值取0-4之间。
+         * @note：如果是移动一屏，则需要的节点总数量必须为每一屏可显示的整数倍；如果是循环切换，disabled参数可不用。
+         * @author： cdwanchuan@jd.com 2014-03
+         */
+        moveNode: function (args) {
+            var param = $.extend({
+                    moveNode: '.scroll-area li',
+                    arrowPrev: '.arrow-left',
+                    arrowNext: '.arrow-right',
+                    disabled: 'disabled',
+                    showNum: '',
+                    cssValue: 'margin-left',
+                    isLoop: true,
+                    isScreen: true,
+                    timer: 1
+                }, args || {}),
+                _this = $(this),
+                node = _this.find(param.moveNode),
+                prev = _this.find(param.arrowPrev),
+                next = _this.find(param.arrowNext),
+                showNum = (param.showNum > 0) ? parseInt(param.showNum) : Math.ceil(node.parent().parent().width() / node.outerWidth(true)),
+                index = 0,
+                length = param.isScreen ? Math.ceil(node.length / showNum) : node.length,
+                eventFlag = true,
+                moveWidth = param.isScreen ? showNum * node.eq(0).outerWidth(true) : node.eq(0).outerWidth(true),
+                visibleNum = param.isScreen ? 1 : showNum,
+                timer = !(param.timer > -1 && param.timer < 5) ? 1000 : param.timer * 1000;
+
+            if (length > visibleNum) {
+                prev.show().addClass(param.disabled);
+                next.show();
+                node.parent().css('width', moveWidth * length * 10);
+
+                if (param.isLoop) {
+                    initLoop();
+                }
+            }
+
+            function initLoop() {
+                for (var i = 0; i < showNum; i++) {
+                    node.eq(i).clone().appendTo(node.parent());
+                    node.eq(node.length - 1 - i).clone().prependTo(node.parent());
+                }
+                node.parent().css(param.cssValue, -moveWidth * visibleNum + parseInt(node.parent().css(param.cssValue)));
+            }
+
+            var cssJson = {};
+            node.parent().data('cssInitValue', parseInt(node.parent().css(param.cssValue)));
+
+            next.click(function () {
+                if (!param.isLoop) {
+                    if (index == 0) eventFlag = true;
+                }
+
+                if (eventFlag) {
+                    eventFlag = false;
+                    index++;
+                    cssJson[param.cssValue] = -moveWidth * index + node.parent().data('cssInitValue');
+
+                    node.parent().animate(cssJson, timer, function () {
+                        eventFlag = true;
+                        if (!param.isLoop) {
+                            if (index > 0) {
+                                prev.removeClass(param.disabled);
+                            }
+                            if (index + visibleNum == length) {
+                                next.addClass(param.disabled);
+                                eventFlag = false;
+                            }
+                        } else {
+                            if (index == length) {
+                                index = 0;
+                                node.parent().css(param.cssValue, node.parent().data('cssInitValue'));
+                            }
+                        }
+                    });
+                }
+            });
+
+            prev.click(function () {
+                if (!param.isLoop) {
+                    eventFlag = (index > 0) ? true : false;
+                }
+
+                if (eventFlag) {
+                    eventFlag = false;
+                    index--;
+                    cssJson[param.cssValue] = -moveWidth * index + node.parent().data('cssInitValue');
+
+                    node.parent().animate(cssJson, timer, function () {
+                        eventFlag = true;
+                        if (!param.isLoop) {
+                            if (index < length - 1) {
+                                next.removeClass(param.disabled);
+                            }
+                            if (index == 0) {
+                                prev.addClass(param.disabled);
+                                eventFlag = false;
+                            }
+                        } else {
+                            if (index < 0) {
+                                index = length - 1;
+                                node.parent().css(param.cssValue, node.parent().data('cssInitValue') + (-moveWidth * index));
+                            }
+                        }
+                    });
+                }
+            });
+        },
+        /*
+         * @function：多行省略号 ：计算文字的数量，超过一定的数量后，剩余的用其他传入的字符替换。
+         * @description：主要应用于商品展示类模块中，如商品推荐、分页显示商品、店内搜索结果、主从商品等等模块，当商品标题太长而布局容器有限时使用。
+         * @param：如{title:'.jDesc a', count:15, text:'...'}。title需要替换的文字节点；count文字的数量；text用于替换的字符；
+         * @author：20130114 by bjwanchuan
+         */
+        addEllipsis: function (args) {
+            var param = $.extend({ title: '.jDesc a', count: 15, text: '...' }, args),
+                _this = $(this),
+                elem = _this.find(param.title);
+
+            elem.each(function (index, ele) {
+                var textNode = ele.firstChild;
+                if (textNode && textNode.nodeType == 3 && textNode.length >= param.count) {
+                    textNode.replaceData(param.count, textNode.length, param.text);
+                }
+            });
+        },
+        shopSearch: function (args) {
+            jshop.module.search.shopSearch.call(this, args);
+        },
+        /**
+         * 写法：<div module-param="{type:'shopId',id:'80738',node:'.item'}" module-function="follow" class="j-module"><span class="item">这里放图片代码哦</span></div>
+         * */
+        follow: (function () {
+            // 默认参数设置
+            var _default = {
+                // 关注店铺Api
+                shopApi: INTERFACE.venderFollow.follow,
+                // 关注活动Api
+                actApi: INTERFACE.activityFollw.follow,
+                // 已收藏店铺数量Api
+                shopCountApi: INTERFACE.venderFollow.queryForCount,
+                // 已收藏活动数量Api
+                actCountApi: INTERFACE.activityFollw.queryForCount,
+                // 关注商品Api
+                goodsApi: '',
+                // 默认关注类型（店铺）
+                type: 'shopId'
+            };
+
+            function newTagOnfocus() {
+                var val = jQuery('#newTag').val();
+                val = val.trim();
+                if (val == jQuery('#newTag').attr('placeholder')) {
+                    jQuery('#newTag').val('');
+                }
+            }
+
+            function checkLength(node) {
+                if (node.value.length > 10) {
+                    node.value = node.value.substring(0, 10);
+                }
+            }
+
+            function Follow(cfg, scope) {
+                this.config = jQuery.extend({}, cfg);
+
+                var config = jQuery.extend({}, this.config);
+                this.container = $(config.node, scope);
+
+                this.get = function (p) {
+                    return config[p];
+                };
+                this.set = function (p, v) {
+                    config[p] = v;
+                };
+
+                this.init();
+            }
+
+            Follow.FollowVMContent = '<div id="whole">'
+                + '<div id="followSuccessDiv">'
+                + '<div class="tips" id="success"> <h2>关注成功！</h2>'
+                + '<p><em id="followNum"></em>'
+                + '<a target="_blank" href="//t.jd.com/vender/followVenderList.action">查看我的关注&gt;&gt;</a>'
+                + '</p></div>'
+                + '<div id="attention-tags" style="display:none;"><div class="mt">'
+                + '<h4>选择标签<em>（最多可选3个）</em></h4>'
+                + '<div class="extra"></div></div>'
+                + '<div class="mc"><div id="followTags"></div>'
+                + '<div class="att-tag-btn">'
+                + '<a href="javascript:void(0);" class="att-btn-ok">确定</a>'
+                + '<a class="att-btn-cancal" href="javascript:jdThickBoxclose()">取消</a>'
+                + '<span id="follow_error_msg"  class="att-tips fl"></span></div></div>'
+                + '</div></div>'
+                + '<div id="followTopicSuccessDiv">'
+                + '<div id="att-mod-success">'
+                + '<div class="att-img fl"><img src="//misc.360buyimg.com/201007/skin/df/i/icon_correct.jpg" alt=""></div>'
+                + '<div class="att-content"><h2>关注成功</h2>'
+                + '<p><em id="followTopicNum" ></em>'
+                + '<a target="_blank" href="//t.jd.com/activity/followActivityList.action">查看我的关注 &gt;&gt;</a>'
+                + '</p></div>'
+                + '<div class="att-tag-btn">'
+                + '<a class="att-btn-cancal" href="javascript:jdThickBoxclose()" onclick="jdThickBoxclose()">关闭</a>'
+                + '</div></div></div>'
+                + '<div id="followFailDiv" >'
+                + '<div id="att-mod-again">'
+                + '<div class="att-img fl">'
+                + '<img src="//misc.360buyimg.com/201007/skin/df/i/icon_sigh.jpg" alt="">'
+                + '</div><div class="att-content"><h2>已经关注！</h2>'
+                + '<p><a id=\'followFailSeeFollowUrl\' target="_blank" href="//t.jd.com/vender/followVenderList.action">查看我的关注 &gt;&gt;</a></p>'
+                + '</div><div class="att-tag-btn"><a class="att-btn-cancal" href="javascript:jdThickBoxclose()">关闭</a></div>'
+                + '</div></div><div id="followMaxDiv">'
+                + '<div id="att-mod-again">'
+                + '<div class="att-img fl">'
+                + '<img src="//misc.360buyimg.com/201007/skin/df/i/icon_sigh.jpg" alt="">'
+                + '</div><div class="att-content">'
+                + '<h2>关注数量达到最大限制</h2>'
+                + '<p><a id=\'followMaxSeeFollowUrl\' target="_blank" href="//t.jd.com/vender/followVenderList.action">查看我的关注 &gt;&gt;</a></p>'
+                + '</div><div class="att-tag-btn">'
+                + '<a class="att-btn-cancal" href="javascript:jdThickBoxclose()">关闭</a></div>'
+                + '</div></div><div id="followedDiv">'
+                + '<div id="att-mod-again"><div class="att-img fl">'
+                + '<img src="//misc.360buyimg.com/201007/skin/df/i/icon_sigh.jpg" alt="">'
+                + '</div><div class="att-content">'
+                + '<h2 id="followedTitle"></h2>'
+                + '<p><em id="followedNum"></em>'
+                + '<a id=\'followedSeeFollowUrl\' target="_blank" href="">查看我的关注 &gt;&gt;</a>'
+                + '</p></div><div class="att-tag-btn">'
+                + '<a class="att-btn-cancal" href="javascript:jdThickBoxclose()">关闭</a></div></div>'
+                + '</div></div>';
+
+            Follow.prototype = {
+                init: function () {
+                    var _this = this;
+
+                    _this.bindEvent();
+
+                },
+                bindEvent: function () {
+                    var _this = this;
+
+                    _this.container.click(function () {
+                        thick_login(function () {
+                            _this.addFollow();
+                        });
+
+                    });
+                    // 为确定按钮添加事件代理，删除dom中的onclick事件绑定
+                    jQuery('body').delegate('.att-btn-ok', 'click', function () {
+                        _this.doSubmit();
+                    });
+                },
+                addFollow: function () {
+                    var _this = this, api;
+                    if (_this.get('type') == 'shopId') {
+                        api = _this.get('shopApi');
+                        api += '?venderId=' + _this.get('id') + '&sysName=mall.jd.com';
+                    } else {
+                        api = _this.get('actApi');
+                        api += '?activityId=' + _this.get('id');
+                        api += '&srcType=0&sysName=mall.jd.com';
+                    }
+
+                    // documentFragment
+                    Follow.followVM = jQuery(Follow.FollowVMContent);
+                    // 根据不同关注类型，发送关注请求
+                    jQuery.ajax({
+                        async: false,
+                        url: api,
+                        dataType: 'jsonp',
+                        success: function (data) {
+                            _this.followSuccess(data);
+                        },
+                        error: function (data, xhr) {
+                            _this.followShopFail();
+                        }
+                    });
+                },
+                followSuccess: function (data) {
+                    this.checkResult(data, this.followSuccessCallBack, this.followed, this.followShopMax);
+                },
+                checkResult: function (data, callback, followed, max) {
+                    // 根据不同的关注状态，弹出不同的提示浮层
+                    switch (data.code) {
+                        case 'F10000':
+                            callback && callback.call(this);
+                            break;
+                        case 'F0409':
+                            followed && followed.call(this);
+                            break;
+                        case 'F0410':
+                            max && max.call(this);
+                            break;
+                        default:
+                            this.followShopFail.call(this);
+                    }
+                },
+                // 关注成功
+                followSuccessCallBack: function () {
+                    var _this = this, api, type = _this.get('type');
+                    if (type == 'shopId') {
+                        api = _this.get('shopCountApi');
+                    } else {
+                        api = _this.get('actCountApi');
+                    }
+                    _this.getFollowNum(api, function (data) {
+                        if (data.code == 'F10000') {
+                            var outStr;
+                            if (type == 'shopId') {
+                                outStr = '您已关注' + data.data + '个店铺';
+                                Follow.followVM.find('#followNum').html(outStr);
+                            } else {
+                                outStr = '您已关注' + data.data + '个活动';
+                                Follow.followVM.find('#followTopicNum').html(outStr);
+                            }
+                        }
+                        if (type == 'shopId') {
+                            //_this.getFollowTags();
+                            _this.ShowFollowSuc();
+
+                        } else {
+                            //_this.ShowFollowTopicSuc();
+                        }
+                    });
+                },
+                // 获取关注数
+                getFollowNum: function (url, cb) {
+                    var _this = this;
+                    jQuery.ajax({
+                        async: false,
+                        url: url,
+                        data: { sysName: 'mall.jd.com' },
+                        dataType: 'jsonp',
+                        success: function (data) {
+                            cb && cb(data);
+                        },
+                        error: function (data, shr) {
+                            _this.followShopFail();
+                        }
+                    });
+                }/*,
+                 // 获取关注标签
+                 getFollowTags: function() {
+                 var _this = this;
+                 jQuery.ajax({
+                 async: false,
+                 url: INTERFACE.venderFollow.queryTagForListByCount + "?count=5",
+                 dataType: "jsonp",
+                 success: function(data) {
+                 _this.fillInTags(data);
+                 _this.ShowFollowSuc();
+                 },
+                 error: function(data, D) {
+                 _this.followShopFail();
+                 }
+                 });
+                 }*/,
+                // 写入添加关注标签的dom结构
+                fillInTags: function (data) {
+                    var _this = this,
+                        obj = data,
+                        len = obj.data.length,
+                        dom = '';
+                    dom += '<ul id=\'oldTags\' class=\'att-tag-list\'>';
+                    var str;
+                    for (var i = 0; i < len; i++) {
+                        // var H = "att-tag" + i;
+                        str = obj.data[i];
+                        str = decodeURIComponent(str);
+                        dom += '<li><a href=\'javascript:void(0)\' class=\'J_ChooseTagOne\'>' + str + '</a></li>';
+                    }
+                    dom += '</ul>';
+                    dom += '<ul id=\'newTags\' class=\'att-tag-list att-tag-list-save\'>';
+                    dom += '<li id=\'att-tag-new\' class=\'att-tag-new\'><input id=\'newTag\' type=\'text\' placeholder=\'自定义\' maxlength=\'10\'><span id=\'J_SaveTagOneBtn\'>添加</span></li>';
+                    dom += '</ul>';
+                    dom += '';
+                    Follow.followVM.find('#followTags').html(dom);
+                },
+                ShowFollowSuc: function () {
+                    var _this = this, title = '提示', node = jQuery('#dialogDiv');
+                    node.html('<a id="dialogA" href="#"></a>');
+                    $.jdThickBox({
+                        width: 510,
+                        height: /*260*/100,
+                        title: title,
+                        _box: 'btn_coll_shop_pop',
+                        source: Follow.followVM.find('#followSuccessDiv').html()
+                    }/*, function() {
+                     var spop = jQuery("#btn_coll_shop_pop"),
+                     spop_mc = jQuery("#attention-tags").find(".mc");
+                     spop.find(".thickcon").css("height", "auto");
+                     spop.css("height", "auto");
+                     jQuery("#newTag").val(jQuery("#newTag").attr("placeholder"));
+
+                     // 绑定标签输入框focus、keyup事件，用于验证标签合法性，一处dom中的onxxx事件属性
+                     jQuery("#newTag").unbind("focus").focus(function(){
+                     newTagOnfocus();
+                     });
+                     jQuery("#newTag").unbind("keyup").keyup(function(){
+                     checkLength(this);
+                     });
+                     // 标签选中/取消功能绑定
+                     jQuery(".J_ChooseTagOne").unbind("click").click(function(){
+                     _this.chooseTag.call(_this, this);
+                     });
+                     // 添加标签按钮事件绑定
+                     jQuery("#J_SaveTagOneBtn").unbind("click").click(function(){
+                     _this.saveNewTag.call(_this);
+                     });
+                     }*/);
+                },
+                // 显示活动关注成功提示浮层
+                ShowFollowTopicSuc: function () {
+                    var title = '提示', node = jQuery('#dialogDiv');
+                    node.html('<a id="dialogA" href="#"></a>');
+                    $.jdThickBox({
+                        width: 300,
+                        height: 80,
+                        title: title,
+                        _box: 'btn_coll_shop_pop',
+                        source: Follow.followVM.find('#followTopicSuccessDiv').html()
+                    });
+                },
+                // 关注店铺失败
+                followShopFail: function () {
+                    var node = jQuery('#dialogDiv');
+                    node.html('<a id="dialogA" href="#"></a>');
+                    if (this.get('type') == 'shopId') {
+                        Follow.followVM.find('#followFailSeeFollowUrl').attr('href', '//t.jd.com/vender/followVenderList.action');
+                    } else {
+                        Follow.followVM.find('#followFailSeeFollowUrl').attr('href', '//t.jd.com/activity/followActivityList.action');
+                    }
+                    $.jdThickBox({
+                        width: 300,
+                        height: 80,
+                        title: '提示',
+                        source: Follow.followVM.find('#followFailDiv').html()
+                    });
+                    return;
+                },
+                // 关注上限提示
+                followShopMax: function () {
+                    var node = jQuery('#dialogDiv');
+                    node.html('<a id="dialogA" href="#"></a>');
+                    if (this.get('type') == 'shopId') {
+                        Follow.followVM.find('#followMaxSeeFollowUrl').attr('href', '//t.jd.com/vender/followVenderList.action');
+                    } else {
+                        Follow.followVM.find('#followMaxSeeFollowUrl').attr('href', '//t.jd.com/activity/followActivityList.action');
+                    }
+                    $.jdThickBox({
+                        width: 300,
+                        height: 80,
+                        title: '提示',
+                        source: Follow.followVM.find('#followMaxDiv').html()
+                    });
+                    return;
+                },
+                // 重复关注同一店铺提示
+                followed: function () {
+                    var _this = this, tip = '', url, type = this.get('type');
+                    if (type == 'shopId') {
+                        tip = '已关注过该店铺';
+                        url = INTERFACE.venderFollow.queryForCount;
+                        Follow.followVM.find('#followedSeeFollowUrl').attr('href', '//t.jd.com/vender/followVenderList.action');
+                    } else {
+                        tip = '已关注过该活动';
+                        url = INTERFACE.activityFollw.queryForCount;
+                        Follow.followVM.find('#followedSeeFollowUrl').attr('href', '//t.jd.com/activity/followActivityList.action');
+                    }
+                    Follow.followVM.find('#followedTitle').html(tip);
+                    this.getFollowNum(url, function (data) {
+                        if (data.code == 'F10000') {
+                            var outStr;
+                            if (type == 'shopId') {
+                                outStr = '您已关注' + data.data + '个店铺';
+                            } else {
+                                outStr = '您已关注' + data.data + '个活动';
+                            }
+                            Follow.followVM.find('#followedNum').html(outStr);
+                        }
+                        var dialog = jQuery('#dialogDiv');
+                        dialog.html('<a id="dialogA" href="#"></a>');
+                        $.jdThickBox({
+                            width: 300,
+                            height: 80,
+                            title: '提示',
+                            source: Follow.followVM.find('#followedDiv').html()
+                        });
+                    });
+                },
+                // 标签提交保存操作
+                doSubmit: function () {
+                    var _this = this, str = '', counter = 0;
+                    jQuery('#oldTags').find('a').each(function (index, item) {
+                        if ('true' == jQuery(this).attr('isCheck')) {
+                            counter++;
+                            if (str == '') {
+                                str = jQuery(this).html();
+                            } else {
+                                str = str + ',' + jQuery(this).html();
+                            }
+                        }
+                    });
+                    jQuery('#newTags').find('a').each(function (index, item) {
+                        if ('true' == jQuery(this).attr('isCheck')) {
+                            counter++;
+                            if (str == '') {
+                                str = jQuery(this).html();
+                            } else {
+                                str = str + ',' + jQuery(this).html();
+                            }
+                        }
+                    });
+                    if (str == '') {
+                        _this.showErrorMsg('请至少提供1个标签');
+                        return;
+                    }
+                    if (counter > 3) {
+                        _this.showErrorMsg('最多可选择3个标签');
+                        return;
+                    }
+                    str = encodeURIComponent(str);
+                    var url = INTERFACE.venderFollow.editTag;
+                    jQuery.ajax({
+                        async: false,
+                        url: url,
+                        dataType: 'jsonp',
+                        data: {
+                            venderId: _this.get('id'),
+                            tagNames: str
+                        },
+                        success: function (data) {
+                            if (data.code == 'F10000') {
+                                jQuery('#follow_error_msg').removeClass();
+                                jQuery('#follow_error_msg').addClass('hl_green fl');
+                                jQuery('#follow_error_msg').html('设置成功');
+                                jQuery('#follow_error_msg').show();
+                                setTimeout(function () {
+                                    jdThickBoxclose();
+                                }, 5000);
+                            } else {
+                                if (data.code == 'F0410') {
+                                    _this.showErrorMsg('设置的标签数超过最大限制');
+                                } else {
+                                    _this.showErrorMsg('设置失败');
+                                }
+                            }
+                        },
+                        error: function (data, xhr) {
+                            _this.showErrorMsg('设置失败');
+                        }
+                    });
+                },
+                showErrorMsg: function (err) {
+                    jQuery('#follow_error_msg').removeClass();
+                    jQuery('#follow_error_msg').addClass('att-tips fl');
+                    jQuery('#follow_error_msg').html(err);
+                    jQuery('#follow_error_msg').show();
+                    setTimeout(function () {
+                        jQuery('#follow_error_msg').hide();
+                    }, 3000);
+                },
+                saveNewTag: function () {
+                    var _this = this, val = jQuery('#newTag').val();
+                    val = val.trim();
+                    if (val.trim().length > 10) {
+                        this.showErrorMsg('长度不能超过10个字符');
+                        return;
+                    }
+                    var valid = this.validateNewTag(val);
+                    if (!valid) {
+                        this.showErrorMsg('标签数字、字母、汉字组成');
+                        return;
+                    }
+                    if (val == '' || val == jQuery('#newTag').attr('placeholder')) {
+                        this.showErrorMsg('请输入自定义名称！');
+                        jQuery('#newTag').val(jQuery('#newTag').attr('placeholder'));
+                        return;
+                    }
+                    jQuery('<li isNewAdd=\'true\' ><a class=\'current\' href=\'javascript:void(0)\' isCheck=\'true\' >' + val + '</a></li>').insertBefore(jQuery('#att-tag-new'));
+                    var content = jQuery('li[isNewAdd]'), tags = jQuery('li[isNewAdd] > .current');
+                    if (content.length >= 3) {
+                        jQuery('#att-tag-new').attr('style', 'display:none');
+                    }
+                    tags.unbind('click').click(function () {
+                        _this.chooseTag(this);
+                    });
+                    jQuery('#newTag').val(jQuery('#newTag').attr('placeholder'));
+                },
+                chooseTag: function (tag) {
+                    var tNode = jQuery(tag), flag = tNode.attr('isCheck');
+                    if ('undefined' == typeof flag || flag == 'false') {
+                        tNode.attr('isCheck', 'true');
+                        tNode.addClass('current');
+                    } else {
+                        tNode.attr('isCheck', 'false');
+                        tNode.removeClass('current');
+                    }
+                },
+                validateNewTag: function (tag) {
+                    var rTag = /[\u4e00-\u9fa5]|[0-9]|[a-z]|[A-Z]/g;
+                    var rArr = tag.match(rTag);
+                    var len = 0;
+                    if (rArr != null) {
+                        len = rArr.length;
+                    }
+                    if (len != tag.length) {
+                        return false;
+                    }
+                    return true;
+                },
+                getFollowedCount: function (id) {
+                    jQuery.ajax({
+                        async: false,
+                        url: INTERFACE.venderFollow.queryForCountByVid,
+                        dataType: 'jsonp',
+                        data: {
+                            venderId: id
+                        },
+                        success: function (data) {
+                            var count = data.data;
+                            if (count > 500) {
+                                if (count > 10000) {
+                                    count = parseInt(count / 10000);
+                                    count = count + '万';
+                                }
+                                jQuery('#followedCount').html(count);
+                            }
+                        },
+                        error: function (data, shr) {
+                        }
+                    });
+                }
+            };
+
+            return function (arg) {
+                var cfg = $.extend({}, _default, arg);
+                new Follow(cfg, $(this));
+            };
+        })(),
+        /*
+         * @function：显示节点：触发一个元素，根据设定的数量按先后顺序显示元素
+         * @description：可应用于任意模块，只要有使用场景。
+         * @param：如{par : '.jSaleAttention20150423-1', node : 'li', btn : '.jBtn', pageNum : 10, className : 'current'}
+         * par为被显示元素的父级元素；node被显示元素；btn触发元素；pageNum每一次显示数量；className被显示元素增加的class名
+         * @author：20150427 by bjwanchuan
+         */
+        showNode: function (args) {
+            var _this = this,
+                param = jQuery.extend({
+                    par: '.jSaleAttention20150423-1',
+                    node: 'li',
+                    btn: '.jBtn',
+                    pageNum: 10,
+                    className: 'current'
+                }, args || {}),
+                par = jQuery(param.par),
+                node = jQuery(_this).find(param.node),
+                btn = jQuery(_this).find(param.btn),
+                index = 0,
+                pageTotal = Math.ceil(node.length / param.pageNum);
+
+            function showData() {
+                node.removeClass(param.className);
+                for (var i = index * param.pageNum; i <= index * param.pageNum + param.pageNum - 1; i += 1) {
+                    node.eq(i).addClass(param.className);
+                }
+            }
+
+            showData();
+
+            btn.click(function () {
+                if ((index + 1) == pageTotal) {
+                    index = 0;
+                } else {
+                    index += 1;
+                }
+                showData();
+            });
+        },
+        /*
+         * @function：移入动画
+         * @description：对节点的移入及移出执行不同的CSS属性动画
+         * css value: backgroundPosition, borderWidth, borderBottomWidth, borderLeftWidth, borderRightWidth, borderTopWidth, borderSpacing, margin, marginBottom, marginLeft, marginRight, marginTop, outlineWidth, padding, paddingBottom, paddingLeft, paddingRight, paddingTop, height, width, maxHeight, maxWidth, minHeight, maxWidth, font, fontSize, bottom, left, right, top, letterSpacing, wordSpacing, lineHeight, textIndent, opacity
+         * 应用场景：所有
+         * @param：hoverNode执行css动画的节点；cssValueOne和cssValueTwo数组对象；timerOne和timerTwo为时间值
+         * @author：cdwanchuan@jd.com 2014-07-14
+         */
+        hoverAnimate: function (args) {
+            var param = $.extend({
+                    node: 'li .jItem',
+                    cssValueOne: [
+                        { width: 235, height: 365, marginTop: -10, opacity: 1 },
+                        { width: 235, height: 355, marginTop: -5, opacity: 0.9 },
+                        { width: 235, height: 365, marginTop: -10, opacity: 1 }
+                    ],
+                    cssValueTwo: [
+                        { width: 235, height: 345, marginTop: 0, opacity: 1 }
+                    ],
+                    timerOne: 100,
+                    timerTwo: 100
+                }, args || {}),
+                _this = $(this),
+                dom_node = _this.find(param.node),
+                a_css_value_enter = param.cssValueOne,
+                a_css_value_leave = param.cssValueTwo;
+
+            dom_node.bind({
+                mouseenter: function () {
+                    var count = a_css_value_enter.length,
+                        index = 0,
+                        target = $(this);
+
+                    function animate() {
+                        var caller = arguments.callee;
+                        target.animate(a_css_value_enter[index], param.timerOne, function () {
+                            index++;
+                            if (index == count) return;
+                            caller();
+                        });
+                    }
+
+                    animate();
+                },
+                mouseleave: function () {
+                    var count = a_css_value_leave.length,
+                        index = 0,
+                        target = $(this);
+
+                    target.stop(true);
+
+                    function animate() {
+                        var caller = arguments.callee;
+                        target.animate(a_css_value_leave[index], param.timerTwo, function () {
+                            index++;
+                            if (index == count) return;
+                            caller();
+                        });
+                    }
+
+                    animate();
+                }
+            });
+        },
+        /*
+         * @function：获取促销标签
+         * @description：根据获取的促销标签编号显示促销标签
+         * 应用场景：带有SKUID商品的模块
+         * @param：node方法应用节点；tagNode标签节点；tagValue标签键值；dataNum每次最多能获取的商品数量；url接口；urlNum可用接口长度
+         * @author：cdwanchuan@jd.com 2014-07-15
+         */
+        getProTag: function (arg) {
+            var param = $.extend({
+                    node: 'li',
+                    tagNode: '.jSlogan',
+                    tagValue: { 1: '直降', 3: '返券', 4: '赠京豆', 5: '赠品', 11: '会员特价', 22: '京豆优惠购' },//标签键值
+                    dataNum: 40,//每次最多能获取的商品数量
+                    url: INTERFACE.promoTag + '?callback=getPromotionTag&skuids=J_981821,J_1057746',//接口
+                    urlNum: 26//可用接口长度
+                }, arg),
+                that = $(this),
+                dom_node = that.find(param.node);
+
+            if (!dom_node.length) return;
+
+            function getTag() {
+                var a_skuid = [];
+                dom_node.each(function (index, n) {
+                    a_skuid.push('J_' + $(n).attr('skuid'));
+                });
+
+                var len = Math.ceil(a_skuid.length / param.dataNum);
+
+                for (var i = 0; i < len; i++) {
+                    var a_single_skuid = a_skuid.slice(i * param.dataNum, Math.min(a_skuid.length, (i + 1) * param.dataNum));
+
+                    $.ajax({
+                        url: param.url.substr(0, param.urlNum),
+                        data: {
+                            skuids: a_single_skuid.join(',')
+                        },
+                        dataType: 'jsonp',
+                        success: function (data) {
+                            $.each(data, function (index, n) {
+                                var dom = '';
+                                for (var i = 0; i < n.pf.length; i++) {
+                                    if (param.tagValue[n.pf[i]]) {
+                                        dom += '<span>' + param.tagValue[n.pf[i]] + '</span>';
+                                    }
+                                }
+                                that.find(param.node + '[skuid=' + n.pid + ']').find(param.tagNode).html(dom);
+                            });
+                        }
+                    });
+                }
+            }
+
+            getTag();
+        },
+        /*
+         * @function：向左移动
+         * @description：可应用于图片类模块。
+         * @param：如{}
+         * @author：20141021 cdwanchuan@jd.com
+         */
+        marqueeLeft: function (args) {
+            var param = $.extend({
+                    node: '.scroll-area',
+                    tr: 'tr',
+                    td: 'td',
+                    speed: 20
+                }, args || {}),
+                that = $(this),
+                par = that.find(param.node)[0],
+                tr = $(par).find('tr')[0],
+                chi = $(par).find('td')[0];
+
+            if (chi.offsetWidth >= par.offsetWidth) {
+                copyChild();
+                var mar = setInterval(marquee, param.speed);
+                par.onmouseover = function () {
+                    clearInterval(mar);
+                };
+                par.onmouseout = function () {
+                    mar = setInterval(marquee, param.speed);
+                };
+            }
+
+            function copyChild() {
+                var copy = document.createElement('td');
+                copy.innerHTML = chi.innerHTML;
+                tr.appendChild(copy);
+            }
+
+            function marquee() {
+                if (chi.offsetWidth - par.scrollLeft <= 0) {
+                    par.scrollLeft -= chi.offsetWidth;
+                } else {
+                    par.scrollLeft++;
+                }
+            }
+        },
+        /*
+         * @function：关注
+         * @description：活动关注、店铺关注、商品关注，依赖module/utils.js
+         * @param：
+         * @author：20151015 cdwanchuan@jd.com
+         *
+         */
+        saleAttent: function (args) {
+            jQuery(this).saleAttent(args);
+        },
+        /*
+         * @function：创建二维码
+         * @description：可应用于所有模块。
+         * @param：
+         * @author：20150605 cdwanchuan@jd.com
+         */
+        createQrCode: function (args) {
+            var param = jQuery.extend({
+                    node: 'li',
+                    iconQrCode: '.iconQrCode',
+                    qrCodeArea: '.jQrCode',
+                    dataHref: 'qrHref',
+                    qrCode: '.qrPic',
+                    qrcJsImport: '//static.360buyimg.com/static-mall/mall-p/common/widget/qrCode/qrcode.min.js',
+                    current: 'current'
+                }, args || {}),
+                _this = jQuery(this),
+                node = _this.find(param.node),
+                iconQrCode = _this.find(param.iconQrCode),
+                qrcJsImport = param.qrcJsImport,
+                eventType = param.eventType,
+                close = _this.find(param.close),
+                current = param.current;
+
+            //判断页面是否引入了二维码JS文件
+            isQrcJsImport = typeof isQrcJsImport === 'undefined' ? false : isQrcJsImport;
+            if (isQrcJsImport === false) {
+                isQrcJsImport = true;
+                jQuery.getScript(qrcJsImport, function () {
+                });
+            }
+
+            //鼠标移动到节点上显示二维码
+            iconQrCode.hover(function () {
+                var dom = jQuery(this).closest(param.node);
+                domOperate(dom);
+            }, function () {
+                //var dom = jQuery(this).closest(param.node);
+                //dom.removeClass(current);
+            });
+
+            //二维码主逻辑
+            function domOperate(dom) {
+                var qrCodeArea = dom.find(param.qrCodeArea),
+                    qrCode = qrCodeArea.find(param.qrCode);
+
+                if (qrCode.html() === '') {
+                    new QRCode(qrCode[0], {
+                        text: qrCodeArea.attr(param.dataHref).replace(/ /g, ''),
+                        width: qrCode.width(),
+                        height: qrCode.height()
+                    });
+                    qrCodeArea.removeAttr(param.dataHref);
+                }
+                dom.addClass(current);
+
+                qrCodeArea.mouseleave(function () {
+                    dom.removeClass(current);
+                });
+            }
+        },
+
+        /*
+         * @function：让窗口大小发生变化的时候，指定的html内容水平居中
+         * @author：2016-8-22 cdluxy
+         *
+         */
+        contentAutoCenter: function () {
+
+            var target = this;
+
+            //先判断这个方法有没有初始化过，没有则先初始化
+            if (!$(window).data('bindContentAutoCenter')) {
+
+                $(window).data('bindContentAutoCenter', true);
+                window.arrContentAutoCenterTarget = [];
+
+                $(window).bind('resize.autoCenter', function () {
+                    var arr = window.arrContentAutoCenterTarget;
+                    //html片段宽度自适应居中代码
+                    for (i = 0; i < arr.length; i++) {
+                        var jItem = $(arr[i]),
+                            hasUnload = false;
+
+                        jItem.find('img').each(function () {
+                            if (this.complete !== true) {
+                                hasUnload = true;
+                                this.onload = function () {
+                                    $(window).trigger('resize.autoCenter');
+                                };
+                            }
+                        });
+
+                        //如果内部没有图片需要等待加载完成，则直接获取内部宽度然后执行居中设置
+                        if (!hasUnload) {
+                            jItem.addClass('fn-left');
+                            var itemWidth = jItem.width(),
+                                wrapWidth = jItem.parent().width();
+                            jItem.css('margin-left', ((wrapWidth < 990 ? 990 : wrapWidth) - itemWidth) / 2);
+                            jItem.removeClass('fn-left');
+                        }
+                    }
+                    ;
+                });
+            }
+
+            //判断当前模块是否已经处在带处理的数组中，没有则添加进去
+            var has = false;
+            for (var i = 0, arr = window.arrContentAutoCenterTarget; i < arr.length; i++) {
+                if (arr[i] === target) {
+                    has = true;
+                    break;
+                }
+            }
+            if (!has) {
+                arr.push(target);
+            }
+
+            //触发一次自动居中
+            $(window).trigger('resize.autoCenter');
+        },
+
+        /*
+         * @function: 简单模板渲染
+         * @description：根据html模板及数据拼接html片段
+         * 应用场景：任意
+         * @param：
+         * @author：cdzhengwujiang@jd.com 2015-01-07
+         */
+        renderHTML: function (tpl, data) {
+            var subTpl = tpl,
+                reg = /{([\w-_]+)}/,
+                mArr;
+            while (mArr = subTpl.match(reg)) {
+                subTpl = subTpl.replace(reg, data[mArr[1]]);
+            }
+            return subTpl;
+        },
+        /*
+         * @function：页面跳转
+         * @description：
+         * 应用场景：装修、预览、浏览
+         * @param：value页面地址中的关键字；url需要跳转的地址；
+         * @author：cdwanchuan@jd.com 2015-06-30
+         */
+        changePageUrl: function (args) {
+            var param = jQuery.extend({
+                value: 'sale',
+                url: '//www.jd.com'
+            }, args || {});
+            if (location.href.indexOf(param.value) != -1) {
+                location.href = param.url;
+            }
+        },
+        /*
+         * @function：获取店铺热销商品
+         * @description：获取店铺热销商品，3条
+         * 应用场景：高级搜索结果页面
+         * @param：nodeCon装拼装好的容器节点ul；url接口；
+         * @author：cdwanchuan@jd.com 2016-04-05
+         * @INTERFACE：http://diviner.jd.com/diviner?p=619029&uuid=1&sku=1000000136&skus=&pin=&c1=&c2=&c3=&lid=1&lim=-1&sp=&hi=&fe=&fne=&ro=&ec=gbk
+         */
+        getRankGoods: function (args) {
+            var param = jQuery.extend({
+                    nodeParent: '#J_hotListWrap', //外层节点
+                    nodeCon: 'ul', //拼装插入节点
+                    domNode: 'li',
+                    url: INTERFACE.diviner,//接口
+                    p: 619029,//推荐位
+                    shopId: jQuery('#shop_id').val() || '',//存储在隐藏域里面的店铺ID
+                    lim: 3, //获取条数
+                    startLim: 0 //开始显示条数
+                }, args),
+                _this = jQuery(this),
+                nodeParent = jQuery(param.nodeParent),
+                node_con = _this.find(param.nodeCon);
+
+            if (!node_con.length) return;
+
+            /* 组装html片段 */
+            function getHtml(data) {
+                if (!data.data) return;
+                var oLi = node_con.html(), //获取页面上html模板
+                    html = '';
+
+                if (!oLi.length) return;
+
+                for (var i = param.startLim, len = data.data.length || 0; i < len; i++) {
+                    oLiNew = oLi.replace(/\{rank\}/g, i + 1); //生成排行数字
+                    html += jshop.module.renderHTML(oLiNew, data.data[i]); //使用公共方法renderHTML拼装数据
+                }
+
+                node_con.html(html);
+            }
+
+            /* 埋点方法 */
+            function newImage(src) {
+                var img = new Image();
+                src = src + '&m=UA-J2011-1&ref=' + encodeURIComponent(document.referrer) + '&random=' + Math.random();
+                img.setAttribute('src', src);
+            }
+
+            /* 获取数据 */
+            !function getList() {
+                var data = {
+                    p: param.p,
+                    uuid: readCookie('__jda') ? readCookie('__jda').split('.')[1] : '',
+                    sku: param.shopId,
+                    skus: '',
+                    pin: decodeURI(readCookie('pin') ? readCookie('pin') : ''),
+                    c1: '',
+                    c2: '',
+                    c3: '',
+                    lid: readCookie('areaId') ? readCookie('areaId') : 1,
+                    lim: param.lim,
+                    sp: '',
+                    hi: '',
+                    fe: '',
+                    fne: '',
+                    ro: '',
+                    ec: 'utf-8'
+                    //ck : 'pin,aview,pinId,lighting'
+                };
+
+                jQuery.ajax({
+                    url: param.url,
+                    data: data,
+                    dataType: 'jsonp',
+                    jsonpCallback: 'history' + new Date().getTime(),
+                    success: function (data) {
+                        getHtml(data);
+                        newImage(data.impr);//初始化埋点
+                        var dom_node = _this.find(param.domNode);
+                        dom_node.click(function () {
+                            newImage(jQuery(this).attr('data-clk'));
+                        });
+
+                    }
+                });
+            }();
+        },
+        /**
+         * @function：获取山姆分区商品信息
+         * @description：根据配置的skuid、用户地域（如果获取不到，传默认地域）、渠道值venderId传入到分区接口，获取用户所在地区的skuid；通过分区接口返回的SKU，获取商品信息，同时处理山姆价格；
+         * @param：
+         * @Author：cdwanchuan@jd.com 20160818
+         */
+        getGoodsInfo: function (args) {
+            var param = jQuery.extend({
+                    domCon: '.d-con',
+                    domTemplateSku: '#J_SamSku', //存储sku的节点
+                    domTemplateHtml: '#J_SamHtml', //存储模板的节点
+                    num: 20, //一次性传入分区接口的sku最大数量（接口没有限制）
+                    ch: 1, //商城PC（京东主站）：1 ;   商城app(手机app（含Pad）)：2; 商城m（m.jd.com手机浏览器）：3 【 m渠道（m.jd.com）目前无法区分，m暂时使用app渠道。库存接口中预留了m渠道，可以区分了再使用】微信：4;   手Q：5 ; 拍拍：6 ; 易讯PC:8；若您不再渠道列表当中，请联系库存组王振。
+                    area: CookieUtil.getCookie('ipLoc-djd') ? CookieUtil.getCookie('ipLoc-djd').split('-') : '1-72-2799-0'.split('-'),//用户所在区域，获取不到默认北京市朝阳区
+                    venderId: '603837',//山姆店铺id
+                    isArea: false,//是否有分区，2017/07/19, cdhewu，山姆4个店铺搜索打通之后，统一走分区价格逻辑，这个属性废弃了。
+                    t: new Date().getTime()//时间戳
+                }, args || {}),
+                _this = jQuery(this),
+                domTemplateSku = _this.find(param.domTemplateSku),
+                domTemplateHtml = _this.find(param.domTemplateHtml).html();
+
+            /* 获取分区sku */
+            function getAreaSku() {
+                var skuConfig = domTemplateSku.text().trim(true).split(',');
+                skuConfig = skuConfig.slice(0, skuConfig.length - 1);//去除最后一位
+
+                var len = Math.ceil(skuConfig.length / param.num);
+                for (var i = 0; i < len; i++) {
+                    var skuFragment = skuConfig.slice(i * param.num, Math.min(skuConfig.length, (i + 1) * param.num));
+                    jQuery.ajax({
+                        url: INTERFACE.actJshop.getSkuByArea,
+                        data: {
+                            skuIds: skuFragment.join(','),
+                            channelCode: param.ch,
+                            oneLevelAreaId: param.area[0],
+                            twoLevelAreaId: param.area[1],
+                            threeLevelAreaId: param.area[2],
+                            fourLevelAreaId: (param.area[3].indexOf('.') != -1) ? param.area[3].substring(0, param.area[3].indexOf('.')) : param.area[3],
+                            venderId: param.venderId,
+                            t: param.t
+                        },
+                        dataType: 'jsonp',
+                        success: function (data) {
+                            var skuids = [];
+                            for (var i in data) {
+                                skuids.push(data[i]);
+                            }
+                            getGoodsInfo(skuids.join(','));
+                        }
+                    });
+                }
+            }
+
+            /* 获取商品图片及标题，并拼装模板展示 */
+            function getGoodsInfo(skuids) {
+                var data = {
+                    skuIds: skuids
+                };
+                jQuery.ajax({
+                    url: INTERFACE.actJshop.goodsInfo,
+                    data: data,
+                    dataType: 'jsonp',
+                    success: function (data) {
+                        var obj = { list: data };
+                        Mustache.parse(domTemplateHtml);
+                        var rendered = Mustache.render(domTemplateHtml, obj);
+                        _this.find(param.domCon).append(rendered);
+                        // Tool.loadMustache(domTemplateHtml, obj, _this.find(param.domCon));//使用Mustache渲染
+                        getRenderPrice();
+                        getRenderImg();
+                        jshop.module.autoFill.call(_this, {
+                            autoFillNode: 'li',
+                            xInner: 10,
+                            yInner: 10,
+                            minWidth: ' ',
+                            xOuter: 0,
+                            yOuter: 0
+                        });
+                    }
+                });
+            }
+
+            // if (param.isArea) {
+            getAreaSku();
+            /*} else {
+             var skuConfig = domTemplateSku.text().trim(true);
+             getGoodsInfo(skuConfig);
+             }*/
+        },
+        /*
+         * @function：获取医药城商品信息
+         * @description：根据商品sku及其他参数获取商品信息：生成企业、店铺名称
+         * 应用场景：
+         * @param：
+         * @author：cdwanchuan@jd.com 2014-07-15
+         */
+        getYaoGoodsInfo: function (arg) {
+            var param = jQuery.extend({
+                    node: 'li',
+                    attrName: 'data-sku',
+                    dataNum: 50,//每次最多能获取的商品数量
+                    url: INTERFACE.moduleJshop.getYaoGoodsInfo,//接口
+                    producer: '.J-Producer',//生产厂商
+                    seller: '.J-Seller'//店铺名称
+                }, arg),
+                _this = jQuery(this),
+                dom_node = _this.find(param.node);
+
+            if (!dom_node.length) return;
+
+            var a_skuid = [];//存储sku
+            function getSku() {
+                dom_node.each(function (index, n) {
+                    a_skuid.push(jQuery(n).attr('data-sku'));
+                });
+            }
+
+            getSku();
+
+            function getInfo() {
+                var len = Math.ceil(a_skuid.length / param.dataNum);
+
+                for (var i = 0; i < len; i++) {
+                    var skuFragment = a_skuid.slice(i * param.dataNum, Math.min(a_skuid.length, (i + 1) * param.dataNum));
+
+                    jQuery.ajax({
+                        url: param.url,
+                        data: {
+                            skuStr: skuFragment.join(',')//, //查询商品sku串，sku之间用英文逗号","分割，一次最多传递50件商品
+                            //shopFlag : false,//标识活动还是店铺，true--店铺；false--活动
+                            //appId : 0 //标识店铺应用id, 当为活动时，该字端无效，传递appid=0;
+                        },
+                        dataType: 'jsonp',
+                        success: function (data) {
+                            jQuery.each(data, function (index, n) {
+                                _this.find(param.node + '[data-sku=' + n.sku + ']').find(param.producer).html(n.manu);
+                                _this.find(param.node + '[data-sku=' + n.sku + ']').find(param.seller).html(n.shopName);
+                            });
+                        }
+                    });
+                }
+            }
+
+            getInfo();
+        },
+
+        /*
+         * @function：自动排列
+         * @description：可应用于列表类模块，商品宽度规范190。
+         * @param：
+         * @author：20170714 by bjwanchuan
+         */
+        autoQuene: function (args) {
+            var param = $.extend({
+                    autoQueneNode: 'li',
+                    margin: 10, //商品边距，上下左右
+                    goodsTheoryWidth: 190, //统计PC活动所有布局，最小列布局宽度为180，但最常用布局是990,990-40=950/5=190
+                    numForce: 0, //用户强制数量
+                    message: ''//模块提示消息
+                }, args || {}),
+                _this = $(this),
+                node = _this.find(param.autoQueneNode),
+                margin = parseInt(param.margin),
+                goodsRealWidth = node.css({ 'width': '' }).width(), //商品原始宽度（净宽度）
+                layoutWidth = _this.css('display') != 'none' ? _this.width() : _this.parent().width(),//布局宽度
+                num = node.length, //用户录入的商品个数
+                numMax = parseInt(layoutWidth / param.goodsTheoryWidth), //理论上一行最多能放的商品数量
+                finalNum, //根据判断，最终放的商品数量
+                paddingAndBorder = parseFloat(node.css('padding-left')) + parseFloat(node.css('padding-right')) + parseFloat(node.css('border-left-width')) + parseFloat(node.css('border-right-width')); //单个商品的内边距+边框宽度
+
+            //如果一个sku都没有
+            if (num == 0) return;
+
+            /* 计算数量 */
+            function getLayoutNum() {
+                //常用展示尺寸：190、240、330，这3种宽度是最常用的列表比例
+                var aLayoutWidth = {
+                        180: 180,
+                        190: 190,//1个
+                        215: 215,//1个
+                        220: 215,//1个
+                        225: 225,//1个
+                        240: 240,//1个
+                        242: 242,//1个
+                        260: 260,//1个
+                        265: 265,//1个
+                        323: 323,//1个
+                        324: 324,//1个
+                        330: 330,//1个
+                        390: 390,//2个
+                        400: 400,//2个
+                        430: 430,//2个
+                        440: 440,//2个
+                        465: 465,//2个
+                        490: 490,//2个
+                        500: 500,//2个
+                        590: 590,//2个、3个
+                        650: 650,//2个、3个
+                        700: 700,
+                        765: 765,//3个、4个
+                        790: 790,//3个、4个
+                        980: 980,
+                        990: 990,//4个、5个
+                        1200: 1200,//5个、6个
+                        1210: 1210//5个、6个
+                    },
+                    initWdith = 190;
+                var aMaxNum = {};
+                for (var key  in aLayoutWidth) {
+                    aMaxNum[key] = parseInt(aLayoutWidth[key] / initWdith);
+                }
+                var aTable = [],
+                    goodsNum = {
+                        1: 1,
+                        2: 2,
+                        3: 3,
+                        4: 4,
+                        5: 5,
+                        6: 6,
+                        7: 7,
+                        8: 8,
+                        9: 9,
+                        10: 10,
+                        11: 11,
+                        12: 12,
+                        13: 13,
+                        14: 14,
+                        15: 15
+                    };
+
+                for (var key  in aMaxNum) {
+                    (function (key) {
+                        var data = { initWdith: aMaxNum[key] };
+                        for (var i  in goodsNum) {
+                            data[i] = parseInt(goodsNum[i] / aMaxNum[key]) + '行' + goodsNum[i] % aMaxNum[key] + '个';
+                        }
+                        aTable[key] = data;
+                    })(key);
+                }
+                console.table(aTable);
+            }
+
+            //getLayoutNum();
+
+            /* 初始化所有商品节点 */
+            function init() {
+                _this.css('overflow', 'hidden');
+
+                //避免图片不能自适应，移除图片及外层，直到li的宽度，这里暂固定为2级
+                var img = _this.find('a img');
+                img.css({ 'width': '100%', 'height': 'auto' });
+                img.each(function (i, e) {
+                    var a = jQuery(e).parentsUntil('li');
+                    a.css({ 'width': 'auto', 'height': 'auto' });
+                });
+                //li节点初始化
+                if (node.css('margin-right') || node.css('margin-bottom')) {
+                    node.css({ 'margin-right': 0, 'margin-bottom': 0 });
+                }
+                //li节点设置外边距
+                node.css('margin-top', margin);
+                node.css('margin-left', margin);
+            }
+
+            /* 获取商品最终宽度 */
+            function getGoodsFinalWidth() {
+                var goodsFinalWidth;
+                if (param.numForce > 0) {//如果强制设置了每行显示个数
+                    finalNum = param.numForce;
+                    goodsFinalWidth = (layoutWidth - (finalNum - 1) * margin - finalNum * paddingAndBorder) / finalNum;
+                } else {
+                    if (num <= numMax) { //如果用户录入的个数，小于一行最多能放的商品数量，则撑满一行
+                        finalNum = num;
+                        goodsFinalWidth = (layoutWidth - (finalNum - 1) * margin - finalNum * paddingAndBorder) / finalNum;
+                    } else {
+                        //规则，[6,5],[5,4],[4,3],[3,2],[2,1]
+                        //比如1200布局，可以放6个190，也可以放5个240，都是合适的；
+                        //比如990布局，可以放5个190，也可以放4个240，也是合适的；
+                        if (num % numMax == 0) {
+
+                            finalNum = numMax;
+                            goodsFinalWidth = (layoutWidth - (finalNum - 1) * margin - finalNum * paddingAndBorder) / finalNum;
+
+                        } else if (num % (numMax - 1) == 0) {
+
+                            finalNum = numMax - 1;
+                            goodsFinalWidth = (layoutWidth - (finalNum - 1) * margin - finalNum * paddingAndBorder) / finalNum;
+
+                        } else {//既不是最大数量的倍数，也不是最大数量减去1的倍数，则按实际宽度显示，这种情况一般不会出现
+
+                            finalNum = parseInt(layoutWidth / goodsRealWidth);//实际商品宽度，每行最多能放的数量
+                            goodsFinalWidth = (layoutWidth - (finalNum - 1) * margin - finalNum * paddingAndBorder) / finalNum;
+                            //上面逻辑中会出现，如果li边距设置很大，按上面的布局除以li的宽度算出的实际宽度，加上设置的大边距，会出现最终宽度比实际宽度小的情况；
+                            //为保页面显示正常，仍然采用最终宽度来设置；
+
+                        }
+
+                    }
+                    /*
+                     else {//如果用户录入的个数，大于一行最多能放的商品数量，则表示多行
+                     if (num % 2 == 0) { //如果是2的倍数，则撑满每行
+                     finalNum = num / 2;
+
+                     if (finalNum > numMax) {//如果计算出来的最大数量，大于布局能显示的每行最大数量，则按布局算出来的最大数量显示；这里有一个问题，如果用户想以小于布局算出来的最大数量显示，则不行；
+                     finalNum = numMax;
+                     }
+                     goodsFinalWidth = (layoutWidth - (finalNum - 1)*margin - finalNum*paddingAndBorder)/finalNum;
+                     } else { //如果不是2的倍数，则按实际宽度展示，这种情况一般不会出现
+                     finalNum = parseInt(layoutWidth / goodsRealWidth);//实际商品宽度，每行最多能放的数量
+                     goodsFinalWidth = (layoutWidth - (finalNum - 1)*margin - finalNum*paddingAndBorder)/finalNum;
+                     //上面逻辑中会出现，如果li边距设置很大，按上面的布局除以li的宽度算出的实际宽度，加上设置的大边距，会出现最终宽度比实际宽度小的情况；
+                     //为保页面显示正常，仍然采用最终宽度来设置；
+                     }
+                     }*/
+                }
+                return goodsFinalWidth;
+            }
+
+            /* 获取当前模块高度，并提示 */
+            function showModuleMessage(message) {
+                if (jQuery('#pageType').val() !== 'decorate') {
+                    return;
+                }
+                var span = '<span id="J-module-size" style="position:absolute; z-index:10; top:27px; left:0; padding:5px 15px; background:rgba(0,0,0,.8); color:#fff;">当前模块宽度：' + _this.width() + 'px， 高度：' + _this.height() + 'px' + message + '</span>';
+
+                _this.hover(function () {
+                    _this.find('#J-module-size').remove();
+                    _this.append(span);
+                }, function () {
+                    _this.find('#J-module-size').remove();
+                });
+            }
+
+            /* 设置备用属性名，以便价格后置和无货后置重调 */
+            function setFunctionName() {
+                var dataFunction = _this.attr('data-function') ? _this.attr('data-function') : 0;
+
+                if (dataFunction == 0) {
+                    _this.attr('data-function', 'autoQuene');
+                }
+                if (dataFunction.length > 0 && dataFunction.indexOf('autoQuene') == -1) {
+                    _this.attr('data-function', dataFunction + 'autoQuene');
+                }
+            }
+
+            function renderDom() {
+                var goodsFinalWidth = getGoodsFinalWidth();
+                if (goodsFinalWidth > 0) {
+                    init();
+                    getRowFirst(); //将每一行的第一个左外边距设置为0
+                    getRow(); //将最上面一行的顶上边距设置为0
+                    node.css('width', goodsFinalWidth);
+                    setTimeout(function () {
+                        showModuleMessage(param.message);
+                    }, 500);
+                    setFunctionName();
+                }
+            }
+
+            //获取每一行的第一个节点
+            function getRowFirst() {
+                node.each(function (i, e) {
+                    if (i % finalNum === 0) {
+                        $(e).css('margin-left', 0);
+                    }
+                });
+            }
+
+            //获取任意多行节点
+            function getRow() {
+                var row = [1];
+                node.each(function (i, e) {
+                    for (var j = 0; j < row.length; j++) {
+                        if (i >= finalNum * (row[j] - 1) && i < finalNum * row[j]) {
+                            $(e).css('margin-top', 0);
+                        }
+                    }
+                });
+            }
+
+            renderDom();
+        },
+        /**
+         * @function：自定义内容区的居中方法
+         * @description：根据用户配置的节点信息，主动为用户居中
+         * @param：示例模板写法： <div class="j-module" module-function="autoCenter" module-param="{}"></div>;
+         * @Author：cdhewu@jd.com 2016/12/9
+         */
+        autoCenter: function (args) {
+            var _this = $(this),
+                param = $.extend({ autoMiddleNode: '.userDefinedArea' }, args || {}),
+                node = _this.find(param.autoMiddleNode);
+
+            alignCenter();
+            $(window).resize(function () {
+                alignCenter();
+            });
+
+            function alignCenter() {
+                var extra = node.width() - _this.width();
+                if (extra > 0) {
+                    node.css({ 'margin-left': -extra / 2 });
+                } else {
+                    node.css('margin', '0 auto');
+                }
+            }
+        },
+        /**
+         * @function：倒计时模块的倒计时方法提供给其他所有模块使用
+         * @description：根据用户配置的节点信息，展示倒计时信息
+         * @param：示例模板写法： <div class="j-module" module-function="countDown" module-param="{countDownInfo:'2016-12-22 17:44:38',hasDay:true,dayCnt:'.days',hourCnt:'.hours',minuteCnt:'.minutes',secondCnt:'.seconds'}"></div>
+         * @Author：cdhewu@jd.com 2016/12/7
+         */
+        countDown: (function () {
+            var _timer = null,
+                _sysTime = null,
+                _countdownList = null;
+            return function (arg) {
+                var _this = $(this),
+                    _args = jQuery.extend({
+                        hasDay: true,
+                        hasMinSec: false,
+                        dayCnt: '',
+                        hourCnt: '',
+                        minuteCnt: '',
+                        secondCnt: '',
+                        minsecCnt: ''
+                    }, arg || {}),
+                    _cut_time = null;
+
+                function _init() {
+                    if (!_args.countDownInfo) return;
+                    _get_cut_time();
+                    _this.data('cutTime', _cut_time).data('arg', _args).data('over', false);
+                    _countdownList = $('[module-function="countDown"]').toArray();
+                    _timer = null;
+                    if (!_timer) {
+                        w.getServerTime(function (date) {
+                            _sysTime = date;
+                            if (!_timer)
+                                _count_down();
+                        });
+                    }
+                }
+
+                function _get_cut_time() {
+                    var __cut_time_str = _args.countDownInfo,
+                        __row_temp = __cut_time_str.split(' '),
+                        __inplicit = __row_temp[0].split('-'),
+                        __explicit = __row_temp[1].split(':');
+                    _cut_time = new Date(Number(__inplicit[0]), (Number(__inplicit[1]) + 11) % 12, Number(__inplicit[2]), Number(__explicit[0]), Number(__explicit[1]), Number(__explicit[2]));
+                }
+
+                function _get_count_down_item() {
+                    var _result = [];
+                    for (var i = 0, len = _countdownList.length; i < len; i++) {
+                        var __module = $(_countdownList[i]),
+                            __cut_time = __module.data('cutTime'),
+                            __arg = __module.data('arg'),
+                            __left_time = parseInt((__cut_time - _sysTime) / 1000);
+                        if (__arg) {
+                            _result.push({
+                                __module: __module,
+                                __arg: __arg,
+                                __left_time: __left_time
+                            });
+                        }
+                    }
+                    ;
+                    return _result;
+                }
+
+                function _count_down() {
+                    var arr = _get_count_down_item();
+                    for (var i = 0, len = arr.length; i < len; i++) {
+                        (function (i) {
+                            var __module = arr[i].__module,
+                                __arg = arr[i].__arg,
+                                __left_time = arr[i].__left_time;
+                            _timer = setInterval(function () {
+                                if (__left_time < 0) {
+                                    clearInterval(_timer);
+                                    return;
+                                }
+                                var __day = Math.floor(__left_time / (24 * 3600)),
+                                    __hour = Math.floor(__left_time / 3600) - (__arg.hasDay ? __day * 24 : 0),
+                                    __minute = Math.floor(__left_time % 3600 / 60),
+                                    __second = __left_time % 60;
+                                if (__arg.hasDay) {
+                                    __module.find(__arg.dayCnt).html(__day > 9 ? __day : '0' + __day);
+                                }
+                                __module.find(__arg.hourCnt).html(__hour > 9 ? __hour : '0' + __hour);
+                                __module.find(__arg.minuteCnt).html(__minute > 9 ? __minute : '0' + __minute);
+                                __module.find(__arg.secondCnt).html(__second > 9 ? __second : '0' + __second);
+                                if (__arg.hasMinSec) {
+                                    var j = 99;
+                                    minTimer = setInterval(function () {
+                                        if (__module.find(__arg.hourCnt).html() === '00' && __module.find(__arg.minuteCnt).html() === '00' && __module.find(__arg.secondCnt).html() === '00') {
+                                            clearInterval(minTimer);
+                                            __module.find(__arg.minsecCnt).html('00');
+                                            return;
+                                        }
+                                        j = parseInt(j);
+                                        if (j < 10) {
+                                            j = '0' + j;
+                                        }
+                                        if (j == '00') {
+                                            j = 99;
+                                        }
+                                        __module.find(__arg.minsecCnt).html(j);
+                                        j--;
+                                    }, 10);
+                                }
+                                __left_time--;
+                            }, 1000);
+                        })(i);
+                    }
+                }
+
+                _init();
+
+            };
+        })(),
+        /**
+         * @function：获取商品的评价信息
+         * @description：根据用户配置的节点信息，展示商品的评价数量
+         * @param：示例模板写法： <div class="j-module" module-function="renderComment" module-param="{}"></div>示例节点写法：$!jshopComment.getJdComment($!sku)
+         * @Author：cdhewu@jd.com 2017/1/13
+         */
+        renderComment: function () {
+            var _this = $(this),
+                param = {
+                    tagAttr: 'em[jshop="comment"]',//评价数量伪属性
+                    jdcomment: 'jdcomment',//存储sku的节点
+                    maxCount: 100 //传入的sku最大限制
+                },
+                nodes = [],//存储去重处理过的节点
+                skuidStr = ''; //拼装的sku字符串
+
+            /** 对获取到的节点对象进行处理：去重 */
+            function _price_unique(arr) {
+                if (!arr instanceof Array) throw new Error('_price_unique:arguments error');
+                var __tem1 = {}, __tem2 = [], __tem3 = [];
+                for (var i = 0, len = arr.length; i < len; i++) {
+
+                    var __obj = jQuery(arr[i]),
+                        __sku = __obj.attr(param.jdcomment);
+                    if (__tem1[__sku] == undefined) {
+                        __tem2.push(arr[i]);
+                        __tem1[__sku] = __obj.offset().top;
+                        __tem3.push(__sku);
+                    }
+                    else if (__tem1[__sku] > __obj.offset().top) {
+                        __tem2[__tem3.getIndex(__sku)] = arr[i];
+                        __tem1[__sku] = __obj.offset().top;
+                    }
+                }
+                return __tem2;
+            }
+
+            /** 获取处理过的节点数组 */
+            function _get_nodes() {
+                nodes = _price_unique(_this.find(param.tagAttr).toArray());
+            }
+
+            /** 获取商品评价数据 */
+            function getData() {
+                var len = Math.ceil(nodes.length / param.maxCount);
+
+                for (var i = 0; i < len; i++) {
+                    var skuFragment = nodes.slice(i * param.maxCount, Math.min(nodes.length, (i + 1) * param.maxCount));
+
+                    //拼装skuid字符串
+                    skuidStr = '';
+                    for (var j = 0; skuFragment[j]; j++) {
+                        skuidStr += jQuery(skuFragment[j]).attr(param.jdcomment) + ',';
+                    }
+
+                    jQuery.ajax({
+                        url: INTERFACE.comment.commentNum,
+                        data: {
+                            referenceIds: skuidStr
+                        },
+                        dataType: 'jsonp',
+                        success: function (data) {
+                            if (data && data.CommentsCount && data.CommentsCount.length) {
+                                for (var k = 0; k < data.CommentsCount.length; k++) {
+                                    var currentNode = jQuery('em[' + param.jdcomment + '=' + data.CommentsCount[k].ProductId + ']');
+                                    currentNode.removeAttr('jshop');
+                                    currentNode.html(data.CommentsCount[k].CommentCountStr);
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
+            _get_nodes();
+            getData();
+        },
+        /**
+         * @function：获取智能推荐商品信息
+         * @description：根据用户配置的节点信息，展示智能推荐的商品
+         * @param：示例模板写法： <div class="j-module" module-function="getIntRec,autoFill" module-param="{}"></div>
+         * @Author：cdhewu@jd.com 2017/2/23
+         */
+        getIntRec: function (arg) {
+            var param = jQuery.extend({
+                    tabNode: '.jSortTab span',
+                    tabContent: '.jSortContent ul',
+                    defaultClass: 'current',
+                    isScreenNode: 'ul',
+                    p: 619068,
+                    pi: $('#shop_id').val(), //'116916'
+                    fs: '1',
+                    cd: '1',
+                    spu: '1',
+                    mi: '1',
+                    nodeCon: '.J_BiArea ul',
+                    domNode: 'li',
+                    version: '',
+                    urlGoodsrec: INTERFACE.diviner, // 判断当前模块的商品获取，用推荐接口（rec）还是搜索接口（search）
+                    ms: '10' // 获取推荐商品数量
+                }, arg || {}),
+                _this = jQuery(this),
+                _tabNode = _this.find(param.tabNode),
+                _tabContent = _this.find(param.tabContent),
+                node_con = _this.find(param.nodeCon);
+
+            if (!node_con.length) return;
+            if (!param.cd) return;
+            var pin = '';
+            if (readCookie('pin')) {
+                pin = decodeURI(readCookie('pin'));
+            }
+            /* 定义推荐接口传入参数 */
+            var data = {
+                'p': param.p, // 推荐位ID, 固定为619068
+                'hi': {
+                    'fs': param.fs, //流量来源(1:PC, 2:APP)
+                    'mi': param.mi, // 模块ID,多个用","分隔(只能由数字组成)
+                    /**
+                     模块条件,多个用","分隔; 和hi.mi一一对应(热销爆款, 潜力新品,店铺分类,自建商品资源池)
+                     热销爆款:1
+                     潜力新品:2
+                     店铺分类:3.cidid.cidid.cidid.cidid(3开头,跟随需要的cid3分类; 用"."分割) // 例如333,344,355为三个cid3的分类ID, 请求格式为:"3.333.344.355"
+                     自建商品:4.资源池ID(4开头,跟随资源池ID;用"."分割) // 例如44960为自建商品的资源池ID, 请求格式为:"4.44960", shopID + moduleID
+                     */
+                    'cd': param.cd,
+                    'ms': param.ms, //模块返回的SKU个数,多个用","分隔;和hi.mi一一对应
+                    'pi': param.pi, // 店铺id
+                    'spu': param.spu //基于spu去重,多个用","分隔;和hi.mi一一对应("1"为需要去重, 非"1"为不需要去重)
+                },
+                pin: pin,  // 测试环境下，不能用pin参数
+                'uuid': (readCookie('__jda') ? readCookie('__jda').split('.')[1] : ''),
+                'lid': (readCookie('areaId') ? readCookie('areaId') : 1),
+                'ec': 'utf-8'
+                // 'fe':'182' // 测试环境用，正式上线需删除
+            };
+            // 店内分类模式展示
+            if (param.cd === '3') {
+                // tab页分类展示
+                if (param.cm === '1') {
+                    data.hi.mi = [];
+                    data.hi.cd = [];
+                    data.hi.ms = [];
+                    data.hi.spu = [];
+                    // param.cl = '.2421828.2421829.2421839';
+                    $.each(param.cl.split('.'), function (index, item) {
+                        if (item == '') return;
+                        data.hi.mi.push(index);
+                        data.hi.cd.push('3.' + item);
+                        data.hi.ms.push(param.ms);
+                        data.hi.spu.push(param.spu);
+                    });
+                    data.hi.mi = data.hi.mi.join(',');
+                    data.hi.cd = data.hi.cd.join(',');
+                    data.hi.ms = data.hi.ms.join(',');
+                    data.hi.spu = data.hi.spu.join(',');
+                } else {
+                    data.hi.cd = data.hi.cd + param.cl;
+                }
+            }
+            // SKU自建商品池展示
+            if (param.cd === '4') {
+                data.hi.cd = param.cd + '.' + param.mi + param.version;
+                // 自建商品池不支持spu去重，所以这里要设置spu为0
+                data.hi.spu = '0';
+            }
+            data.hi = JSON.stringify(data.hi);
+
+            /* 组装html片段 */
+            function getHtml(data) {
+                var outerHtml = '',
+                    oLi = '<li data-clk="{clk}">'
+                        + '<div class="jItem">'
+                        + '<div class="jPic">'
+                        + '<a href="' + INTERFACE.linkGoods + '/{sku}.html" target="_blank">'
+                        + '<img src="//img14.360buyimg.com/n6/{img}" alt="{t}" height="240" width="240">'
+                        + '</a>'
+                        + '</div>'
+                        + '<div class="jDesc">'
+                        + '<a href="' + INTERFACE.linkGoods + '/{sku}.html" target="_blank">{t}</a>'
+                        + '</div>'
+                        + '<div class="jBtnArea">'
+                        + '<div class="jdPrice">'
+                        + '<span class="jRmb">￥</span>'
+                        + '<span class="jdNum" jshop="price" jdprice="{sku}"></span>'
+                        + '</div>'
+                        + '<p class="goods-btn">'
+                        + '<a href="' + INTERFACE.linkCart + '?pid={sku}&pcount=1&ptype=1" target="_blank">'
+                        + '<img src="//img30.360buyimg.com/cms/jfs/t3298/228/4028120579/1230/b2ef1efe/57fca9f7N20433ca8.png" alt="立即抢购">'
+                        + '</a>'
+                        + '</p>'
+                        + '</div>'
+                        + '</div>'
+                        + '</li>';
+                /*
+                 * +        '<a href="' + INTERFACE.linkCart + '?pid={sku}&pcount=1&ptype=1" target="_blank" class="add-to-cart">&#x70B9;&#x51FB;&#x62A2;&#x8D2D;</a>'
+                 +        '<span class="jText">&#x552E;&#x4EF7;&#xFF1A;</span>'
+                 +        '<span class="jd-num">{jp}</span>'
+                 * */
+
+                for (var i = 0, len = data.length; i < len; i++) {
+                    outerHtml += jshop.module.renderHTML.apply(this, [oLi, data[i]]);
+                }
+                return outerHtml;
+            }
+
+            function bindEvent() {
+                _tabNode.click(function () {
+                    var _this = $(this),
+                        cateId = _this.attr('data-cate');
+                    if (_this.hasClass('current')) {
+                        return;
+                    }
+                    _tabNode.removeClass(param.defaultClass);
+                    _this.addClass(param.defaultClass);
+                    _tabContent.removeClass(param.defaultClass);
+                    $.each(_tabContent, function (index, item) {
+                        if ($(item).attr('data-cate') === cateId) {
+                            $(item).addClass(param.defaultClass);
+                        }
+                    });
+                });
+            }
+
+            // 获取商品智能推荐数据
+            !function () {
+                jQuery.ajax({
+                    url: param.urlGoodsrec,
+                    data: data,
+                    dataType: 'jsonp',
+                    jsonp: 'callback',
+                    jsonpCallback: 'jsonp' + new Date().getTime(),
+                    success: function (data) {
+                        if (!data.data || !data.data.length) {
+                            //  曹艳玲 20180416 装修页面这里的隐藏逻辑改为显示缺省文案逻辑
+                            if (getPageType() == 3) {
+                                _this.html('<div style="text-align: center;font-size: 16px; padding: 46px 0;">数据处理中，请稍后刷新查看！</div>');
+                            } else {
+                                _this.css('display', 'none');
+                            }
+                            return;
+                        }
+                        _this.attr('data-impr', data.impr);
+                        if (param.cd === '3' && param.cm == '1') {
+                            var groupData = {};
+                            $.each(data.data, function (index, item) {
+                                if (!groupData[item.spu]) {
+                                    groupData[item.spu] = [];
+                                }
+                                groupData[item.spu].push(item);
+                            });
+                            for (var group in groupData) {
+                                _tabContent.eq(Number(group) - 1).html(getHtml(groupData[group]));
+                            }
+
+                            _tabNode.eq(0).addClass(param.defaultClass);
+                            _tabContent.eq(0).addClass(param.defaultClass);
+                            bindEvent();
+                        } else {
+                            node_con.html(getHtml(data.data));
+                        }
+
+                        //楼层展示埋点、sku展示埋点，模块显示到当前屏幕时执行
+                        jshop.module.isScreen.call(_this, param, function () {
+                            jshop.module.newImage([_this.attr('data-impr')]);
+                        });
+
+                        var dom_node = _this.find(param.domNode);
+                        dom_node.click(function () {
+                            jshop.module.newImage([jQuery(this).attr('data-clk')]);
+                        });
+                        // 调用局部刷新价格，和无货状态
+                        JD_local_price(_this);
+                        moduleRefreshStock(_this);
+                        // 重新执行autoFill方法
+                        moduleFunctionRefresh.call(_this, 'autoFill');
+                    },
+                    error: function (XMLHttpRequest, textStatus, errorThrown) {
+                        _this.css('display', 'none');
+                    }
+                });
+            }();
+        },
+        /*
+         * 模块是否在当前屏幕
+         * 20170321 cdhewu@jd.com
+         */
+        isScreen: function (args, fun) {
+            var param = jQuery.extend({
+                    isScreenNode: 'a',
+                    isScroll: true //是否滚动
+                }, args || {}),
+                _this = jQuery(this),
+                node = _this.find(param.isScreenNode);
+
+            if (param.isScroll) {
+                jQuery(window).scroll(function () {
+                    var isVisible = node.offset().top <= $(window).scrollTop() + (document.documentElement.clientHeight || document.body.clientHeight);
+                    if (isVisible && !node.hasClass('currentScreen')) {
+                        fun.call();
+                        node.addClass('currentScreen');
+                    }
+                });
+            } else {
+                fun.call();
+            }
+        },
+        /* 埋点方法 20170321 cdhewu@jd.com */
+        newImage: function (arrSrc) {
+            for (var i = 0; arrSrc[i]; i += 1) {
+                var src = arrSrc[i],
+                    img = new Image();
+
+                if (src != 'data-clk') {
+                    src = src + '&m=UA-J2011-1&ref=' + encodeURIComponent(document.referrer) + '&random=' + Math.random();
+                    img.setAttribute('src', src.replace(/https?:/, ''));
+                }
+
+            }
+        }
+    });
+
+    function callModuleFunction(module) {
+        $.merge($(module), $(module).find('[module-function]')).each(function (index, item) {
+            var $item = $(item);
+            var moduleParam = {};
+            try {
+                moduleParam = JSON.parse($item.attr('module-param').replace(/'/g, '"').replace(/(\{|,)\s*\w+\s*:/g, function (str, matchKey) {
+                    return matchKey + '"' + str.match(/\w+/) + '":';
+                }));
+            } catch (error) {
+                console.log('没有设置 param 或解析param出错: ' + error);
+            }
+
+            var functionNames = $item.attr('module-function') ? $item.attr('module-function').split(',') : [];
+
+            functionNames.forEach(function (name) {
+                J_Module.use(name.trim()).then(function () {
+                    J_Module.module[name.trim()].bind($item)(moduleParam);
+                }).then(null, function(moduleName){
+                    console.log(moduleName);
+                });
+            });
+        });
+    }
+
+    function _execute(module) {
+        var _function = $(module).attr('module-function'),
+            moduleWrap = $(module).parents('[module-name]'),
+            _module_name = moduleWrap.attr('module-name'),
+            _instanceId = moduleWrap.attr('instanceid'),
+            _module_prototype_id = parseInt(moduleWrap.attr('modeid')),
+            _param;
+        // 新模块先根据J_data和J_template两个节点渲染模板，以及module-param的模块参数
+        // 因为新模块不再走后台渲染，所以新模块的的模板都用artTemplate格式写，并且在前端进行渲染。
+        if (_module_prototype_id < 0) {
+            // 如果中台模块
+            var moduleNodeWrap = $(module).parents('[module-name][isnode]');
+            if (moduleNodeWrap.length && moduleNodeWrap.attr('isnode') === 'true') {
+                if (moduleNodeWrap.attr('isbi') === 'true') {
+                    getJdEidtoWindow(function (JdEid) {
+                        var param = w.getZTParams($(module), JdEid, true);
+                        param['instanceId'] = _instanceId;
+                        var getData = $.ajax({
+                            url: INTERFACE.taishan.renderBIModule,
+                            data: param,
+                            dataType: 'json',
+                            type: 'post',
+                            xhrFields: {
+                                withCredentials: true
+                            }
+                        });
+
+                        getData.done(function(response) {
+                            if (response.data && response.data.moduleText) {
+                                let moduleText = response.data.moduleText;
+                                var newModule = $(moduleText);
+                                $(module).replaceWith(newModule);
+                                callModuleFunction(newModule[0]);
+                            }
+                        });
+                    });
+                } else {
+                    callModuleFunction(module);
+                }
+            } else {
+                if ($(module).closest('[origin]').attr('origin') === '1') {
+                    J_Module.use('renderModule').then(function () {
+                        J_Module.module['renderModule'].bind($(module))();
+                    });
+                } else {
+                    var templateNode = $(module).find('.J_template');
+                    if (templateNode.attr('data-dmTemplate') === 'true') {
+                        J_Module.use('renderModule').then(function () {
+                            J_Module.module['renderModule'].bind($(module))();
+                        });
+                    } else {
+                        //  只有装修页面才放置占位图
+                        if (getPageType() === 3) {
+                            if (placeholderImage(module)) {
+                                return false;
+                            }
+                        }
+
+                        var data = null;
+                        try {
+                            data = JSON.parse($(module).siblings('.J_data').html());
+                        } catch (e) {
+                            throw new Error('模块配置信息错误');
+                        }
+
+                        if (Object.is(data, null)) {
+                            return false;
+                        }
+
+                        var templateContent = templateNode.html().trim();
+
+                        if ($(module).attr('module-param')) {
+                            $(module).attr('module-param', template.render($(module).attr('module-param'), data));
+                        }
+
+                        if (!templateNode.hasClass('J_blockAutoRender')) {
+                            //  如果是普通模块，则直接进行渲染
+                            var html = template.render(templateContent, data);
+                            if ($(module).children().length > 1) {
+                                $(module).children().not('.J_template').remove();
+                            }
+                            $(module).append(html);
+                        }
+
+                        var moduleParam;
+                        try {
+                            moduleParam = JSON.parse($(module).attr('module-param').replace(/'/g, '"').replace(/(\{|,)\s*\w+\s*:/g, function (str, matchKey) {
+                                return matchKey + '"' + str.match(/\w+/) + '":';
+                            }));
+                        } catch (e) {
+                            moduleParam = {};
+                        }
+                        var functionNames = _function ? _function.split(',') : [];
+                        functionNames.forEach(function (name) {
+                            name && J_Module.use(name.trim()).then(function () {
+                                J_Module.module[name.trim()].bind(module)(moduleParam);
+                            }).then(null, function(moduleName){
+                                console.log(moduleName);
+                            });
+                        });
+
+                        renderModuleMarginBottom.bind(module)();
+                    }
+                }
+            }
+        } else {
+            // 获取模块的module-param
+            if (typeof _function === 'undefined') {
+                return false;
+            }
+            try {
+                _param = JSON.parse($(module).attr('module-param').replace(/'/g, '"').replace(/(\{|,)\s*\w+\s*:/g, function (str, matchKey) {
+                    return matchKey + '"' + str.match(/\w+/) + '":';
+                }));
+            } catch (e) {
+                _param = {};
+            }
+            // 执行模块的module-function
+            var _functions = _function.split(',');
+            _functions.each(function (index, n) {
+                if (jshop.module[_module_name] && jshop.module[_module_name][n]) {
+                    if (_param.subObj) {
+                        $(module).find(_param.subObj).each(function (ind, q) {
+                            jshop.module[_module_name][n].call(q, _param);
+                        });
+                    }
+                    else {
+                        jshop.module[_module_name][n].call(module, _param);
+                    }
+                }
+                else if (jshop.module[n]) {
+                    if (_param.subObj) {
+                        $(module).find(_param.subObj).each(function (ind, q) {
+                            jshop.module[n].call(q, _param);
+                        });
+                    }
+                    else {
+                        jshop.module[n].call(module, _param);
+                    }
+                }
+            });
+        }
+    }
+
+    $(function () {
+        $('div.j-module').each(function (index, n) {
+            if (!$(n).attr('panda')) {
+                _execute(n);
+            }
+        });
+        // var moduleArray = $('div.j-module').filter(function (index, n) {
+        //     if (!$(n).attr('panda')) {
+        //         if ($(n).parents('modeid') < 0) {
+        //             return n;
+        //         } else {
+        //             _execute(n);
+        //         }
+        //     }
+        // });
+        // var moduleMax = 3,
+        //     len = Math.ceil(moduleArray.length / moduleMax);
+        //
+        // for (var i = 0; i < len; i++) {
+        //     var moduleFragment = moduleArray.slice(i * moduleMax, Math.min(moduleArray.length, (i + 1) * moduleMax));
+        //     setTimeout(function () {
+        //         moduleFragment.each(function (index, n) {
+        //             _execute(n);
+        //         })
+        //     }, 200 * i)
+        // }
+    });
+
+    function getQueryString(name) {
+        var query = {};
+        var search = window.location.search;
+        if (!search) {
+            return '';
+        }
+
+        search.slice(1)
+              .split('&')
+              .forEach(function(i) {
+                  var result = i.split('=');
+                  var key = result && result[0];
+                  var value = result && result[1];
+                  query[key] = decodeURIComponent(value);
+              });
+
+        if (name) {
+            return query[name] || '';
+        }
+
+        return query;
+    }
+
+    function handleTabModuleRequest(key, moduleData) {
+        if (
+            moduleData[key] &&
+            moduleData[key].tabItemList &&
+            moduleData[key].tabItemList.length
+        ) {
+            moduleData[key].tabItemList.forEach((item, index) => {
+                if (item.id === index) {
+                    item.id = index + 1;
+                }
+            });
+        }
+    }
+
+    function handleShopSearchRequest() {
+        var pathname = window.location.pathname;
+        var regExp = /\/view_search-(\d+)-(\d+)-(\d+)-(\d+)-(\d+)-(\d+).html/gim;
+        var param = {
+            page: 1,
+            pagesize: 24,
+            categoryId: 0
+        };
+        // 统一刘中台定义的排序类型和店铺搜索页排序类型
+        if (regExp.test(pathname)) {
+            var sortTypeMap = {
+                0: 1,
+                1: 2,
+                3: 3,
+                4: 4,
+                5: 5,
+                99: 0
+            };
+            regExp.lastIndex = 0;
+            var result = regExp.exec(pathname);
+            param.sortType = sortTypeMap[result[3] || 99];
+            param.categoryId = ~~(result[2] || 0);
+            param.sortDirection = ~~(result[4] || 1) === 1 ? 'desc' : 'asc';
+            param.page = ~~(result[6] || 1);
+            param.pagesize = ~~(result[5] || 24);
+        }
+
+        return param;
+    }
+
+    w.getZTParams = function ($module, JdEid, nodeBI) {
+        var moduleData = null;
+        var functionId = '';
+
+        switch (window.getPageType()) {
+            case 2:
+            case 3:
+                functionId = 'getDecModData';
+                break;
+            default:
+                functionId = 'getModData';
+                break;
+        }
+
+        try {
+            moduleData = JSON.parse($module.siblings('.J_data').html());
+        } catch (e) {
+            throw new Error('模块配置信息错误');
+        }
+
+        if (Object.is(moduleData, null)) {
+            return false;
+        }
+
+        var domDataNode = $module.siblings('.J_domData');
+        var domDataContent = [{}];
+        try {
+            //  这里不直接try catch 的原因是 装修使用的是jquery 1.12.4 浏览是jquery 1.6 对于一个空节点取html()方法返回的值不同
+            var html = domDataNode.html();
+            domDataContent = !!html ? JSON.parse(html) : [{}];
+        } catch (error) {
+        }
+
+        domDataNode.remove();
+
+        var extendConfig = {
+            showSales: true, //  显示销量，传给后端，有这个标识后端才返回
+            showGoodCommentRate: true, // 显示商品评论：好评率、好评度、评论数，传给后端，有这个标识后端才返回
+            showInstallment: true //秒杀、预售、拼购、商品（凡是含商品的数据源）是否获取分期
+        };
+
+        domDataContent.forEach(function (item) {
+            // Object.values(item).forEach(function (value) {
+            for (var key in item) {
+                switch (item[key]) {
+                    case 'J_SHOP_GOODS_SEARCH':
+                        extendConfig = $.extend(extendConfig, handleShopSearchRequest());
+                        break;
+                    case 'J_TAB_CATEGORY':
+                        handleTabModuleRequest(key, moduleData);
+                        break;
+                    default:
+                        break;
+                }
+            }
+            // });
+        });
+
+        var body = [{
+            type: 'module',
+            moduleId: parseInt($module.closest('[modeid]').attr('modeid')),
+            moduleData: JSON.stringify(moduleData),
+            extendConfig: extendConfig
+        }];
+
+        var param = {
+            functionId: functionId,
+            body: JSON.stringify(body),
+            source: 'jshoppc',
+            platformId: 1, //实时传，区分PC、M、一号店、全球购，从页面上获取
+            pageId: $('#J_PageInstanceId').val(),
+            useTabOrder: true,
+            eid: JdEid.eid,
+            fp: JdEid.fp,
+            shshshfp: CookieUtil.getCookie('shshshfp'),
+            shshshfpa: CookieUtil.getCookie('shshshfpa'),
+            shshshfpb: CookieUtil.getCookie('shshshfpb'),
+            jda: CookieUtil.getCookie('__jda') || -1,
+            pageClickKey: -1,
+            platform: 0,
+            venderId: $('#J_VenderId').val() || $('#vender_id').val(),
+            vId: $('#J_VenderId').val() || $('#vender_id').val(),
+            sId: $('#shop_id').val(),
+            appId: $('#J_AppId').val() || $('#pageInstance_appId').val(),
+            shopEncryptCode: $('#shopEncryptCode').val() || '',
+            templateId: parseInt($module.closest('[moduletemplateid]').attr('moduletemplateid')) / -16
+        };
+
+        if (nodeBI) {
+            var styleDataNode = $module.siblings('.J_styleData');
+            var styleDataContent = [{}];
+            try {
+                //  这里不直接try catch 的原因是 装修使用的是jquery 1.12.4 浏览是jquery 1.6 对于一个空节点取html()方法返回的值不同
+                var stylehtml = styleDataNode.html();
+                styleDataContent = !!stylehtml ? JSON.parse(stylehtml) : {};
+            } catch (error) {
+            }
+            param['styleConfigInfo'] = JSON.stringify(styleDataContent);
+        }
+
+        if ($('#J_ApplicationType').val() === '2') { //店铺
+            param['shopId'] = $('#shop_id').val();
+        } else { // 活动
+            param['projectId'] = $('#J_AppId').val() || $('#pageInstance_appId').val();
+        }
+
+        return param;
+    };
+
+    /*
+     * 局部刷新逻辑
+     */
+    w.moduleRefresh = function () {
+        var _this = $(this);
+        _this.each(function (index, n) {
+            _execute(n);
+        });
+    };
+    /**
+     * 新的局部方法刷新逻辑，使用JModule,适用于终结者模块和sdk4.0设计师模块
+     * @param: fun，需要执行的方法名称
+     */
+    w.JModuleFunctionRefresh = function (fun) {
+        var $module = $(this);
+        $.merge($module.filter('[module-function]'), $module.find('[module-function]')).each(function (index, item) {
+            var $item = $(item),
+                functionNames = $item.attr('module-function') ? $item.attr('module-function').split(',') : [];
+
+            functionNames.forEach(function (name) {
+                if (name && name.trim() === fun) {
+                    var moduleParam = {};
+                    try {
+                        moduleParam = JSON.parse($item.attr('module-param').replace(/'/g, '"').replace(/(\{|,)\s*\w+\s*:/g, function (str, matchKey) {
+                            return matchKey + '"' + str.match(/\w+/) + '":';
+                        }));
+                    } catch (error) {
+                        console.log('没有设置 param 或解析param出错: ' + error);
+                    }
+                    J_Module.use(name.trim()).then(function () {
+                        J_Module.module[name.trim()].bind($item)(moduleParam);
+                    }).then(null, function(moduleName){
+                        console.log(moduleName);
+                    });
+                }
+            });
+        });
+    };
+    /*
+    * 局部方法刷新逻辑
+    * @param: fun，需要执行的方法名称
+    */
+    w.moduleFunctionRefresh = function (fun) {
+        var _this = $(this);
+        _this.each(function (index, module) {
+            var _function = $(module).attr('module-function');
+            var _module_prototype_id = parseInt($(module).parents('[module-name]').attr('modeid'));
+
+            // 如果指定的执行防范在模块的module-function中没有，那么就不需要执行。防止js调用不适合该模块的方法
+            if (!_function || !_function.length || _function.indexOf(fun) === -1) {
+                return false;
+            }
+            var _module_name = $(module).parents('[module-name]').attr('module-name'),
+                _param;
+            if (typeof fun === 'undefined' || fun === '') return;
+            try {
+                _param = JSON.parse($(module).attr('module-param').replace(/'/g, '"').replace(/(\{|,)\s*\w+\s*:/g, function (str, matchKey) {
+                    return matchKey + '"' + str.match(/\w+/) + '":';
+                }));
+            } catch (e) {
+                _param = {};
+            }
+            if (jshop.module[_module_name] && jshop.module[_module_name][fun]) {
+                if (_param.subObj) {
+                    $(module).find(_param.subObj).each(function (ind, q) {
+                        jshop.module[_module_name][fun].call(q, _param);
+                    });
+                }
+                else {
+                    jshop.module[_module_name][fun].call(module, _param);
+                }
+            }
+            else if (jshop.module[fun]) {
+                if (_param.subObj) {
+                    $(module).find(_param.subObj).each(function (ind, q) {
+                        jshop.module[fun].call(q, _param);
+                    });
+                }
+                else {
+                    jshop.module[fun].call(module, _param);
+                }
+            }
+        });
+    };
+
+    /**
+     * 放置占位图
+     */
+    w.placeholderImage = function (module) {
+        var modulePrototypeId = parseInt($(module).parents('[module-name]').attr('modeid'));
+        if (modulePrototypeId > 0) {
+            return false;
+        }
+        if ($(module).attr('module-function') === 'rankList') {
+            return false;
+        }
+        var data = null;
+        try {
+            data = JSON.parse($(module).siblings('.J_data').html());
+        } catch (e) {
+            throw new Error('模块配置信息错误');
+        }
+        if (data.hasOwnProperty('previewUri')) {
+            if (data.previewUri) {
+                $(module).html($('<div style="background:#fff; width:100%;"><img src="' + data.previewUri + '" style="display:block; margin:0 auto;" ></div>'));
+            } else {
+                $(module).html($('<div style="background:#fff; width:100%;"><img src="//img13.360buyimg.com/cms/jfs/t18682/127/1152486905/5678/ae7eb923/5abdd723N6d9ec997.png" style="display:block; margin:0 auto;" ></div>'));
+            }
+            return true;
+        }
+        return false;
+    };
+
+    /**
+     * @features        添加模块下边距
+     * @date            2018-06-25
+     * @author          cdrenke
+     * @description     除tab分类外的中台模块，下边距渲染至模块节点
+     *                  tab分类模块，下边距渲染至模块的 tab 节点
+     */
+    w.renderModuleMarginBottom = function () {
+        var shouldComponentRenderMarginBottom = {
+            '-400': true,   //  正式环境 tab
+            '-912': true,   //  预发环境 tab:dev
+            '-176': true,   //  正式环境 导航
+            '-1152': true  //  预发环境 导航:dev
+        };
+
+        var $this = $(this);
+        var moduleWrap = $this.closest('div[modeid]');
+
+        if (shouldComponentRenderMarginBottom[moduleWrap.attr('modeid')]) {
+            return false;
+        }
+
+        var data = null;
+        try {
+            data = JSON.parse($this.siblings('.J_data').html());
+        } catch (e) {
+            throw new Error('模块配置信息错误');
+        }
+        /**
+         * @description 2018-06-26 针对未来可能的功能拓展
+         */
+        var step = data['step'] || 10;
+        var marginBottom = 0;
+
+        if (typeof data.moduleMarginBottom !== 'undefined' &&
+            typeof data.moduleMarginBottom[0] !== 'undefined') {
+            marginBottom = parseFloat(data.moduleMarginBottom[0]);
+        }
+
+        moduleWrap.css({
+            marginBottom: marginBottom * step
+        });
+    };
+})(jQuery, window);
+
+/***********************************************module lazyload***************************/
+(function ($, w) {
+    w.gModules = [];
+
+    if (!Array.prototype.aUnique) {
+        Array.prototype.aUnique = function (arr) {
+            if (arr.constructor != Array)
+                throw new Error('Array:aUnique, arguments error');
+            var _temA = [];
+            if (this.length == 0 || (!arr.length))
+                return arr;
+            else {
+                for (var i = 0, len = arr.length; i < len; i++) {
+                    if (!this.isIn(arr[i])) {
+                        _temA.push(arr[i]);
+                    }
+                }
+                return _temA;
+            }
+        };
+    }
+
+    /*
+     * 获取已经加载的模块
+     */
+    function _get_modules() {
+        if ($('script[moduleinit="module"]').length) {
+            var _src = $('script[moduleinit="module"]').attr('src'),
+                _js = _src.substring(_src.indexOf('?') + 4, _src.indexOf('&'));
+            w.gModules = _js.split(',');
+        }
+    }
+
+    /*
+     * 新模块获取没有加载的js文件
+     */
+    w.get_scripts = function (str) {
+        if (str == '' || str == undefined) {
+            return [];
+        }
+        var _module_scrips = str.split(',');
+        return w.gModules.aUnique(_module_scrips);
+    };
+    $(function () {
+        _get_modules();
+    });
+})(jQuery, window);

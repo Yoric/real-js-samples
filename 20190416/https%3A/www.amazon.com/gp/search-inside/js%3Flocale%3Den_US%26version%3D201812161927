@@ -1,0 +1,320 @@
+var SITB_STR_LANG = {
+"go":'Go'
+,
+"LOOK_INSIDE":'Look inside!'
+,
+"add_to_cart":'Add to Cart'
+,
+"preorder_add_to_cart":''
+,
+"look_inside_this_book":'Look Inside This Book'
+,
+"try_a_sample":'Try a Sample'
+,
+"DISCOVER_MORE_BOOKS":'Discover More Books'
+,
+"hide_these_books":'Hide these books'
+,
+"loading_prompt":''
+,
+"BOOK_SECTIONS":'Book sections'
+,
+"SURPRISE_ME":'Surprise Me!'
+,
+"BY":'by #{AUTHORS}'
+,
+"GO_TO_BOOK_PAGE":'Go to "#{BOOK_TITLE}" page'
+,
+"USED_AND_NEW_FROM":'<a href=\'/gp/offer-listing/#{ASIN}/ref=rdr_ext_uan\' id=\'sitbReaderUsedCount\'> #{COUNT} used & new</a> from <span id=\'sitbReaderUsedPrice\' class=\'sitbReaderPrice\'>#{PRICE}</span>'
+,
+"DELIVER_TO":'Deliver To'
+,
+"SEND_SAMPLE":'Send this sample to your Kindle'
+,
+"PAGE_NOT_AVAILABLE":'This page is not available at this time.'
+,
+"SITB_IMAGE_BASE":'http://g-ecx.images-amazon.com/images/G/01/digital/sitb/reader/v4/201111161604/'
+,
+"SITB_IMAGE_BASE_SECURE":'https://images-na.ssl-images-amazon.com/images/G/01/digital/sitb/reader/v4/201111161604/'
+,
+"DEFAULT_ERROR_MSG_HEADER":'We\'re sorry!'
+,
+"DEFAULT_ERROR_MSG_TEXT":'A temporary error has occurred while fulfilling your request. Please try again later.'
+,
+"DEFAULT_RELATED_EDITION_MSG":'You are viewing a related edition of the book you originally clicked on. If you add this book to your cart, you\'ll get the edition you originally clicked on.'
+,
+"DEFAULT_RELATED_EDITION_XREF_KINDLE_MSG":'This is a preview of the Kindle book. A preview of the print book is currently not available.'
+,
+"DEFAULT_RELATED_EDITION_XREF_PRINT_MSG":'This is a preview of the print book. A preview of the Kindle book is currently not available.'
+,
+"JUST_SO_YOU_KNOW":'Just so you know...'
+,
+"IN_STANDARDVIEW_TEXT":'Expanded View'
+,
+"IN_FULLSCREEN_TEXT":'Standard View'
+,
+"TTIP_ZOOM_IN":'Zoom In'
+,
+"TTIP_ZOOM_OUT":'Zoom Out'
+,
+"TTIP_NEXT_PAGE":'Next Page'
+,
+"TTIP_PREV_PAGE":'Previous Page'
+,
+"TTIP_READER_CLOSE":'Close Reader'
+,
+"TTIP_SEARCH_CLOSE":'Close This Search'
+,
+"TTIP_SEARCH_GO":'Search'
+,
+"TTIP_SEARCH_INPUT":'Search Inside This Book'
+,
+"TTIP_MORE_RESULTS":'Show More Results'
+,
+"SB_HIST_LINK":'Edit your book history'
+,
+"SB_OFF_HIST_LINK":'Learn more'
+,
+"SB_NO_HIST_LINK":'Learn more'
+,
+"SB_NO_HIST_TEXT":'You have no books in your browsing history'
+,
+"SB_OFF_HIST_TEXT":'Your book history is turned off'
+,
+"SB_ERR_HIST_TEXT":'Your book history could not be retrieved'
+,
+"SB_NO_SIMS":'Books customers also bought could not be retrieved'
+,
+"TTIP_SB_PANE_CLD":'Click to see your browsing history and similar books'
+,
+"TTIP_SB_PANE_OPN":'Close this book list'
+,
+"TTIP_SB_TITLE":'Go to the product page for #{TITLE}'
+,
+"TTIP_SB_LITB_BUTTON":'Open this book and Look Inside!'
+,
+"TTIP_SB_HIST_LINK":'View and Edit Your Book History'
+,
+"TTIP_LP_TAB":'Click to see details about this book'
+,
+"PLEASE_SELECT":'Please select...'
+,
+"1_VERY_UNLIKELY":'1 - Very unlikely'
+,
+"2_UNLIKELY":'2 - Unlikely'
+,
+"3_NEITHER":'3 - Neither likely nor unlikely'
+,
+"4_LIKELY":'4 - Likely'
+,
+"5_VERY_LIKELY":'5 - Very likely'
+,
+"FEATURE_BROWSING_HISTORY":'Feature: Your Browsing History'
+,
+"SHARING_YOUR_THOUGHT":'Sharing your thoughts can help us improve the Amazon Reader. Though we can\'t reply directly, we do review and consider all feedback.'
+,
+"FEEDBACK_TYPE":'Feedback Type:'
+,
+"SUGGESTION":'Suggestion'
+,
+"COMMENT_ABOUT":'Comment About the Book'
+,
+"TECHNICAL_PROBLEM":'Technical Problem'
+,
+"PRAISE":'Praise'
+,
+"COMPLAINT":'Complaint'
+,
+"OTHER":'Other'
+,
+"YOUR_COMMENTS":'Your Comments:'
+,
+"1500_MAXIMUM":'(1500-character maximum)'
+,
+"HOW_LIKELY":'How likely are you to recommend the Amazon Reader to a friend?'
+,
+"THANK_YOU_FOR_FEEDBACK":'Thank you for your feedback!'
+,
+"FEEDBACK":'Feedback'
+,
+"HELP":'Help'
+,
+"CLOSE":'Close'
+,
+"KINDLE_PREVIEW":'Kindle Book'
+,
+"PRINT_PREVIEW":'Print Book'
+,
+"INFORMATION_UNAVAILABLE":'The information for this book is unavailable at this time.'
+,
+"SERVER_TIMEOUT":'Server Timeout'
+,
+"PAGE":'Page #{PAGE}'
+,
+"INSERT":'Insert'
+,
+"BACK_MATTER":'Back Matter'
+,
+"FRONT_MATTER":'Front Matter'
+,
+"FIRST_PAGES":'First Pages'
+,
+"THIS_IS_A_PREVIEW":'This is a preview. The number of pages displayed is limited.'
+,
+"BROWSING_HISTORY":'Your Browsing History'
+,
+"CUSTOMER_ALSO_BOUGHT":'Customers Also Bought'
+,
+"PAGE_OF":'Page #{HTML_START} of #{HTML_END}'
+,
+"SEARCH_INSIDE_THIS_BOOK":'Search Inside This Book'
+,
+"SAMPLE_SEARCHES":'Sample searches in this book:'
+,
+"SIGN_IN_TO_VIEW":'<a href=\'/gp/search-inside/sign-in?asin=#{ASIN}&query=#{QUERY}\'>Sign in</a> to view the search results.'
+,
+"SHOW_MORE_RESULT":'Show #{RESULT_TO_LOAD} more result...'
+,
+"SHOW_MORE_RESULTS":'Show #{RESULTS_TO_LOAD} more results...'
+,
+"RESULT_FOR":'<b>#{RESULT_NUM}</b> result for <b>#{HTML_REPLACE}</b> #{SIGN_IN_MSG}'
+,
+"RESULTS_FOR":'<b>#{RESULT_NUM}</b> results for <b>#{HTML_REPLACE}</b> #{SIGN_IN_MSG}'
+,
+"SOME_PAGES_OMITTED":'Some pages are omitted from this book preview.'
+,
+"PLEASE_USE_SURPRISE_OR_SITB":'Please use <a class=\'sitbReader-bookmark-surprise\' href=\'javascript:void(0)\' onclick=\'SitbReader.PageSequenceActions.goToRandomPage()\'>Surprise Me!</a> or Search Inside This Book to view more pages.'
+,
+"PAGE_NOT_INCLUDED":'Page #{LABEL_START} is not included in this book preview.'
+,
+"PAGES_NOT_INCLUDED":'Pages #{LABEL_START}-#{LABEL_END} are not included in this book preview.'
+,
+"PLEASE_SIGN_IN":'Please <a href=\'/gp/search-inside/sign-in?asin=#{ASIN}&page=#{PAGE}\'>sign in</a> to view more pages from this book.'
+,
+"THIS_IS_A_RANDOM_PAGE":'This is a random page from a small sample of this book. <a href=\'/gp/search-inside/sign-in?asin=#{ASIN}&page=random\'>Sign in</a> to preview a larger sample.'
+,
+"EDITION":'edition'
+,
+"EDITION_NAME":'#{NAME} edition'
+,
+"RELATED_EDITION":'related edition'
+,
+"AUTHORITY_EDITION":'authority edition'
+,
+"PUB_NAME":' from #{NAME}'
+,
+"END_OF_PREVIEW":' End of this sample Kindle book.'
+,
+"END_OF_PREVIEW_BUY":'Enjoyed the preview?<br/><a class="sitb-buy-box" href="#{BUY_ACTION}">#{BUY_TYPE}</a><br/>or<br/><a class="sitb-buy-box" href=\'/kindle/dp/#{BUYING_ASIN}/ref=#{REFTAG}\'>See details for this book in the Kindle Store</a>'
+,
+"NEED_TO_SIGN_IN":'Do I need to be signed in to preview books?'
+,
+"MY_PRIOR_PURCHASE":'Does my prior purchase need to be a book?'
+,
+"SLIGHTLY_DIFFERENT_CONTENT":'Why am I seeing slightly different content for this book?'
+,
+"ADJUST_SIZE_TEXT":'Can I adjust the size of the text?'
+,
+"SEARCH_MORE_EFFECTIVELY":'How can I search more effectively?'
+,
+"PROVIDE_FEEDBACK":'How can I provide feedback, praise or ideas for improvement?'
+,
+"WHAT_IS_BROWSING_HISTORY":'What is \'Your Book Browsing History\'?'
+,
+"NEED_TO_SIGN_IN_ANSWER":'No, but some features and pages are available only if you are logged into your Amazon account and have made a prior purchase.  For those customers who choose not to log in or who have not made their first purchase with us, we still provide a helpful set of preview pages within the book.'
+,
+"MY_PRIOR_PURCHASE_ANSWER":'No. Any item sold by Amazon.com will do. (Digital items and items purchased from another seller through the Amazon site do not qualify at this time.)  You must have a shipped order in your order history.  If you need assistance changing your e-mail address or recovering your password on your old account, please contact Customer Service.'
+,
+"SLIGHTLY_DIFFERENT_CONTENT_ANSWER":'Some book previews are linked to a related edition of the book that we have scanned. We typically scan only one version and share the page images between both books, since the text is otherwise identical. If this is the case, we will indicate the version of the book that the text comes from.'
+,
+"ADJUST_SIZE_TEXT_ANSWER":'Absolutely! If the default text size is too large or too small, just click the zoom icons to zoom in or out. You can also "grab" the image, drag and pan when zoomed in.'
+,
+"SEARCH_MORE_EFFECTIVELY_ANSWER":'If you\'re searching for a specific phrase instead of a collection of keywords, put quotation marks around the phrase (for example, "left-handed pitchers"). This will bring up a shorter, more targeted list of results than searching for those two words without quotation marks.'
+,
+"PROVIDE_FEEDBACK_ANSWER":'We value your feedback as an ongoing source of ideas to improve the program. You can use the feedback link at the top right of the Reader for any book.'
+,
+"WHAT_IS_BROWSING_HISTORY_ANSWER":'Your Book Browsing History helps you keep track of books you\'ve recently viewed. Your Browsing History is continually updated to include your most recently viewed items. To clear your recent history, visit <a href="/gp/yourstore/pym/">Your Browsing History</a> and click the "Delete this item" link located next to each item. To remove all items, click the "Delete All" button in the left column. We hope you find Your Browsing History useful. If you do not enjoy this feature and want to turn it off, <a href="/gp/yourstore/pym/cc/">click here</a>.'
+,
+"HELP_PAGE":'/gp/help/customer/display.html?nodeId=10197041'
+,
+"FAQ":'Frequently Asked Questions'
+,
+"LEARN_MORE_LITB":'Learn More About Look Inside!'
+,
+"TOC":'Table of Contents'
+,
+"FRONT_COVER":'Front Cover'
+,
+"FRONT_FLAP":'Front Flap'
+,
+"COPYRIGHT":'Copyright'
+,
+"INDEX":'Index'
+,
+"BACK_FLAP":'Back Flap'
+,
+"BACK_COVER":'Back Cover'
+,
+"PIC_SUPP_MSG":'Some images in this book sample are not displayed, at the publisher\'s request.'
+,
+"PARTIAL_CONTENT_MSG":'These sample pages that you are previewing were selected from the book by the publisher.'
+,
+"KINDLE_COVER":'Cover'
+,
+"KINDLE_START_READING_LOCATION":'Beginning'
+,
+"SEND_CUSTOMER_REQUEST":'<strong>Tell the Publisher!</strong><br><a id=\'sitbReaderCustomerRequestLink\'>I’d like to read this book on Kindle</a><br><br>Don’t have a Kindle?  <a href=\'/dp/B00I15SB16/ref=rdr_ext_kdl\'>Get your Kindle here</a>, or download a <b>FREE</b> <a href=\'/gp/kindle/kcp/ref=rdr_ext_kra\'> Kindle Reading App</a>.<br>'
+,
+"SEND_CUSTOMER_REQUEST_SUCCESS":'<span><strong>Thank You</strong></span><br><br>Thank you for requesting <a href=\'/dp/#{ASIN}/ref=rdr_ext_book\'>#{TITLE}</a> for Kindle. We will pass your specific request on to the publisher.'
+,
+"SEND_CUSTOMER_REQUEST_ERROR":'<span><strong>Sorry</strong></span><br><br>There has been an error processing your request. Please try again later.'
+,
+"REL_ED_MSG_PRINT":'This view is of the #{AUTHORITY_LINK}#{AUTHORITY_YEAR_DISP}#{AUTHORITY_PUB_DISP}. The #{RELATED_LINK}#{RELATED_YEAR_DISP}#{RELATED_PUB_DISP} that you originally viewed is the one you\'ll receive if you click the Add to Cart button on the left.'
+,
+"REL_ED_MSG_KINDLE":'This view is of the #{AUTHORITY_LINK}#{AUTHORITY_YEAR_DISP}#{AUTHORITY_PUB_DISP}. The #{RELATED_LINK}#{RELATED_YEAR_DISP}#{RELATED_PUB_DISP} that you originally viewed is the one you\'ll receive if you click the Buy with 1-Click button on the left.'
+,
+"REL_ED_MSG_KINDLE_WITH_BUTTON_TEXT":'This view is of the #{AUTHORITY_LINK}#{AUTHORITY_YEAR_DISP}#{AUTHORITY_PUB_DISP}. The #{RELATED_LINK}#{RELATED_YEAR_DISP}#{RELATED_PUB_DISP} that you originally viewed is the one you\'ll receive if you click #{BUY_BUTTON_TEXT} on the left.'
+,
+"REL_ED_MSG_KINDLE_WITHOUT_VALID_OFFER":'This view is of the #{AUTHORITY_LINK}#{AUTHORITY_YEAR_DISP}#{AUTHORITY_PUB_DISP}. The #{RELATED_LINK}#{RELATED_YEAR_DISP}#{RELATED_PUB_DISP} that you originally viewed is currently unavailable for purchase.'
+,
+"REL_ED_XREF_MSG_PRINT":'This view is of the print book (#{AUTHORITY_LINK_TEXT}). A preview of the Kindle book is currently not available.'
+,
+"REL_ED_XREF_MSG_KINDLE_V2":'This view is of the #{AUTHORITY_LINK} #{AUTHORITY_YEAR_DISP}#{AUTHORITY_PUB_DISP}. A preview of the print book (#{RELATED_LINK_TEXT}) is currently not available.'
+,
+"PLEASE_SIGN_IN_TITLE":'Please Sign In'
+,
+"PLEASE_SIGN_IN_TEXT":'You must be signed in with a valid account to view this page. Please <a href=\'/gp/search-inside/sign-in?#{LOGIN_RETURN_ARGS}\'>sign in</a> to your Amazon account.'
+,
+"PAGE_NOT_AVAILABLE_TITLE":'Page Not Available'
+,
+"PAGE_NOT_AVAILABLE_TEXT":'Some pages are not included in this book sample.'
+,
+"FEATURE_UNAVAILABLE_TITLE":'Feature Unavailable'
+,
+"FEATURE_UNAVAILABLE_TEXT":'We\'re sorry, but this feature is currently unavailable. Please try again later.'
+,
+"kcp_sitb_getfreeapp_ebooks":'Don\'t have a Kindle? Get our #{kcp_app_link}free app</a> and start reading.'
+,
+"kcp_sitb_getfreeapp_pbooks":'Want it now? Read eBook of this title with our #{kcp_app_link}free app</a>.'
+,
+"kcp_get_reading_app_dialog_title":'Get the Kindle App'
+,
+"kcp_close":'Close'
+,
+"kcp_loading_error":'Error in loading the content, Please try again later.'
+,
+"kcp_sitb_widget_width":'675'
+,
+"BUY_WITH_1_CLICK":'Buy with 1-Click'
+,
+"PREORDER_WITH_1_CLICK":'Pre-order with 1-Click'
+,
+"ADDITIONAL_BUY_WITH_1_CLICK":'Buy with 1-Click'
+,
+"END_OF_PREVIEW_BUY_DUAL":'Enjoyed the preview?<br/><a class="sitb-buy-box" href="#{BUY_NOW_ACTION}">#{BUY_NOW_TYPE}</a><br/><a class="sitb-buy-box" href="#{BUY_1_CLICK_ACTION}">#{BUY_1_CLICK_TYPE}</a><br/>or<br/><a class="sitb-buy-box" href=\'/kindle/dp/#{BUYING_ASIN}/ref=#{REFTAG}\'>See details for this book in the Kindle Store</a>'
+,
+"NEW_FROM":''
+,
+"SITB_REGION_MAGNIFICATION":'Click on panels or text blocks in the sample to zoom in.  Use the scroll wheel or arrow keys to page through the content.  Click again on the content to zoom out.'
+};
+Vellum.lj2(Vellum.js);

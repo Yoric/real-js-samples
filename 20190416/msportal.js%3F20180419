@@ -1,0 +1,664 @@
+/* for jslint */
+/*global YAHOO:true, clearInterval:true, document:true, setInterval:true, window:true, navigator:true */
+
+/**
+ * YAHOO
+ * @namespace
+ */
+ if (typeof YAHOO === 'undefined') {
+    YAHOO = {};
+}
+
+/**
+ * YAHOO.JP
+ * @namespace
+ */
+ if (typeof YAHOO.JP === 'undefined') {
+    YAHOO.JP = {};
+}
+
+/**
+ * YAHOO.JP.MarketingSolution
+ * @namespace
+ */
+ if (typeof YAHOO.JP.MarketingSolution === 'undefined') {
+    YAHOO.JP.MarketingSolution = {};
+}
+
+/**
+ * @class 絞り込み
+ * @author nhiraya
+ *
+ * @param {String} setting.selectorClass 絞り込みに使うselect要素のクラス名
+ * @param {String} setting.contentsClass 絞り込み検索対象要素群のクラス名
+ */
+ (function (Y, setting){
+    Y.NarrowDown = (function(){
+        /**
+         * @constructor
+         */
+         var _constructor = function(setting){
+            var that = this,
+                origin = location.href.split('#')[0];
+
+            if(!setting){
+                setting = {};
+            }
+            this.selector = $(setting.selectorClass || '.js-selector');
+            this.contents = $(setting.contentsClass || '.productBox');
+
+            that.selector.on('change', function(){
+                var params = that.selector.serialize();
+                that.set(params);
+            });
+        };
+
+        _constructor.prototype.set = function(params){
+            var that = this,
+                $selected = that.filter(this.contents, params);
+
+            // いったん全て非表示にしてから絞り込まれたものだけを表示
+            this.contents.hide();
+            $selected.show();
+            $('.js-resultLength').text($selected.length);
+
+        };
+        _constructor.prototype.deserialize = function(params){
+            // 受け取った文字列をオブジェクトにして返す
+            var data = {},
+                tmp = params.split('&');
+            $.each(tmp, function(i,val){
+                var keyValue = val.split('='),
+                    key = keyValue[0],
+                    value = keyValue[1];
+                    data[key]=value;
+            });
+            return data;
+        };
+        _constructor.prototype.filter = function($contents, parm){
+            // $contentsを、paramの条件で絞り込んで、結果をjQueryオブジェクトで返す
+            var that = this,
+                obj = that.deserialize(parm);
+            $.each(obj, function(i,val){
+                if(val!='all'){
+                    if (val.match(/yen/)) {
+                        $contents = $contents.filter('[data-ad-'+i+'='+val+']');
+                    } else {
+                        $contents = $contents.filter('[data-ad-'+i+'*='+val+']');
+                    }
+                }
+            });
+            return $contents;
+        };
+        return _constructor;
+    }());
+}(YAHOO.JP.MarketingSolution));
+
+/**
+ * @class カスタムサーチ　サイズ／プレースホルダーfor mac
+ * @author inakanis
+ */
+ (function (Y, d, w, undefined) {
+    Y.InputView = (function () {
+        /**
+         * @private
+         */
+        var $srchInput = $("#srchInput");
+        var inputW = 129;
+        var onInputW = inputW + 50;
+        var placeholderText =  $srchInput.attr("placeholder");
+
+
+        /**
+         * @constructor
+         */
+         var _constructor = function () {
+            var that = this;
+
+            $srchInput.bind("focus", function(){
+                if($(this).value == placeholderText){
+                    $(this).val();
+                }
+                $srchInput.attr("placeholder","");
+                    $srchInput.animate({
+                        width: onInputW
+                    },'normal','swing');
+            });
+            $srchInput.bind("blur", function(){
+                $srchInput.attr("placeholder",placeholderText);
+                $srchInput.animate({
+                    width: inputW
+                },'normal','swing');
+            });
+        };
+        return _constructor;
+    }());
+}(YAHOO.JP.MarketingSolution, document, window));
+
+/**
+ * @class ナビ固定
+ * @author inakanis
+ */
+ (function (Y, d, w, undefined) {
+    Y.NavFix = (function () {
+        /**
+         * @private
+         */
+        var $body = $('body');
+        var $nav = $('.nav');
+        var navTop = $nav.offset().top;
+
+        /**
+         * @constructor
+         */
+         var _constructor = function () {
+            $(w).scroll(function(){
+                var winTop = $(w).scrollTop();
+
+                if (winTop > navTop) {
+                    $nav.addClass('is-fixed');
+                    // $body.css('margin-top', $nav.height());
+                } else {
+                    $nav.removeClass('is-fixed');
+                    // $body.css('margin-top', '0px');
+                }
+            });
+        };
+        return _constructor;
+    }());
+}(YAHOO.JP.MarketingSolution, document, window));
+
+/**
+ * @class モジュール開閉
+ * @author inakanis
+ */
+ (function (Y, undefined) {
+    Y.ModuleBlind = (function () {
+        /**
+         * @private
+         */
+        var $toggleTitle = $('.toggle__title');
+
+        /**
+         * @constructor
+         */
+         var _constructor = function () {
+            $toggleTitle.bind('click', function (e) {
+                $(this).toggleClass("is-open");
+                if($(this).hasClass("is-open")){
+                    $(this).unbind("mouseenter").unbind("mouseleave");
+                }
+                $(this).next('.toggle__item').animate({height:"toggle"}, 400, "swing");
+            });
+        };
+        return _constructor;
+    }());
+}(YAHOO.JP.MarketingSolution));
+
+ /**
+ * @class 動画リサイズ
+ * @author nhiraya
+ */
+(function (Y, d, w, setting) {
+    Y.videoView = (function() {
+
+        var _constructor = function(setting){
+            this.$videoWrap = $(setting.videoWrap);
+            this.$iframe = this.$videoWrap.find('iframe');
+            //動画の元サイズ
+            this.originalW = 560;
+            this.originalH = 315;
+            var that = this;
+            that.adjust();
+        }
+        _constructor.prototype.adjust = function(){
+            var that = this;
+            var winW = $(w).width(),
+                winH = $(w).height();
+            //動画表示エリアのサイズ -> videoWrapのサイズ
+            var viewW = that.$videoWrap.width(),
+                viewH = that.$videoWrap.height();
+            if(winW < that.originalW || winH < that.originalH+100){
+                var src = that.$iframe.attr('src'),
+                    aspect = that.originalH/that.originalW, //縦横比
+                    customW,
+                    customH;
+
+                if(src != undefined){
+                // if( viewW < viewH ){ //横長な時はタテ優先
+                //     customH = Math.floor(viewH);
+                //     customW = Math.floor(customH/aspect);
+                // } else {
+                    customW = Math.floor(viewW);
+                    customH = Math.floor(customW*aspect);
+                // }
+
+                var tmp1 = src.split('width=')[0],
+                    tmp2 = 'width='+customW+'&height='+customH;
+
+                that.$iframe.attr('src', tmp1+tmp2).css({'width':customW, 'height':customH});
+
+                }
+
+            }
+        }
+        return _constructor;
+    }());
+
+}(YAHOO.JP.MarketingSolution, document, window));
+
+/**
+ * @class mapリサイズ
+ * @author inakanis
+ */
+(function (Y, d, w) {
+    Y.mapResize = (function() {
+
+        var _constructor = function(){
+            var $map = $("#threeService");
+            var mapDefaultImage = $map.attr("src");
+            //対象map areaのid
+            this.mapList = ["#mapSS","#mapYDN","#mapTW"];
+            //画面幅
+            this.winW = $(w).width();
+            //画像の元サイズ
+            this.originalW = 800;
+            //画像表示サイズ
+            if(this.winW >= 950){
+                this.viewImageW = this.originalW;
+            }else{
+                this.viewImageW = this.winW - 50;
+            }
+
+            var that = this;
+            if($map.get(0)){
+               for(var i = 0 ; i < this.mapList.length ; i++){
+                that.adjust(this.mapList[i]);
+                }
+            }
+            $("map area").mouseover(function(){
+                imgPath = $(this).attr("data");
+                $map.attr("src",imgPath);
+            });
+            $("map area").mouseout(function(){
+                $map .attr("src", mapDefaultImage);
+            });
+
+        }
+        _constructor.prototype.adjust = function(mapName){
+            var coords = "";
+            var that = this;
+            //座標取得
+            this.chart = $(mapName).attr("coords").split( ',' );
+            //比率計算
+            aspect = that.viewImageW / that.originalW;
+            for(var i = 0 ; i < that.chart.length ; i++){
+                //座標の書き換え
+                that.chart[i] = parseInt(that.chart[i])  * aspect;
+            }
+            //計算結果を連結
+            for(var i = 0 ; i < that.chart.length ; i++){
+                if(i == 0){
+                    coords = that.chart[i];
+                }else{
+                    coords += "," + that.chart[i];
+                }
+            }
+            $(mapName).attr("coords",coords);
+        }
+
+        _constructor.prototype.changeMapImage = function(imgPath){
+            $(d).getElementById('threeService').src = imgPath;
+        }
+        return _constructor;
+    }());
+
+}(YAHOO.JP.MarketingSolution, document, window));
+
+(function (Y, d, w, setting) {
+    Y.ModalView = (function() {
+        var _constructor = function(setting){
+            this.$opentrigger = $(setting.opentrigger);
+            this.$modalbox = $(setting.modalbox);
+            this.$backdrop = $(setting.backdrop);
+            this.$closebtn = $(setting.closebtn);
+            this.$iframe = this.$modalbox.find('iframe');
+            this.originalW = setting.originalW || 640;
+            this.originalH = setting.originalH || 360;
+
+            var that = this;
+            $(d).on('click', setting.opentrigger, function(e){
+                e.preventDefault();
+                that.show();
+            });
+            $(d).on('click', setting.closebtn+','+setting.backdrop , function(){
+                that.hide();
+            });
+            that.adjust();
+        }
+        _constructor.prototype.show = function(){
+            var that = this;
+            var docH = $(d).height();
+            //cursor:pointerはiOSバグ対応、heightは表示調整
+            that.$backdrop.addClass('active').css({'height': docH,'cursor':'pointer'});
+            that.$modalbox.addClass('active');
+        }
+        _constructor.prototype.hide = function(){
+            var that = this;
+            that.$backdrop.removeClass('active');
+            that.$modalbox.removeClass('active');
+
+            var $movieWrapper = that.$iframe.parent('p');
+            $movieWrapper.html(that.$iframe); //iframe要素を上書き（削除→再生成）することで再生を停止する
+        }
+        _constructor.prototype.adjust = function(){
+            var that = this;
+            var winW = $(w).width(),
+                winH = $(w).height();
+            if(winW < that.originalW || winH < that.originalH+100){
+                var src = that.$iframe.attr('src'),
+                    aspect = that.originalH/that.originalW, //縦横比
+                    customW,
+                    customH;
+
+                if( winW > winH ){ //横長な時はタテ優先
+                    customH = Math.floor(winH-120);
+                    customW = Math.floor(customH/aspect);
+                } else {
+                    customW = Math.floor($(w).width()-20);
+                    customH = Math.floor(customW*aspect);
+                }
+                if(src != undefined){
+                    var tmp1 = src.split('width=')[0],
+                        tmp2 = 'width='+customW+'&height='+customH;
+
+                    that.$iframe.attr('src', tmp1+tmp2).css({'width':customW, 'height':customH});
+                    that.$modalbox.css({'margin-left': -customW/2, 'margin-top': -(customH-100/2)});
+                }
+            }
+        }
+        return _constructor;
+    }());
+
+}(YAHOO.JP.MarketingSolution, document, window));
+
+/**
+ * @class スムーススクロール
+ * @author inakanis
+ */
+(function (Y, d, w, undefined) {
+    Y.AnchorScroll = (function () {
+        /**
+         * @private
+         */
+        var $htmlBody = $("html,body");
+        var $anchor = $('a[href*=#]').not('.switch--trigger');
+
+        /**
+         * @constructor
+         */
+         var _constructor = function () {
+            // #を含むアンカーをクリックした場合に処理
+           $anchor.click(function() {
+              // スクロールの速度
+              var speed = 400; // ミリ秒
+              // ページ内でのアンカーリンクにも対応
+              var href= $(this).prop("href");
+              var abovePageURL = href.split("#")[0];
+              var currentURL = (location.href).split("#")[0];
+              if(currentURL == abovePageURL) {
+                  href = href.split("#");
+                  href = href.pop();
+                  href = "#" + href;
+              }
+              // 移動先を取得
+              var target = $(href == "#" || href == "" ? 'html' : href);
+              var position = target.offset().top - 100;
+              // スムーススクロール
+              //spの場合はメニューを非表示に
+              if($('#wrapper').hasClass("is-disable-scroll")) {
+                  $('#wrapper').toggleClass('is-disable-scroll');
+                  $('.nav').toggleClass('is-show');
+                  $('.overlay').removeClass('is-visible');
+              }
+              $htmlBody.animate({scrollTop:position}, speed, 'swing');
+              return false;
+           });
+
+
+        };
+        return _constructor;
+    }());
+    $(document).ready(function(e) {
+        var anchorScroll = new Y.AnchorScroll();
+    });
+}(YAHOO.JP.MarketingSolution, document, window));
+
+/**
+ * ドロワーメニュー
+ */
+(function (Y, d, w, undefined) {
+    Y.drawerMenu = (function () {
+        /**
+         * @private
+         */
+        var $wrapper = $('#wrapper');
+        var $masthead = $('.masthead');
+        var $menu = $('#js-masthead__menu');
+        var $nav = $('.nav');
+        var $close = $('#js-nav__close');
+        var $overlay = $('<div />',{'class': 'overlay'}).appendTo('body');
+
+        /**
+         * @constructor
+         */
+        var _constructor = function () {
+            $menu.on('click', function () {
+              $wrapper.toggleClass('is-disable-scroll');
+              $nav.toggleClass('is-show');
+              $overlay.addClass('is-visible');
+            });
+
+            $close.on('click', function () {
+              $wrapper.removeClass('is-disable-scroll');
+              $nav.removeClass('is-show');
+              $overlay.removeClass('is-visible');
+            });
+
+            $overlay.on('click', function () {
+              $wrapper.removeClass('is-disable-scroll');
+              $nav.removeClass('is-show');
+              $overlay.removeClass('is-visible');
+            });
+        };
+        return _constructor;
+    }());
+}(YAHOO.JP.MarketingSolution, document, window));
+
+/**
+ * 検索窓の開閉
+ */
+(function (Y, d, w, undefined) {
+    Y.searchToggle = (function () {
+        /**
+         * @private
+         */
+         var $nav = $('.nav');
+         var $label = $('#js-nav__search-label');
+         var $query = $('#site-search');
+
+        /**
+         * @constructor
+         */
+         var _constructor = function () {
+           $label.on('click', function () {
+             $nav.addClass('is-search-show');
+
+             setTimeout(function () {
+               $query.focus();
+             },500);
+           });
+
+          $(document).on('click', function (event) {
+            if (!$(event.target).closest('.nav__search').length) {
+              $nav.removeClass('is-search-show');
+            }
+          });
+        };
+        return _constructor;
+    }());
+}(YAHOO.JP.MarketingSolution, document, window));
+
+/**
+ * SPフッターのアコーディオンパネル
+ */
+(function (Y, d, w, undefined) {
+    Y.accPanel = (function () {
+        /**
+         * @private
+         */
+         var $accTitle = $('.js-footer-site__heading');
+
+        /**
+         * @constructor
+         */
+         var _constructor = function () {
+           $accTitle.each(function () {
+             var $self = $(this);
+
+             $self.on('click', function () {
+               $(this).toggleClass('is-open');
+               $(this).next('.js-footer-site__list').animate({height:"toggle"}, 400, "swing").toggleClass('is-open');
+             });
+           });
+        };
+        return _constructor;
+    }());
+}(YAHOO.JP.MarketingSolution, document, window));
+
+/**
+ * サービス一覧のソート
+ */
+(function (Y, d, w, undefined) {
+    Y.serviceSort = (function () {
+        /**
+         * @private
+         */
+         var $filters = $('.js-filter [data-filter]');
+         var $panels = $('.js-panel [data-panel]');
+         var $select = $('.js-select');
+         var $wrapper = $('#wrapper');
+         var $nav = $('.nav');
+         var $overlay = $('.overlay');
+         var param = location.search.match(/\?data-filter=([a-zA-Z0-9]+)/) || [];
+         var hash = location.hash.match(/\?data-filter=([a-zA-Z0-9]+)/) || [];
+         var queryString = param[1] || hash[1];
+
+        /**
+         * @constructor
+         */
+         var _constructor = function () {
+           $filters.on('click', function (e) {
+             e.preventDefault();
+
+             var $self = $(this);
+             var $panel = $self.attr('data-filter');
+
+             $filters.removeClass('switch--current');
+             $self.addClass('switch--current');
+
+             if ($panel === 'all') {
+               $panels.removeClass('is-animated').fadeOut().promise().done(function () {
+                 $panels.addClass('is-animated').fadeIn();
+               });
+             } else {
+               $panels.removeClass('is-animated').fadeOut().promise().done(function () {
+                 $panels.filter('[data-panel="' + $panel + '"]').addClass('is-animated').fadeIn();
+               });
+             }
+           });
+
+           if(queryString) {
+             $('[data-filter="' + queryString + '"]').trigger('click');
+             $select.val(queryString);
+           }
+           // hash値を監視しておく
+           $(window).on('hashchange', function() {
+             var changeString = location.hash.split('=');
+             $select.val(changeString[1]);
+             $('[data-filter="' + changeString[1] + '"]').trigger('click');
+             // スマホ時はドロワーメニューを閉じる
+             $wrapper.removeClass('is-disable-scroll');
+             $nav.removeClass('is-show');
+             $overlay.removeClass('is-visible');
+             // フッターリンク対策
+             $('html,body').animate({scrollTop:0}, 'swing');
+           });
+        };
+        return _constructor;
+    }());
+}(YAHOO.JP.MarketingSolution, document, window));
+
+/**
+ * セレクトボックス選択時の要素フィルタリング
+ */
+(function (Y, d, w, undefined) {
+    Y.selectFilter = (function () {
+        /**
+         * @private
+         */
+         var $select = $('.js-select');
+         var $panels = $('.js-panel [data-panel]');
+         var param = location.search.substring(1).split('=');
+
+        /**
+         * @constructor
+         */
+         var _constructor = function () {
+           $select.on('change', function (e) {
+
+             var $option = $(this).val();
+
+             if ($option === 'all') {
+               $panels.removeClass('is-animated').fadeOut().promise().done(function () {
+                 $panels.addClass('is-animated').fadeIn();
+               });
+             } else {
+               $panels.removeClass('is-animated').fadeOut().promise().done(function () {
+                 $panels.filter('[data-panel="' + $option + '"]').addClass('is-animated').fadeIn();
+               });
+             }
+           });
+
+           if(param) {
+             $('[data-filter="' + param[1] + '"]').trigger('change');
+           }
+        };
+        return _constructor;
+    }());
+}(YAHOO.JP.MarketingSolution, document, window));
+
+
+/**
+* 記事タイトル文字制限
+*/
+(function (Y, d, w, undefined) {
+  Y.txtAbbriviation = (function () {
+
+    $(".case .articles__title, .case .examples__link, .premium .examples__link, .strength .examples__link").each(function() {
+      var size = 38;
+      var txt = $(this).text();
+      var suffix = "...";
+      var b = 0;
+      for(var i = 0; i < txt.length; i++) {
+        b += txt.charCodeAt(i) <= 255 ? 0.5 : 1;
+        if( b > size ){
+          txt = txt.substr(0, i) + suffix;
+          break;
+        }
+      }
+      $(this).text(txt);
+    });
+
+  }());
+}(YAHOO.JP.MarketingSolution, document, window));

@@ -1,0 +1,376 @@
+// JS for Tipping purchase flow
+// Used for all platforms
+
+var TippingPurchaseFlow = function() {
+    "use strict";
+    var Self = this;
+
+    Self.defaultSettings = {
+        showSuccessModal: false,
+        showFailureModal: false,
+        dismissUrl : '',
+        tipButton_Class : 'js-tipsTrigger',
+        triggerPurchaseFlow : false,
+        submodal_class : '.tipping_submodal',
+        showSignupCaptcha : false,
+        modelUsername: '',
+        vkey : false,
+        dynamicallyTargetButton : false,
+        modelId : '',
+    };
+
+    Self.init = function (options) {
+        Self.params = MG_Utils.extendSimple(Self.defaultSettings, options);
+        Self.initModals();
+        Self.add_listeners();
+    };
+
+    Self.initModals = function () {
+        Self.purchaseFlowModal = new MG_Modal({
+            closeButton : false,
+            closeDocument: false,
+            content: document.querySelector('.tipping_modals_container'),
+            className : 'tippingPurchaseFlowModal'
+        });
+    };
+
+    Self.add_listeners = function(){
+        if (Self.params.dynamicallyTargetButton) {
+            // Targetting the whole document, because there are cases where the button will be dynamically added
+            // Ex: (load more button dynamically adds elements to the page)
+            MG_Utils.addEventHandler(document, 'click', function(e) {
+                if(e.target) {
+                    var parent = e.target.parentNode,
+                        superParent = parent ? parent.parentNode : null;
+
+                    if (MG_Utils.hasClass(e.target, Self.params.tipButton_Class)) {
+                        Self.triggerPurchaseFlow(e.target.getAttribute('data-model'), e.target.getAttribute('data-model_id'));
+                    } else if (parent && MG_Utils.hasClass(parent, Self.params.tipButton_Class)) {
+                        // Sometimes button has child elements
+                        Self.triggerPurchaseFlow(parent.getAttribute('data-model'), parent.getAttribute('data-model_id'));
+                    } else if (superParent && MG_Utils.hasClass(superParent, Self.params.tipButton_Class)) {
+                        // Sometimes button has nested child elements
+                        Self.triggerPurchaseFlow(superParent.getAttribute('data-model'), superParent.getAttribute('data-model_id'));
+                    }
+                }
+            });
+        } else {
+            var triggerButtonList = document.querySelectorAll('.' + Self.params.tipButton_Class);
+            [].forEach.call(triggerButtonList, function(tipsButton) {
+                MG_Utils.addEventHandler(tipsButton, 'click', function(e) {
+                    if (tipsButton.getAttribute('data-model')) {
+                        Self.triggerPurchaseFlow(tipsButton.getAttribute('data-model'), tipsButton.getAttribute('data-model_id'));
+                    }
+                });
+            });
+        }
+
+        // Automatically open purchase modal
+        if (window.location.hash === '#tip' && Self.params.isModelPage) {
+            // Do not trigger purchase flow if age modal is supposed to open
+            if (purchaseFlow_Utils.noAgeModal(Self.params)) {
+                Self.triggerPurchaseFlow(Self.params.modelUsername, Self.params.modelId);
+            }
+        }
+
+        // Automatically open success modal
+        if (Self.params.showSuccessModal) {
+            Self.purchaseFlowModal.openModal();
+            var parentModal = document.querySelector('.modalMTubes.tippingPurchaseFlowModal');
+            // Activate Purchase Modal
+            MG_Utils.addClass(parentModal.querySelector('.pf_success_modal'), 'active_modal');
+            MG_Utils.addClass(parentModal, 'redirect_on_close');
+            purchaseFlow_Utils.addModalCloseListeners(parentModal, Self.params, Self.purchaseFlowModal);
+
+            parentModal.querySelector('.js_successTipPrice').innerHTML = Self.params.transactionTipAmount;
+        }
+
+        // Automatically open failure modal
+        if (Self.params.showFailureModal) {
+            Self.purchaseFlowModal.openModal();
+            var parentModal = document.querySelector('.modalMTubes.tippingPurchaseFlowModal');
+            var failureModal = parentModal.querySelector('.pf_failure_modal');
+            // Activate Purchase Modal
+            MG_Utils.addClass(failureModal, 'active_modal');
+            MG_Utils.addClass(parentModal, 'redirect_on_close');
+            purchaseFlow_Utils.addModalCloseListeners(parentModal, Self.params, Self.purchaseFlowModal);
+
+            MG_Utils.addEventHandler(parentModal.querySelector('.js-retryPurchase'), 'click', function() {
+              Self.params.selectedTipAmount = Self.params.transactionTipAmount;
+              Self.sendTipsAjax(parentModal, true);
+            });
+        }
+    };
+
+    // Event listeners to be added once the modal is open
+    Self.addNewEventHandlers = function(parentModal) {
+
+         Self.addTippingModalListeners(parentModal);// Event listeners for tipping modal (1st modal)
+
+        // Listeners for closing the modals
+        purchaseFlow_Utils.addModalCloseListeners(parentModal, Self.params, Self.purchaseFlowModal);
+        // Listeners for the Leave Confirmation Modal
+        purchaseFlow_Utils.addLeaveModalListeners(parentModal, Self.params, Self.purchaseFlowModal);
+
+        // Listeners for Send Tip
+        MG_Utils.addEventHandler(parentModal.querySelector('.js_tipCheckout'), 'click', function() {
+            Self.sendTipsAjax(parentModal);
+        });
+
+        // Listeners for checkout with digits modal
+        var lastDigitInputList = parentModal.querySelectorAll('.lastFour');
+        [].forEach.call(lastDigitInputList, function(lastDigitInput) {
+
+            ['keyup', 'input', 'keypress'].forEach(function (eventType) {
+                MG_Utils.addEventHandler(lastDigitInput, eventType, function (e) {
+                    // Auto jumps to the next input if the user has type an input, only allows one digit in each input box
+                    if ((eventType == 'input') && e.target.value.length >= 1) {
+                        e.target.value = e.target.value.slice(0, 1);
+                        if (!MG_Utils.hasClass(e.target, 'lastFourEnd')) {
+                            e.target.nextElementSibling.focus();
+                        }
+                    }
+                    var submitButton = parentModal.querySelector('.js_tipCheckoutDigits');
+                    var last4 = '';
+                    [].forEach.call(parentModal.querySelectorAll('.lastFour'), function (input) {
+                        last4 += input.value;
+                    });
+                    if ((eventType == 'input') && last4.length == 4) { // Enabling the submit button if there's 4 digits
+                        MG_Utils.removeClass(submitButton, 'disabled');
+                    }
+                    // Allows submitting the form with Enter Key if conditions are met
+                    if ((eventType == 'keyup') && (e.keyCode == '13') && !MG_Utils.hasClass(submitButton, 'disabled')) {
+                        Self.sendTipsAjax(parentModal, false, last4);
+                    }
+
+                });
+            });
+        });
+        // Listener for the submit button for model with digits
+        MG_Utils.addEventHandler(parentModal.querySelector('.js_tipCheckoutDigits'), 'click', function() {
+            var last4 = '';
+            [].forEach.call(parentModal.querySelectorAll('.lastFour'), function (input) {
+                last4 += input.value
+            });
+            Self.sendTipsAjax(parentModal, false, last4);
+        });
+
+        // Listeners for change CC link
+        [].forEach.call(parentModal.querySelectorAll('.js_changeCC'), function (changeCCLink) {
+            MG_Utils.addEventHandler(changeCCLink, 'click', function() {
+                Self.sendTipsAjax(parentModal, true);
+            });
+        });
+    };
+
+    Self.addTippingModalListeners = function (parentModal) {
+        var tippingModal    = parentModal.querySelector('.js-tipsModal'),
+            inputBoxes      = tippingModal.querySelectorAll('.inputBox label');
+
+        // Check if checkout button can be enabled
+        [].forEach.call(inputBoxes, function (input) {
+            MG_Utils.addEventHandler(input, 'click', function(e) {
+                var checkoutButton = tippingModal.querySelector('.js_tippingModalCheckout');
+                if (checkoutButton) {
+                    MG_Utils.removeClass(checkoutButton, 'disabled');
+                }
+            });
+        });
+
+        // Event listener for Checkout button
+        MG_Utils.addEventHandler(tippingModal.querySelector('.js_tippingModalCheckout'), 'click', function(e) {
+            e.preventDefault();
+            Self.submitTippingModal(parentModal);
+        });
+
+        // Event listeners for Other option
+        var radioTipOther =  tippingModal.querySelector('.js-tipOther');
+        var tipOtherCaption = tippingModal.querySelector('.tipOtherCaption');
+        MG_Utils.addEventHandler(radioTipOther, 'click', function(e) {
+            tipOtherCaption.querySelector('.tipAmount').style.display = 'none';
+            tipOtherCaption.querySelector('.inputTipOther').style.display = 'block';
+        });
+        MG_Utils.addEventHandler(tipOtherCaption.querySelector('.inputTipOther'), 'keydown', function (e) {
+            if (e.keyCode == 13) { // Allow submitting form with Enter Key with input number
+                e.preventDefault();
+                Self.submitTippingModal(parentModal);
+            }
+        });
+
+    };
+
+
+    Self.triggerPurchaseFlow = function (modelUsername, modelId) {
+        Self.purchaseFlowModal.openModal(function () {
+            var parentModal = document.querySelector('.modalMTubes.tippingPurchaseFlowModal .tipping_modals_wrapper');
+            purchaseFlow_Utils.openSelectedModal('.js-tipsModal', parentModal);
+
+            Self.params.modelUsername = modelUsername;
+            Self.params.modelId = modelId;
+            // replace ModelID with real model id
+            parentModal.innerHTML = parentModal.innerHTML.replace(/MODEL_ID/g, modelId);
+
+            Self.addNewEventHandlers(parentModal);
+
+            [].forEach.call(parentModal.querySelectorAll('.tippedModel'), function (modelNameDiv) {
+                modelNameDiv.innerHTML = Self.params.modelUsername;
+            })
+        });
+    };
+
+    Self.submitTippingModal = function (parentModal) {
+        var checkoutButton = parentModal.querySelector('.js_tippingModalCheckout');
+        if (!MG_Utils.hasClass(checkoutButton, 'disabled') && Self.validateTipValue(parentModal)) {
+            Self.params.selectedTipAmount = parentModal.querySelector('.tips .inputBox input[type="radio"]:checked').getAttribute('data-value');
+            [].forEach.call(parentModal.querySelectorAll('.modelTipAmount'), function (tipAmountDiv) {
+                tipAmountDiv.innerHTML = Self.params.selectedTipAmount;
+            });
+
+            if (Self.params.liu) {
+                // Open confirmation modal
+                if (Self.params.last4) {
+                    purchaseFlow_Utils.openSelectedModal('.js-tipsDigits', parentModal);
+                } else {
+                    purchaseFlow_Utils.openSelectedModal('.js-tipsNoDigits', parentModal);
+                }
+
+                // Adds specific class so that leave confirmation modal can be triggered when trying to exit flow after this point
+                MG_Utils.addClass(parentModal, 'leave_confirmation');
+            } else {
+                // Show login/signup modal
+                purchaseFlow_Utils.openSelectedModal('.login_signup_modal', parentModal);
+                purchaseFlow_LoginSignup.addListeners(parentModal, Self.params.showSignupCaptcha);
+            }
+        }
+    };
+
+    Self.validateTipValue = function (parentModal) {
+        var validTipValue = true;
+        var checkedRadioButton = parentModal.querySelector('.tips .inputBox input[type="radio"]:checked');
+        if (!checkedRadioButton) {
+            return false;
+        } else {
+            var parentDiv = checkedRadioButton.parentElement;
+
+            // Checks if the other tip option is selected
+            if (MG_Utils.hasClass(checkedRadioButton, 'js-tipOther')) {
+                var tipOtherValue = parentDiv.querySelector('.inputTipOther').value;
+
+                // Checks if the value is a digit (whole numbers only for now)
+                if (/^\d+$/.test(tipOtherValue)) {
+                    var tipOtherValueInt = parseInt(tipOtherValue);
+                    // Checks if the value is between 1 and 150
+                    validTipValue = (tipOtherValueInt > 0 && tipOtherValueInt <= 150);
+                } else {
+                    validTipValue = false;
+                }
+
+                if (validTipValue) {
+                    // Hide error states
+                    MG_Utils.removeClass(parentDiv.querySelector('.inputTipOther'), 'error');
+                    // Sets the amount to the attribute so that the right amount is extracted for actual payment
+                    checkedRadioButton.setAttribute('data-value', tipOtherValue);
+                } else {
+                    // Show error states
+                    MG_Utils.addClass(parentDiv.querySelector('.inputTipOther'), 'error');
+                    parentDiv.querySelector('.inputTipOther').value = '';
+                }
+            }
+            return validTipValue;
+        }
+    };
+
+    Self.handleAfterLoginSignup = function (parentModal, data, last4Required) {
+        last4Required = (typeof last4Required != "undefined") ? last4Required : false;
+
+        // If Liu is Model then refresh the page
+        if (typeof data.liuIsOwner !== 'undefined' && data.liuIsOwner) {
+            window.location.reload(true);
+        } else {
+            if (typeof data.newToken !== 'undefined' && data.newToken) {
+                Self.params.token = data.newToken;
+            }
+
+            // Open confirmation modal
+            if (last4Required) {
+                purchaseFlow_Utils.openSelectedModal('.js-tipsDigits', parentModal);
+            } else {
+                purchaseFlow_Utils.openSelectedModal('.js-tipsNoDigits', parentModal);
+            }
+            // Adds specific class so that leave confirmation modal can be triggered when trying to exit flow after this point
+            MG_Utils.addClass(parentModal, 'leave_confirmation');
+
+            // Making sure if they ever leave the purchase flow, the page will reload
+            MG_Utils.addClass(parentModal.querySelector('.js_confirm_leave_modal'), 'reload_on_close');
+
+            // Handling dismiss urls if logged in user is a premium user
+            if (typeof data.dismissUrl != 'undefined') {
+                Self.params.dismissUrl = data.dismissUrl;
+            }
+            // For premium users
+            if (typeof data.al != 'undefined') {
+                Self.params.premiumUserInfo = data.al;
+            }
+        }
+
+    };
+
+    Self.sendTipsAjax = function(parentModal, changeCC, lastDigits) {
+        changeCC = (typeof changeCC != 'undefined') ? changeCC : false;
+        lastDigits = (typeof lastDigits != 'undefined') ? lastDigits : false;
+
+        var sendTipData = {
+            amount : Self.params.selectedTipAmount,
+            username : Self.params.modelUsername,
+            token : Self.params.token,
+            modelId : Self.params.modelId
+        };
+        if (Self.params.viewkey) {
+            sendTipData.viewkey = Self.params.viewkey;
+        }
+        if (Self.params.premiumUserInfo) {
+            sendTipData.al = Self.params.premiumUserInfo;
+        }
+        if (changeCC) {
+            sendTipData.newCC = 1;
+        }
+        if (lastDigits) {
+            sendTipData.last4 = lastDigits;
+        }
+        if (Self.params.isChat) {
+            sendTipData.isChat = 1;
+        }
+
+        MG_Utils.ajaxCall({
+            url: Self.params.sendTipUrl,
+            type: 'POST',
+            data: sendTipData,
+            success: function(data) {
+                var currentModal = parentModal.querySelector('.' + purchaseFlow_Utils.getCurrentOpenedModal(parentModal));
+
+                if (data.error) {
+
+                    if (currentModal.querySelector('.js_sendTipError')) {
+                        currentModal.querySelector('.js_sendTipError').innerHTML = data.message;
+                    }
+
+                } else {
+                    if (currentModal.querySelector('.js_sendTipError')) {
+                        currentModal.querySelector('.js_sendTipError').innerHTML = '';
+                    }
+                    // go to probiller
+                    window.location.href = data.redirectUrl;
+                }
+            }
+        });
+    }
+};
+
+try{
+    var tippingPurchaseFlow = new TippingPurchaseFlow();
+    tippingPurchaseFlow.init(typeof Tipping_PurchaseFlow_Params !== 'undefined' ? Tipping_PurchaseFlow_Params : {});
+
+}catch(e){
+    console.log("ERROR === Tipping Purchase Flow ===");
+    console.log(e);
+}

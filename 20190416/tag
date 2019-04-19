@@ -1,0 +1,15 @@
+(function(w, d, s) {
+  try {
+    d = w.top.document || d; w = w.top.document ? w.top : w;
+  } catch (e) {}
+  var ttag = function() {
+    w.teads.page(75695).placement(82003, {slider: {allow_corner_position: false, allow_top_position: false}, "css":"margin: 10px auto; max-width: 500px ","format":"inread","slot":{"avoid":{"selector":"#newsletter-signUpWidget , #related-gallery, .rightFloat, .referBox, .seriesExplainer, .inline-link, .current-caption, .highline.highline-quote, .embed-media, table, .teaser, .seriesExplainer, .highline, .embed-infographic, #story-cta-widget","distance":30},"filter":function filter(slot) {var inR = window.top.document.querySelectorAll(".teads-inread");
+if(inR.length > 0) { return false; }},"selector":".story-template .story-body > p, #story-target p, .maina .storyContainer > p, .post .entry-content > p, .storyContainer .storyBody > p, article .story-body > p","minimum":3}}).serve();
+  };
+  if (w.teads && w.teads.page) { ttag(); }
+  else if (!w.teadsscript) {
+    var protocol = w.location.protocol.match(/^https?:$/) ? w.location.protocol : 'https:';
+    s.src = protocol + '//a.teads.tv/media/format/v3/teads-format.min.js';
+    s.async = true; s.onload = ttag; w.teadsscript = d.getElementsByTagName('head')[0].appendChild(s);
+  }
+})(window, document, document.createElement('script'));

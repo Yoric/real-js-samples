@@ -1,0 +1,204 @@
+(function(){var e={intlLocale:"en",date:{intlOptions:{}},time:{},currency:{},number:{}}
+e.date.postFormatting=function(e,t,r){var n=e.split(".")[0]
+return r=r.replace(/\s0/," "),"my"===n?r=r.replace(/,/g,""):"time"===n&&(5!==(r=r.split(" ")).length||/,$/.test(r[2])?3!==r.length||/,$/.test(r[0])||(r[0]=r[0]+","):r[2]=r[2]+",",r=r.join(" ")),r},e.date.narrowDayNames=["S","M","T","W","T","F","S"]
+var t=e.date.intlOptions
+t.time={year:"numeric",month:"long",day:"numeric",hour:"numeric",minute:"numeric"},t["time.long"]=t.time,t["time.medium"]=t.time,t["time.short"]={year:"2-digit",month:"numeric",day:"numeric",hour:"numeric",minute:"numeric"},t.mdy={year:"numeric",month:"long",day:"numeric"},t["mdy.long"]=t.mdy,t["mdy.medium"]={year:"numeric",month:"short",day:"numeric"},t["mdy.short"]={year:"numeric",month:"numeric",day:"numeric"},t.my={year:"numeric",month:"long"},t["my.long"]=t.my,t["my.medium"]={year:"numeric",month:"short"},t["my.short"]=t["my.medium"],t.md={month:"long",day:"numeric"},t["md.long"]=t.md,t["md.medium"]={month:"short",day:"numeric"},t["md.short"]=t["md.medium"],t.m={month:"long"},t["m.long"]=t.m,t["m.medium"]={month:"short"},t["m.short"]={month:"numeric"},t.d={weekday:"long"},t["d.long"]=t.d,t["d.medium"]={weekday:"short"},t["d.short"]={day:"numeric"},t["d.narrow"]={weekday:"narrow"},t.y={year:"numeric"},t["y.long"]=t.y,t["y.medium"]=t.y,t["y.short"]={year:"2-digit"},e.currency.getCurrencyDisplay=function(e){return/^(DKK|NOK|SGD|ZAR|SEK|CHF)$/.test(e)?"code":"symbol"}
+e.currency.postFormatting=function(e,t,r){var n={AUD:"A$",CAD:"CA$",HKD:"HK$",NZD:"NZ$"}
+return void 0!==n[e]?r=r.replace(/^(\(|-)?\$/,n[e]):"INR"===e&&(r=r.replace(/Rs\./,"₹")),t<0&&r.indexOf(")")>=0&&(r="-"+r.replace(/[\(\)]/g,"")),r.replace(/\s/,"")},e.possessive={fallback:"’s",rules:{".*[Ss]$":"’",".*[A-RT-Z]$":"’S",".*[a-rt-z]$":"’s"}},t8.__addLocaleData("en_US",e)})(),function(e,t){"object"==typeof exports&&"undefined"!=typeof module?t(exports,require("@linkedin/jsecure"),require("t8")):"function"==typeof define&&define.amd?define("xmessage",["exports","@linkedin/jsecure","t8"],t):t(e.xmessage={},e.jSecure,e.t8)}(this,function(e,t,r){"use strict"
+t="default"in t?t.default:t,r="default"in r?r.default:r
+var n=function(){function e(e,t){for(var r=0;r<t.length;r++){var n=t[r]
+n.enumerable=n.enumerable||!1,n.configurable=!0,"value"in n&&(n.writable=!0),Object.defineProperty(e,n.key,n)}}return function(t,r,n){return r&&e(t.prototype,r),n&&e(t,n),t}}()
+var i=function(){function e(t){var r=this;(function(e,t){if(!(e instanceof t))throw new TypeError("Cannot call a class as a function")})(this,e)
+this._input=t,this._index=0,this._last=null,this.next=function(){return e.prototype.next.call(r)},this.consume=function(){return e.prototype.consume.call(r)}}return n(e,[{key:"next",value:function(){return this._index<this._input.length?this._input[this._index]:null}},{key:"consume",value:function(){this._last=this._input[this._index],this._index++}},{key:"isEscaped",value:function(){return"\\"===this._last}},{key:"toString",value:function(){return"index "+this._index+' in string "'+this._input+'"'}}]),e}(),a="{",o="}",s=",",l=":",u="|",d="0",c="'",m="\\",_=-1,h="",p=/[a-zA-Z]/,f=/[1-9]/,g=/[0-9]/,b=/[a-zA-Z0-9]/,y=/[a-zA-Z0-9_\-~.|\[\]\/]/,v=/[#]/,w={},k={}
+function x(e,t){throw new SyntaxError("XMessage parsing error: "+e+" at "+t.toString())}function S(e,t,r,n,s){var l=[],d={},c=[],m=[]
+for(s=s||0;e();)e()===a?l.push(e()):e()===o&&l.pop(),0===l.length&&e()===u?(0===m.length&&x('Unexpected "'+u+'" in style list.',r),c.push(m.join(h)),m.length=0,t()):(m.push(e()),t())
+return m.length>0&&(c.push(m.join(h)),m.length=0),c.map(function(e){var t=new i(e)
+return function(e,t,r,n){for(var i=k[n]||v,a=[],o="",s=null,l=void 0;e();)i.test(e())&&(0===a.length?x('Error parsing style key/value. Found delimiter "'+e()+'" but expected key.',r):null===s&&(s=a.join(h),a.length=0,o=e(),t())),a.push(e()),t()
+return""===o?(s=a.join(h),a.length=0):(l=a.join(h),a.length=0),{key:s,value:l,delimiter:o}}(t.next,t.consume,t,n)}).forEach(function(e,t){e.order=t+s,d.hasOwnProperty(e.key)?x('Found duplicate style key "'+e.key+'". Styles must have unique names.',r):d[e.key]=e}),d}function P(e,t){for(var r,n=[],i={};e();)n.push(e()),t()
+return i[r=n.join(h)]={key:r,value:null,delimiter:null,order:0},i}function A(e,t,r){var n=null,i=null,a="",o={}
+return e()?(n=function(e,t,r){var n=[],i=[]
+if(e()===d)n.push(e()),t(),e()&&e()!==s&&e()!==l&&x('Could not parse index; expected ":" or end of identifier but found "'+e()+'"',r)
+else if(e()&&f.test(e()))for(;e()&&g.test(e());)n.push(e()),t()
+if(e()===l)for(t(),e()&&b.test(e())?(i.push(e()),t()):x('Expected letter (a-zA-Z) or number (0-9) but found "'+e()+'"',r);e()&&y.test(e());)i.push(e()),t()
+else 0===n.length&&e()&&x('Unexpected character; expected ":" but found "'+e()+'"',r)
+return e()!==s&&e()?x('Unexpected character; expected "," or end of identifier but found "'+e()+'"',r):(n=parseInt(n.join(h),10),isNaN(n)&&(n=_),i=i.join(h)),{number:n,keyword:i}}(e,t,r),e()===s?(t(),i=function(e,t,r){var n=[]
+if(e())for(;e()&&p.test(e());)n.push(e()),t()
+else x('Unable to parse type. Expected letter (a-zA-Z) but found end of identifier after ","',r)
+return n.join(h)}(e,t,r),e()===s&&(t(),a=function(e,t,r){var n=""
+if("list"===r){for(var i=[];e()&&e()!==s;)i.push(e()),t()
+n=i.join(h)}return n}(e,t,i),e()===s&&t(),e()&&(o=function(e,t,r,n){return w[n]?w[n](e,t,r,n):S(e,t,r,n,0)}(e,t,r,i)))):i="simple"):x("Error parsing placeholder. Unexpected end of input.",r),e()&&x('Unexpected character "'+e()+'".',r),{index:n,type:i,subtype:a,parameters:o}}k.choice=/[#+<]/,w.choice=function(e,t,r,n){return S(e,t,r,n,0)},w.date=function(e,t,r,n){return P(e,t)},w.number=function(e,t,r,n){return P(e,t)}
+var E=function e(t){return function(e){for(var t=[],r=[],n=!1,s=[],l=new i(e),u=l.next,d=l.consume;u();)if(u()!==m||l.isEscaped())if(l.isEscaped())s.push(u()),d()
+else{if(0===r.length&&u()===c){if(d(),u()===c){s.push(c),d()
+continue}n=!n,s.length>0&&(t.push(s.join(h)),s.length=0)}n?(u()&&s.push(u()),d()):u()!==o||l.isEscaped()||0!==r.length?u()===a?(0===r.length?s.length>0&&(t.push(s.join(h)),s.length=0):s.push(u()),r.push(u()),d()):u()===o?(r.pop(),0===r.length?s.length>0?(t.push({text:s.join(h)}),s.length=0):x("Unexpected end of placeholder (found no content)",l):s.push(u()),d()):(u()&&s.push(u()),d()):x('Unexpected "}"',l)}else d()
+return 0!==r.length&&x('Unexpected end of placeholder (unmatched "{")',l),s.length>0&&(t.push(s.join(h)),s.length=0),t}(t).map(function(e){return"string"==typeof e?e:(t=e.text,A((r=new i(t)).next,r.consume,r))
+var t,r}).map(function(t){return"string"==typeof t?t:("object"==typeof t.parameters&&Object.keys(t.parameters).forEach(function(r){var n=t.parameters[r]
+n.value&&(n.value=e(n.value))}),t)})},O=function(){function e(e,t){for(var r=0;r<t.length;r++){var n=t[r]
+n.enumerable=n.enumerable||!1,n.configurable=!0,"value"in n&&(n.writable=!0),Object.defineProperty(e,n.key,n)}}return function(t,r,n){return r&&e(t.prototype,r),n&&e(t,n),t}}()
+var N=function(){function e(t){(function(e,t){if(!(e instanceof t))throw new TypeError("Cannot call a class as a function")})(this,e),this.value=D(t)}return O(e,[{key:"toString",value:function(){switch(typeof this.value){case"object":case"function":break
+default:return String(this.value)}return""}}]),e}()
+function D(e){return e instanceof N?e.value:e}function U(e){return e instanceof N?e:new N(e)}var j=void 0
+function C(){return j}function I(e){j=function(t){if(t instanceof N)return t
+var r=e(t)
+return new N(r)}}function T(e){return t.htmlEncode(e)}function L(e){for(var t=arguments.length,r=[],n=1;n<t;++n)r.push(arguments[n])
+return e.replace(/{(\d+)}/g,function(e,t){return void 0!==r[t]?r[t]:e})}function F(e,t){var r,n
+for(n=0,r=e.length;n<r;++n){var i=e[n]
+if(t.hasOwnProperty(i))return t[i]}return null}function R(e,t){var r
+if(e&&t)for(r in t)t.hasOwnProperty(r)&&!e.hasOwnProperty(r)&&(e[r]=t[r])
+return e}I(T)
+var Y={default:{},en_US:{list:{2:"{0} and {1}",start:"{0}, {1}",middle:"{0}, {1}",end:"{0}, and {1}"},number:{percent:"{0}%"},possessive:{fallback:"’s",rules:{".*[Ss]$":"’",".*[A-RT-Z]$":"’S",".*[a-rt-z]$":"’s"}}}},M=function(){}
+function $(e,t){var r=Y[e]
+return t&&r?r[t]:r}function q(e,t){var r=e.parameters[t]
+if(r)return r.value}function z(e,t){var r,n=e.parameters
+if(n)for(r in n)if(n.hasOwnProperty(r)&&n[r].order===t)return n[r]}function W(e,t,r,n){var i=q(e,t),a=C(),o=void 0
+if(""===i)return i
+i&&(o=U(i.map(function(e){if(e instanceof Object){var t=M(e,r,n)
+return a(t)}return e}).reduce(function(e,t){return e+D(t)},"")))
+return o}function V(e,t){var r=null
+if(e&&e.index&&t){var n=e.index,i=n.number,a=n.keyword
+if("function"==typeof t)return t(i,a)
+r=null!=(r=t[i>-1?i:0])?"string"==typeof a&&""!==a?r[a]:r:void 0}return r}var H=function(e,t,r){var n=C(),i=V(e,t),a=i&&"object"==typeof i,o=Q(n(a?i[G]:i)),s=Q(a?n(i[K]):null),l=Q(a?n(i[X]):null),u=D(W(e,B,t,r)),d=Q(W(e,Z,t,r)),c={}
+a?Object.keys(i).forEach(function(e){"href"!==e&&"title"!==e&&(c[Q(n(e))]=Q(n(i[e])))}):(l&&(c.class=l),s&&(c.id=s))
+var m="<a"
+o&&(m+=' href="'+o+'"')
+Object.keys(c).forEach(function(e){m+=" "+e+'="'+c[e]+'"'}),d&&(m+=' title="'+d+'"')
+return U(m+=">"+u+"</a>")},B="text",G="href",Z="title",K="id",X="class",J=/['"<>]/
+function Q(e){var t=D(e)
+return J.test(t)?T(t):t}var ee=function(e,t,r){var n=V(e,t),i=""
+if(!0===n||n===te)i=W(e,te,t,r)
+else{if(!1!==n&&n!==re)throw new Error('Invalid argument for BooleanPlaceholder. Expected boolean or "true" or "false" but found "'+n+'"')
+i=W(e,re,t,r)}return i},te="true",re="false"
+var ne=function(e,t,n){var i,a,o,s,l,u,d=V(e,t),c="",m=e.parameters,_=oe
+for(u in s=[],m)m.hasOwnProperty(u)&&(l=m[u],s[l.order]=l)
+var h=typeof d
+"number"!==h||isNaN(d)?"string"===h?ie.test(d)?_=parseFloat(d):(p="Invalid value for 'choice' placeholder. \""+d+'" is not a number. Defaulting to 0.',console.warn(p),_=oe):"object"===h&&(_=Array.isArray(d)?d.length:Object.keys(d).length):_=d
+var p
+var f=void 0
+i=s.map(function(e,t){var r={}
+if(ae.test(e.key))r.text=t.toString(),r.comparison="eq",r.category=e.key
+else{switch(r.text=t.toString(),e.delimiter){case"<":r.comparison="gt"
+break
+case"+":case"#":r.comparison="gte"
+break
+default:r.comparison="eq"}r.arg=parseFloat(e.key),f||(f=r)}return r}),se||(se=new r.Chooser)
+void 0!==(o=se.format(_,i,n))?(a=s[parseInt(o,10)],c=W(e,a.key,t,n)):f&&(c=W(e,f.arg,t,n))
+return c},ie=/-?(?:0|[1-9]\d*)(?:\.\d*)?(?:[eE][+\-]?\d+)?/,ae=/^(zero|singular|dual|few|many|plural|other)$/,oe=0,se=void 0
+var le=function(e,t,r){var n,i=V(e,t),a=""
+void 0!==i?(i=i.toString(),n=q(e,i),a=W(e,n?i:ue,t,r)):a=W(e,ue,t,r)
+return a},ue="DEFAULT_TEXT"
+function de(e,t){var r="",n=void 0
+if(void 0!==e){var i=$(t,"possessive")
+if(i){var a=void 0
+if(i.rules)for(n in i.rules)if(i.rules.hasOwnProperty(n)){var o=i.rules[n]
+new RegExp(n).test(e)&&(a=o)}void 0!==a?r=a:i.fallback&&(r=i.fallback)}}return r}var ce=function(e,t,r){var n=V(e,t),i=""
+void 0!==n&&(i=de(n,r))
+return i}
+var me=function(e,t){var r,n=V(e,t)
+r=void 0===n?"{"+(-1!==e.index.number?e.index.number:"")+(""!==e.index.keyword?":"+e.index.keyword:"")+"}":n
+return C()(r)}
+var _e=function(e,t){var r=t instanceof N,n=r?D(t):t
+if(e){var i=e[he],a=e[pe]
+i&&(n=i.value+n),a&&(n+=a.value)}return n=r?U(n):n},he="prefix",pe="suffix"
+var fe=function(e,t,r){var n=me(e,t,r)
+void 0!==n&&e.parameters.possessive&&(n=de(n,r))
+return n=_e(e.parameters,n)}
+var ge=void 0,be=void 0
+function ye(e,t){return ge||(ge=new r.NumberFormatter),ge.format(e,t)}function ve(e,t){return ge||(ge=new r.NumberFormatter),ge.format(Math.floor(e),t)}function we(e,t,n){return be||(be=new r.CurrencyFormatter),be.format(e,t,n)}function ke(e,t){return function(e,t,r){return L(e,ye(parseInt((100*t).toFixed(1)),r))}(function(e){return R(R({},$(e,"number")),$("default","number"))}(t).percent,e,t)}var xe=function(e,t,r){var n,i=V(e,t),a=e.parameters
+void 0!==i&&(n=a?a.integer?ve(i,r):a.currency?we(i,"",r):a.percent?ke(i,r):ye(i,r):ye(i,r))
+return C()(n)}
+var Se=void 0,Pe={fmt_d:"d",fmt_d_short:"d.short",fmt_d_narrow:"d.narrow",fmt_d_medium:"d.medium",fmt_d_long:"d.long",fmt_m:"m",fmt_m_short:"m.short",fmt_m_medium:"m.medium",fmt_m_long:"m.long",fmt_y:"y",fmt_y_short:"y.short",fmt_md_medium:"md.medium",fmt_md_long:"md.long",fmt_my_medium:"my.medium",fmt_my_long:"my.long",fmt_mdy_short:"mdy.short",fmt_mdy_medium:"mdy.medium",fmt_mdy_long:"mdy.long",fmt_mdy_hm_short:"time.short",fmt_mdy_hm_long:"time.long",fmt_mdy_iso:"iso",iso:"iso"},Ae={short:"fmt_mdy_short",medium:"fmt_mdy_medium",long:"fmt_mdy_long",full:"fmt_mdy_long"},Ee=(Object.keys(Pe),"fmt_mdy_medium")
+function Oe(e,t,n,i){Pe[t]||(Ae[t]?(console.log('The date pattern "'+t+'" is deprecated, falling back to "'+Ae[t]+'".'),t=Ae[t]):(console.log('Unknown date pattern "'+t+'", falling back to "'+Ee+'". Note: custom date patterns are not supported.'),t=Ee))
+var a=Pe[t]
+return Se||(Se=new r.DateFormatter),Se.format(e,n,a,i)}var Ne=function(e,t,r){var n=V(e,t),i=z(e,0),a=Ee
+i&&(a=i.key)
+De===a&&(issueWarning('The pattern "'+a+'" is not to be used in XMessage strings. Falling back to "'+Ee+'".'),a=Ee)
+return Oe(n,a,r,!1)},De="fmt_d_narrow"
+var Ue=void 0,je={fmt_hm:"hm",fmt_hms:"hms"},Ce={short:"fmt_hm",medium:"fmt_hms",long:"fmt_hms",full:"fmt_hms"},Ie=(Object.keys(je),"fmt_hms")
+function Te(e,t,n,i){je[t]||(Ce[t]?(console.log('The time pattern "'+t+'" is deprecated, falling back to "'+Ce[t]+'".'),t=Ce[t]):(console.log('Unknown time pattern "'+t+'", falling back to "'+Ie+'". Note: custom time patterns are not supported.'),t=Ie))
+var a=je[t]
+return Ue||(Ue=new r.TimeFormatter),Ue.format(e,n,a,i)}var Le=function(e,t,r){var n=V(e,t),i=z(e,0),a=Ie
+i&&(a=i.key)
+return Te(n,a,r,!1)}
+var Fe=function(e,t,r){var n,i,a,o,s,l,u,d,c,m=V(e,t),_="",h=!1,p=e.parameters
+if(void 0!==m&&(p&&(h=!!p[Me]),n=$(r,"suffix")))switch(d=(n.hardVowels||"")+(n.softVowels||""),n.strategy){case $e:if(m.length>0){for(u=m.length-1,l=u;l>=0&&s!==Re&&s!==Ye;l--)if(s=m.charAt(l),-1!==d.indexOf(s))return c=l===u,o=n.hardVowels&&n.hardVowels.indexOf(s)>-1?n.hardVowelSuffix:n.fallbackSuffix,_=""+(c?n.bufferChar:"")+o,h?n.separator+_:_
+for(i in n.nonVowelToSuffix)if(n.nonVowelToSuffix.hasOwnProperty(i)&&(a=n.nonVowelToSuffix[i],new RegExp(i).test(m.charAt(u)))){o=a
+break}o||(o=n.defaultBufferChar),_=h?n.separator+o:o
+break}}return _},Re=" ",Ye="\t",Me="sep",$e="reverseSearchForVowel"
+var qe="FULL_NAME",ze="familiar",We=["familiar","family","full","given","list","maiden"],Ve=void 0
+function He(e,t,n){var i=void 0
+if(void 0!==e){var a={firstName:e.givenName||e.firstName,lastName:e.familyName||e.lastName,maidenName:e.maidenName}
+switch(t||(t=ze),-1===We.indexOf(t)&&(console.log('Unrecognized name format "'+t+'", falling back to "'+ze+'".'),t=ze),t){case"given":i=a.firstName||""
+break
+case"family":i=a.lastName||""
+break
+case"maiden":i=a.maidenName||""
+break
+default:var o="full"===t||"given"===t||"family"===t||"maiden"===t?"FULL_NAME":"familiar"===t?"FAMILIAR_NAME":"list"===t?"LIST_VIEW":qe
+Ve||(Ve=new r.NameFormatter),i=Ve.format(a,o,n)}}return i}var Be=function(e,t,r){var n=V(e,t),i=void 0,a=void 0,o=F(We,e.parameters)
+o=o&&o.key,i=He(n,o,r),e.parameters.possessive&&(i+=de(i,r))
+return a=C()(i),i=_e(e.parameters,a)}
+var Ge=function(e,t,r){var n,i,a,o,s,l=V(e,t),u=e.subtype||Ke,d="",c=$(r,Xe)||$("default",Xe)
+if(l&&l instanceof Array&&(n=l.length,i=n-1,n>0))switch(n){case 1:d=rt(u,e.parameters,l[0],r)
+break
+case 2:d=L(c[tt],rt(u,e.parameters,l[0],r),rt(u,e.parameters,l[1],r))
+break
+default:o=0,s=1
+do{d=L(c[a=0===o?Je:s<i?Qe:et],a===Je?rt(u,e.parameters,l[o],r):d,rt(u,e.parameters,l[s],r)),o++,s++}while(a!==et)}return d},Ze="name",Ke="text",Xe="list",Je="start",Qe="middle",et="end",tt="2"
+function rt(e,t,r,n){if(Ze===e){var i=F(We,t)
+r=He(r,i=i&&i.key,n)}return r=C()(r),r=_e(t,r)}var nt=function(e){if(!e)return"Placeholder is invalid."
+if(!e.index)return"Placeholder must have an index."
+return}
+function it(e,t){var r,n,i
+if(e.parameters)for(i in n=e.parameters)if(n.hasOwnProperty(i)&&!t.test(i)){r='Invalid style "'+i+'"'
+break}return r}function at(e,t,r){var n,i,a="Placeholder must have exactly "+t+" style(s)",o="Placeholder must have at least "+t+" style(s)",s=0
+if(e.parameters){for(i in e.parameters)e.parameters.hasOwnProperty(i)&&s++
+"eq"===r&&s!==t?n=a:"gte"===r&&s<t&&(n=o)}else t>0&&(n="Placeholder must have styles")
+return n}function ot(e,t){return at(e,t,"eq")}function st(e,t,r){var n,i,a,o
+if(e.parameters)for(i=0,a=t.length;i<a;++i)n=e.parameters[t[i]],"without"===r?n&&n.value&&(o='Invalid value for style "'+n.key+'"'):"with"===r&&n&&(n.value||(o='Style "'+n.key+'" must have a value'))
+return o}function lt(e,t){return st(e,t,"with")}var ut=function(e){var t=function(e,t){var r,n,i,a,o
+if(e.parameters)for(n=e.parameters,a=0,o=t.length;a<o;++a)i=t[a],n.hasOwnProperty(i)||(r='Missing required style key "'+i+'"')
+else r="Placeholder must have styles"
+return r}(e,ct)
+t||(t=it(mt))
+return t},dt="text",ct=[dt],mt=new RegExp("^("+[dt,"title"].join("|")+")$")
+var _t=function(e){var t=function(e,t){return at(e,t,"gte")}(e,1)
+t||(t=it(e,ht))
+return t},ht=new RegExp("^("+["true","false"].join("|")+")$")
+var pt=function(e){var t,r,n,i,a,o,s,l,u=e.parameters,d=!1
+for(l in o=[],u)u.hasOwnProperty(l)&&(s=u[l],o[s.order]=s,gt.test(l)&&(d=!0))
+for(s=void 0,i=0,a=o.length;i<a;++i)if(s=o[i],ft.test(s.key))if(n=parseInt(s.key,10),void 0===r)r=n
+else{if(!(r<n)){t="Invalid number order. Cannot list "+n+" after "+r+". Numbers must be ascending."
+break}r=n}else{if(!gt.test(s.key)){t='Invalid category key "'+s.key+'".'
+break}d=!0}d&&(u.singular?u.plural||(t='Missing required category "plural"'):t='Missing required category "singular"')
+return t},ft=/-?(?:0|[1-9]\d*)(?:\.\d*)?(?:[eE][+\-]?\d+)?/,gt=/^(zero|singular|dual|few|many|plural|other)$/
+var bt=function(e){var t=void 0
+e.parameters?0===Object.keys(e.parameters).length&&(t="MapPlaceholder must have at least one style argument."):t="MapPlaceholder must have parameters."
+return t}
+var yt=function(e){var t=it(e,wt)
+t||(t=lt(e,vt))
+return t},vt=["prefix","suffix"],wt=/^(familiar|family|full|given|list|maiden|micro|possessive|salutation|prefix|suffix)$/
+var kt=function(e){var t=!1
+""!==e.subtype&&(St.test(e.subtype)||(t='Invalid list subtype "'+e.subtype+'"'))
+t||(t=it(e,Pt))
+t||(t=lt(e,xt))
+return t},xt=["prefix","suffix"],St=/^(?:name|text)$/,Pt=/^(?:familiar|family|full|given|list|maiden|micro|possessive|salutation|prefix|suffix)$/
+var At=function(e){return ot(e,0)}
+var Et=function(e){var t=ot(e,1)
+t||(t=it(e,Ut))
+t||(t=function(e,t){return st(e,t,"without")}(e,Dt))
+return t},Ot="sep",Nt="nosep",Dt=[Ot,Nt],Ut=new RegExp("^("+[Ot,Nt].join("|")+")$")
+var jt=function(e){return it(e,Ct)},Ct=new RegExp(["possessive","suffix","prefix"].join("|"))
+var It=function e(t){var r,n,i
+if("string"==typeof t)return
+i=nt(t)
+i||Tt.hasOwnProperty(t.type)&&(i=Tt[t.type](t))
+if(i)throw new Error(i)
+if(t&&t.parameters instanceof Object)for(r in t.parameters)t.parameters.hasOwnProperty(r)&&(n=t.parameters[r]).value&&n.value instanceof Array&&n.value.forEach(e)},Tt={anchor:ut,boolean:_t,choice:pt,list:kt,map:bt,name:yt,possessive:At,suffix:Et,text:jt}
+var Lt={formatDate:Oe,formatName:He,formatNumber:ye,formatInteger:ve,formatCurrency:we,formatPercent:ke,formatTime:Te},Ft={anchor:H,boolean:ee,choice:ne,date:Ne,list:Ge,map:le,name:Be,number:xe,possessive:ce,simple:me,suffix:Fe,text:fe,time:Le}
+var Rt=function(e){return t.sanitizeHTML(e)}
+function Yt(e,t,r){var n=""
+if(e&&t&&r){var i=Ft[e.type]
+"function"==typeof i&&(n=i(e,t,r))}return n}function Mt(e){if(-1===e.indexOf("{")&&-1===e.indexOf("'"))return[e]
+var t=E(e)
+return t.forEach(It),t}function $t(e,t){return e&&1===e.length&&"string"==typeof e[0]?function(){return Rt(e[0])}:function(r){for(var n="",i=0;i<e.length;++i){var a=e[i]
+n+="string"==typeof a?a:Yt(a,r,t)}return Rt(n)}}M=Yt,e.toAst=Mt,e.makeInterpolator=$t,e.fromString=function(e,t){return $t(Mt(e),t)},e.getUserDataFilter=function(){return C()},e.setUserDataFilter=function(e){I(e)},e.getOutputFilter=function(){return Rt},e.setOutputFilter=function(e){Rt=e},e.formatters=Lt}),define("@linkedin/ember-cli-pemberly-i18n/app-strings",["exports"],function(e){"use strict"
+e.default={"publishing-web":{en_US:{"artdeco-hoverables/templates/components/artdeco-hoverable-content":{dismiss_hoverable:"Dismiss"},"artdeco-text-input/templates/components/artdeco-text-input-single":{ad_show_text:"Show",ad_hide_text:"Hide"},"artdeco-text-input/templates/components/artdeco-text-input":{ad_character_count:"{:currentCharacterCount} used out of {:length} maximum characters."},"artdeco-toast/templates/components/artdeco-toast-item":{i18n_dismiss_notification:"Dismiss “{:message}” notification {:indexOf}.",i18n_one_of_total:"1 of {:total}"},"artdeco-toast/templates/components/artdeco-toasts":{i18n_toasts_title:"{:total,number,integer} {:count,choice,singular#notification|plural#notifications} total",i18n_toasts_instructions:"Dismiss the current notification to hear the previous."},"artdeco-toast/templates/services/artdeco-toast-time-ago":{"0_seconds":"just now",seconds:"{:count,number,integer} {:count,choice,singular#second|plural#seconds}",minutes:"{:count,number,integer} {:count,choice,singular#minute|plural#minutes}",hours:"{:count,number,integer} {:count,choice,singular#hour|plural#hours}",days:"{:count,number,integer} {:count,choice,singular#day|plural#days}",weeks:"{:count,number,integer} {:count,choice,singular#week|plural#weeks}",months:"{:count,number,integer} {:count,choice,singular#month|plural#months}",years:"{:count,number,integer} {:count,choice,singular#year|plural#years}","0_seconds_short":"now",seconds_short:"{:count,number,integer}{:count,choice,singular#s|plural#s}",minutes_short:"{:count,number,integer}{:count,choice,singular#m|plural#m}",hours_short:"{:count,number,integer}{:count,choice,singular#h|plural#h}",days_short:"{:count,number,integer}{:count,choice,singular#d|plural#d}",weeks_short:"{:count,number,integer}{:count,choice,singular#w|plural#w}",months_short:"{:count,number,integer}{:count,choice,singular#mo|plural#mo}",years_short:"{:count,number,integer}{:count,choice,singular#y|plural#y}","0_seconds_ago":"just now",seconds_ago:"{:count,number,integer} {:count,choice,singular#second|plural#seconds} ago",minutes_ago:"{:count,number,integer} {:count,choice,singular#minute|plural#minutes} ago",hours_ago:"{:count,number,integer} {:count,choice,singular#hour|plural#hours} ago",days_ago:"{:count,number,integer} {:count,choice,singular#day|plural#days} ago",weeks_ago:"{:count,number,integer} {:count,choice,singular#week|plural#weeks} ago",months_ago:"{:count,number,integer} {:count,choice,singular#month|plural#months} ago",years_ago:"{:count,number,integer} {:count,choice,singular#year|plural#years} ago","0_seconds_short-ago":"now","seconds_short-ago":"{:count,number,integer}{:count,choice,singular#s|plural#s} ago","minutes_short-ago":"{:count,number,integer}{:count,choice,singular#m|plural#m} ago","hours_short-ago":"{:count,number,integer}{:count,choice,singular#h|plural#h} ago","days_short-ago":"{:count,number,integer}{:count,choice,singular#d|plural#d} ago","weeks_short-ago":"{:count,number,integer}{:count,choice,singular#w|plural#w} ago","months_short-ago":"{:count,number,integer}{:count,choice,singular#mo|plural#mo} ago","years_short-ago":"{:count,number,integer}{:count,choice,singular#y|plural#y} ago"},"ember-cli-artdeco-modal/templates/components/artdeco-modal":{dismiss_button:"Dismiss",dialog_content_start:"Dialog content start.",dialog_content_end:"Dialog content end."},"publishing-web/templates/components/cover-image-disable":{remove_cover:"Remove cover"},"publishing-web/templates/components/cover-image-enable":{add_cover_image:"Add cover image"},"publishing-web/templates/components/cover-image":{upload_instruction:"Drag image here or",upload_from_computer:"upload from computer",prompt_search_images:"Search free images",placeholder_caption:"Add credit and caption",cover_error_message:"Try another file",slate_cover_image_delete:"Remove Cover Image",a11y_slate_cover_image_fixed_width:"Set cover image to fixed width",a11y_slate_cover_image_full_width:"Set cover image to full width"},"publishing-web/templates/components/drop-down-trigger":{open_drop_down:"Open drop down"},"publishing-web/templates/components/error-modal":{title:"Oops…"},"publishing-web/templates/components/feedback-button":{internal_feedback:"Internal Feedback"},"publishing-web/templates/components/image-search-box":{search_free_images:"Search free images"},"publishing-web/templates/components/image-search-modal":{creative_commons_summary:"Images are licensed under Creative Commons, which means you can use them in your articles for free.",no_search_results:"Sorry, your search did not return any results."},"publishing-web/templates/components/image-search-result":{add_to_post:"Add to article"},"publishing-web/templates/components/info-banner":{message_edit_post:"You made edits that haven’t been published yet. Continue to update this article or {:link,anchor,text#discard all changes}.",slate_info_banner_dismiss_a11y:"Dismiss"},"publishing-web/templates/components/mobile-splash":{mobile_splash_top_text:"Our new publishing tool works best on your computer, and writing an article with your thumbs is hard.",mobile_splash_bottom_text:"Head to the LinkedIn News Feed to see the latest professional news and knowledge you need to know.","mobile_splash_link-button":"View News Feed",heads_up:"Heads up!",slate_mobile_splash_dismiss_a11y:"Dismiss"},"publishing-web/templates/components/modals/series-modal":{i18n_create_new_series:"Create a new series",i18n_edit_series_details:"Edit series details",i18n_series_title:"Series title",i18n_series_title_placeholder:"Add a title to your series",i18n_series_title_subtext:"e.g. Career advice from the boss’s desk (series title cannot be changed)",i18n_series_title_cannot_change:"Series title cannot be changed at this time",i18n_series_description:"Series description",i18n_series_description_placeholder:"Add a description to your series",i18n_series_description_subtext:"Appears with your series title",i18n_series_frequency_subtext:"Appears next to your description",i18n_how_often_publish:"How often do you want to publish?",i18n_select_one:"Select one",i18n_daily:"Daily",i18n_weekly:"Weekly",i18n_twice_month:"Biweekly",i18n_monthly:"Monthly",i18n_upload_image:"Upload image",i18n_delete_image:"Delete image",i18n_add_image_series:"Add an image or logo for your series to increase engagement. (Don’t worry, you can always add one later)",i18n_recommended_dimensions:"300x300px recommended",i18n_series_delete_confrimation_header:"Are you sure?",i18n_series_delete_confrimation_message:"Your articles in this series will become individual articles, and you’ll lose your subscribers. Your articles won’t be deleted, and will retain their views and engagement.",i18n_no_thanks:"No thanks",i18n_cancel:"Cancel",i18n_delete:"Delete",i18n_delete_series:"Delete series",i18n_done:"Done",i18n_series_title_required:"Series title is required.",i18n_series_description_required:"Series description is required.",i18n_series_cadence_required:"Publishing frequency is required.",i18_series_error_generic:"Sorry, something went wrong.",i18n_series_delete_confirmation:"Your series has been deleted.",i18n_series_delete_confirmation_cta:"View your articles",i18n_series_delete_error:"There was an issue deleting your series, no changes have been made. Try again."},"publishing-web/templates/components/post-editor":{default_editor_placeholder:"Write here. Add images or a video for visual impact.",slate_embeds_slides_placeholder:"Paste the slides link here and press Enter to Add",slate_embeds_images_placeholder:"Paste the image link here and press Enter to Add",slate_embeds_video_placeholder:"Paste the video link here and press Enter to Add",slate_embeds_universal_placeholder:"Paste the link here and press Enter to Add",slate_embeds_video_placeholder_text:"Paste the video link here and press Enter to Add",slate_embeds_image_placeholder_text:"Search free images you have the rights to use",slate_embeds_universal_placeholder_text:"Paste the link here and press Enter to Add",slate_embeds_slides_placeholder_text:"Paste the slides link here and press Enter to Add",slate_embeds_more_text:"and more",slate_embeds_image_drop_image:"Drop an image here or",slate_embeds_image_upload_computer:"Upload from computer",slate_embeds_image_alt_text_header:"Add alt text",slate_embeds_image_alt_text_placeholder:"Text describing what’s in the photo",slate_embeds_image_alt_text_default:"No alt text provided for this image",slate_embeds_image_alt_text_button_text:"Add description",slate_embeds_image_alt_text_button_label:"Add description to image",slate_embeds_image_alt_text_form_label:"By adding alternative text that describes the contents of the photo, you are making your image more accessible.",slate_embeds_image_alt_text_form_save:"Save",slate_embeds_image_cancel:"Cancel",slate_embeds_video_title:"Video",slate_embeds_image_title:"Image",slate_embeds_slides_title:"Slides",slate_embeds_universal_title:"Links",slate_embeds_code_title:"Snippet",slate_embeds_video_providers:"YouTube, Vimeo and more",slate_embeds_slides_providers:"SlideShare, Prezi, and more",slate_embeds_universal_providers:"Twitter, Instagram and more",slate_embeds_insert_content_text:"Insert Content",slate_embeds_cancel_text:"Cancel embed",slate_embeds_error_unsupported:"We don’t support URLs from that website, please try another URL",slate_embeds_error_invalid_url:"We don’t recognize this code. Please simply paste the link to the content.",slate_embeds_error_generic:"Something went wrong, please try to submit the link again",slate_embeds_error_invalid_iframe:"We don’t support embeds from that location, please try another",slate_embeds_error_image_failure:"Something went wrong uploading your image, please try again",slate_embeds_error_image_invalid_dimensions:"We are not able to upload that image, maximum file dimensions are 7680x4320",slate_embeds_error_image_invalid_size:"We are not able to upload that image, maximum file size is 200 MB",slate_embeds_error_image_invalid_type:"We are not able to upload that image, supported file types include: JPG, GIF, or PNG",slate_embeds_image_align_label:"Image alignment toolbar",slate_embeds_image_align_center:"Center align image",slate_embeds_image_align_left:"Left align image",slate_embeds_image_align_right:"Right align image",slate_embeds_image_align_full:"Set image as full width",slate_embeds_image_align_bleed:"Set image as full bleed",slate_embeds_image_form_description_icon:"Pencil icon",slate_embeds_image_form_link_button_label:"Add a link to the embedded image",slate_embeds_image_form_link_placeholder:"Enter a link then press enter",slate_embeds_image_form_link_button_text:"Add link"},"publishing-web/templates/components/post-link-editor":{apply_link:"Apply",edit_link:"Edit",remove:"Remove",url_placeholder:"Paste URL link and press enter to add",text_placeholder:"Add text to display"},"publishing-web/templates/components/post-toolbar":{heading_1:"Heading 1",heading_2:"Heading 2",normal:"Normal",bold:"Bold",italic:"Italic",underline:"Underline",ordered_list:"Ordered list",unordered_list:"Unordered list",blockquote:"Blockquote",add_url_link:"Add URL Link",i18n_create_new_series:"Create a new series",i18n_add_cover_image:"Add cover image",i18n_create_your_own_series:"Create your own series",i18n_create_new_series_description:"Start conversations and grow your audience by writing a regular series about a topic you’re interested in.",i18n_article:"Article",i18n_series:"Series",i18n_article_definition:"An article is a piece of written content published on LinkedIn. Your network can discover your articles in their Feed or through your profile.",i18n_series_definition:"A series is a set of articles published on LinkedIn around a specific theme. When you publish the first article in your series, your connections and followers are notified. Subscribers to your series will get notified each time you publish a new article in that series. Your network can also discover your series in their Feed or through your profile."},"publishing-web/templates/components/posts-modal-list":{published_on:"Published on",last_modified_on:"Last modified on",edit_on_non_published:"You’ve made edits that haven’t been published yet",edit:"Edit",delete:"Delete",edit_with_title:"Edit Post “{:postTitle}”",delete_with_title:"Delete Post “{:postTitle}”",cancel_with_title:"Cancel Deleting Post “{:postTitle}”",cancel:"Cancel",untitled_post:"Untitled",confirm_delete_draft:"Are you sure you want to delete the draft?",confirm_delete_published:"Are you sure you want to delete the published article?",view_post_stats:"View stats"},"publishing-web/templates/components/posts-modal":{published_modal_title:"Your published articles",drafts_modal_title:"Your drafts",loading_error:"Error loading new articles!",no_posts:"You do not have any articles."},"publishing-web/templates/components/publish-error-message":{error_no_headline:"Your article is missing a headline. Please add one before hitting publish again.",error_no_content:"Your article only has a headline. Please add some text before hitting publish again.",error_empty_post:"Oops… your article seems to be empty.",error_close_button:"Close Error",error_close_button_ally:"Close Error Button",error_actively_embedding:"Oops… looks like you are embedding something into your article. Please submit the embed dialog to publish."},"publishing-web/templates/components/publish-modal":{publish_modal_header:"You’re almost done…",back:"Back",next:"Next",update:"Update",publish:"Publish",add_custom_message:"Tell your network what your article is about. Use #tags to help others find it.",add_custom_message_with_series:"Tell your network what your series is about. Use #hashtags to help others find it.",post_will_appear_on_connections_followers_feed:"Note: This is how your article will appear on the LinkedIn feed.",series_invite_follow_subheadline:"We will only send them a notification this first time",series_invite_follow_headline:"Invite my connections and followers to subscribe to this series",on_linkedin:"{:author,name,full} on LinkedIn",character_limit:"You have reached the character limit for an update.",character_limit_number:"-{:characters,number,integer}",a11y_article_description_label:"Enter a brief description to tell your network what your article is about."},"publishing-web/templates/components/series-dropdown":{i18n_daily:"Daily series",i18n_weekly:"Weekly series",i18n_twice_month:"Biweekly series",i18n_monthly:"Monthly series",i18n_writing_article_in:"Publish as:",i18n_create_new_series_from_dropdown:"Create a new series",i18n_individual_article:"Individual article"},"publishing-web/templates/components/series-feedback":{i18n_series_pilot_message:"Thanks for being part of the series pilot!",i18n_series_intro_message:"Have questions or feedback? Let us know.",i18n_give_feedback:"Give feedback",i18n_writing_tips:"Writing tips",i18n_how_to_start_series:"How to start a series",i18n_adding_images_media:"Adding images and media",i18n_content_best_practices:"Content best practices"},"publishing-web/templates/components/series-header":{i18n_edit:"Edit",i18n_series_logo:"Series Logo",i18n_daily:"Daily series",i18n_weekly:"Weekly series",i18n_twice_month:"Biweekly series",i18n_monthly:"Monthly series"},"publishing-web/templates/components/share-draft-modal":{share_draft_modal_title:"Share this draft",share_draft_copy_link:"Copy",share_draft_error_message:"Something went wrong, please try again",share_draft_copied:"Link copied to clipboard",share_draft_description:"Copy the link to this draft and share it with people from whom you want to receive feedback.",share_draft_invalid_title:"Oops! Your post is missing a title, Please add a title and try again.",share_draft_invalid_content:"Oops! Your post is missing content, Please add some content and try again."},"publishing-web/templates/components/zen-nav":{publishing_title:"PUBLISHING",start_new_post:"Start a new article",drafts:"Drafts",nav_drafts:"Drafts ({:numDrafts,number,integer})",posts:"Articles",share_draft:"Share Draft",help_center:"Help center",feedback:"Send feedback",sign_out:"Sign out",update:"Update",publish:"Publish"},"publishing-web/templates/helpers/default-alert-box":{general_error:"We’ve encountered a problem. Please try again.",general_success:"Success"},"publishing-web/templates/helpers/strings":{something_went_wrong:"Something went wrong.",image_upload_too_large_with_size:"Your image is bigger than the {:maxMegabytes,number} MB limit. Please upload a smaller file.",png_upload_too_large_with_size:"Your PNG image is bigger than the {:maxMegabytes,number} MB limit. Please upload a smaller PNG file.",error_publish_failed:"An error occurred while publishing your article. Please try again later.",global_error_generic:"An error occurred while saving your article. Please try again later.",global_error_save_offline:"Your article could not be saved because you are offline.  Please check your internet connection and try again.",error_publish_offline:"Your article could not be published because you are offline.  Please check your internet connection and try again.",global_error_server:"There was a problem saving your draft.",global_error_conflict:"It looks like you’re working on this draft in more than one place. Refresh this page to work on the latest version.",prompts_in_response_to:"In response to:",global_beforeunload:"Do you want to leave this page? Changes you made on this article are not saved or published yet.",i18n_confirmation_before_delete_draft:"Are you sure you want to delete the draft?",post_status_message_saving:"Saving…",post_status_message_saved:"Saved",post_status_message_publishing:"Publishing…",post_status_message_published:"Published",post_status_message_updating:"Updating…",post_status_message_updated:"Updated",post_status_message_save_failed:"Something went wrong.",html_title_default:"New draft",html_title_editing:"Editing: “{:postTitle}”",i18n_error_title_limit_exceeded:"You’ve exceeded the title limit of 150 characters. Remove some characters to continue.",i18n_error_text_limit_exceeded:"You’ve exceeded the text limit of 125,000 characters. Remove some characters to continue.",i18n_error_generic_save_failure:"An error occurred while saving your article. Your latest changes weren’t saved.",i18n_error_invalid_image_type:"That image type is not supported. Supported file types include: JPG, GIF, or PNG.",i18n_error_invalid_image_size:"That image is too big. Maximum file size is 200 megabytes.",i18n_error_invalid_image_dimensions:"That image’s dimensions are invalid. Maximum file dimensions are 7680x4320 pixels.",i18n_error_generic_upload_failure:"We’re unable to upload that image, please try again.",i18n_error_unsupported_url:"We don’t support URL’s from that website, please try another URL.",i18n_error_invalid_url:"We don’t recognize this URL, please try another URL.",i18n_error_invalid_iframe:"We don’t support embeds from that website, please try another.",i18n_error_generic_failure:"Something went wrong, please try again.",i18n_error_reached_character_limit:"Your article has reached the 125,000 character limit, try reducing your character count to continue. Your latest change will not be saved.",i18n_error_leave_page_prompt:"Leave page? Changes you made on this article aren’t saved and will be lost.",i18n_error_add_title:"Please add a title before publishing.",i18n_error_add_text:"Please add text before publishing.",i18n_error_publishing_available_after_start:"Publishing will be available after you start your article.",i18n_error_publishing_character_limit_exceeded:"Your article has reached the 125,000 character limit. Please reduce your character count to publish the article.",i18n_error_multiple_drafts_open:"This draft is open in more than one place. You must refresh this page or any changes you make won’t be saved.",i18n_post_successful:"Post successful.",i18n_view_post:"View post",i18n_view_article:"View Article",i18n_cover_image_upload_success:"Successfully uploaded cover image",i18n_cover_image_remove_success:"Successfully removed cover image",i18n_go_back:"Go back",i18n_leave:"Leave",i18n_refresh:"Refresh",i18n_a11y_link_embed_success:"Link embedded successfully",i18n_a11y_embed_error:"Error encountered while embedding content"},"publishing-web/templates/post":{dropdown_trigger_text:"More",headline_placeholder_text:"Headline",open_publishing_menu:"Open publishing menu",close_publishing_menu:"Close publishing menu",post_headline_label:"Article headline"}}}}})

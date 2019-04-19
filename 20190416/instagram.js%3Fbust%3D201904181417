@@ -1,0 +1,1 @@
+define(["common/config","common/utils","common/cookie-manipulation"],function(i,n,o){function e(){require(["vendors/instagram"])}return n.isDisabledScript(i.disabledScripts,"instagram")?null:void o.executeScriptByFamily(o.COOKIE_CATEGORY.RESEAUX_SOCIAUX,e,"instagram")});

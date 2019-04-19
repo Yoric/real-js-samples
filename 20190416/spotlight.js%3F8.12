@@ -1,0 +1,270 @@
+(function(window, console, undefined) {
+
+    if (!console || !$.isFunction(console.log)) {
+        console = {
+            log:   function(){},
+            error: function(){}
+        };
+    }
+
+    var Spotlight = {
+        entries: [],
+        update: [],
+        ts: 0,
+
+        /**
+         * Initialize timers, etc
+         */
+        init: function() {
+            this._canvas = $('#spotlight-canvas');
+            Notifications.subscribe('SPOTLIGHT_ADD', Spotlight.addedPhoto);
+            Notifications.subscribe('SPOTLIGHT_REPLACE', Spotlight.replacedPhoto);
+        },
+
+        /**
+         * Received updated Spotlight photos
+         * @param msg
+         */
+        addedPhoto: function(msg) {
+            console.log('Spotlight addPhoto', msg);
+
+            Spotlight.update.push(msg);
+
+            if (Spotlight.update.length === 1) {
+                Spotlight._drawSequence();
+            }
+        },
+
+        /**
+         * Received updated Spotlight photos
+         * @param photos
+         */
+        replacedPhoto: function(photos) {
+            console.log('Spotlight replacedPhoto', photos);
+
+            for (var i = 0; i < photos.length; i++) {
+                Spotlight.update.unshift(photos[i]);
+            }
+
+            Spotlight._drawSequence();
+        },
+
+        /**
+         * Render new spotlight user if any
+         */
+        _drawSequence: function() {
+            if (Spotlight.update.length > 0) {
+                Spotlight._drawNewEntry();
+            }
+        },
+
+        /**
+         * Render new user in spotlight raw
+         */
+        _drawNewEntry: function() {
+            var entry = Spotlight.update.shift();
+            var empty = $('<div class="empty bordered"><a href="/"><img src="/public/img/0.gif" /></a></div>');
+
+            // remove oldest entry
+            Spotlight._canvas.find('.entry:last').remove();
+
+            // fill newly added entry in background
+            Spotlight._canvas
+                .find('div:first')
+                    .addClass('tooltip-enabled')
+                    .find('a:first')
+                        .attr('href', '/profile/' +  entry.uid)
+                        .find('img')
+                            .attr('src', entry.photo)
+                            .end()
+                        .end()
+                    .append(Spotlight._tooltip(entry))
+                    .end()
+                .prepend(empty);
+
+            // prepare entry entry
+            empty.switchClass('empty', 'entry', 1000);
+
+            // draw next entry if there are other fresh entries
+            if (Spotlight.update.length > 0)
+                setTimeout(Spotlight._drawSequence, 1000);
+        },
+
+        /**
+         * Render tooltip
+         * @param entry
+         */
+        _tooltip: function(entry) {
+            var tooltip = '<span class="tooltip"><span class="top sex'
+                + entry.sex + '"><a href="/profile/'
+                + entry.uid + '">' + entry.name + '</a>';
+
+            if (entry.age) {
+                tooltip += '<span class="age">, ' + entry.age + '</span>';
+            }
+
+            tooltip += '</span><span class="middle">';
+            if (entry.text)
+                tooltip += entry.text;
+
+            return tooltip + '</span><span class="bottom"></span></span>';
+        },
+
+        /**
+         * Show add user to Spotlight popup
+         */
+        showAdd: function() {
+            Popup.showAjax('Выберите фотографию для Фотоленты', '/spotlight/show', {}, {
+                width: 610,
+                onOpen: function() {
+                    Popup.$('.spotlight-list .photo').first().click();
+                    Profile.checkTextLimit($('#spotlight-text'), 100);
+                }
+            });
+        },
+
+        /**
+         * Mark photo for sending
+         */
+        selectPhoto: function($elem) {
+            $elem.toggleClass('selected');
+            var photos = this._selectedPhotos().length;
+
+            // update silver price
+            var $silver = $('#spotlight-silver');
+            $silver.text(photos * $silver.data('price'));
+
+            // update experience
+            var $exp = $('#spotlight-exp');
+            $exp.text(photos * $exp.data('exp'));
+        },
+
+        /**
+         * Send add photo request
+         */
+        send: function() {
+            var selected = [];
+
+            this._selectedPhotos().each(function(i, elem) {
+                selected.push($(elem).data());
+            });
+
+            if (!selected.length) {
+                Popup.alert('Выберите фотографию', 'Вы можете выбрать одновременно до 10 фотографий');
+            }
+            else if (selected.length > 10) {
+                Popup.alert('Ошибка', 'Можно выбрать максимум 10 фотографий');
+            }
+            else {
+                var text = $('#spotlight-text').val();
+                PhotoSender.send(selected, text);
+            }
+        },
+
+        /**
+         * Fetch selected photos elements
+         */
+        _selectedPhotos: function() {
+            return Popup.$('.spotlight-list .photo.selected');
+        }
+
+    };
+
+    /**
+     * Sender to Spotlight object
+     */
+    var PhotoSender = {
+
+        /**
+         * List of remaining photos to send
+         */
+        photos: undefined,
+
+        /**
+         * Current photo
+         */
+        photo: undefined,
+
+        /**
+         * Spotlight entry optional text
+         */
+        text: undefined,
+
+        /**
+         * Start sending photos to Spotlight one by one
+         * @param photos Array of selected photos
+         * @param text Text
+         */
+        send: function(photos, text) {
+            this.photos = photos;
+            this.text = text;
+
+            // send first selected photo
+            this.trySend(this.photos.shift());
+        },
+
+        /**
+         * Check if photo resized and open resize popup if not
+         * @param photo Photo to send
+         */
+        trySend: function(photo) {
+            PhotoSender.photo = photo;
+
+            if (!!photo.resized) {
+                PhotoSender._send();
+            }
+            else {
+                Resizer.addCallback(PhotoSender._resized);
+                Resizer.showResize(photo.uuid, photo.album, false, photo.server);
+            }
+        },
+
+        /**
+         * Send single photo to Spotlight
+         */
+        _send: function() {
+            var photo = PhotoSender.photo;
+            var data = {
+                pid: photo.uuid,
+                aid: photo.album,
+                text: PhotoSender.text
+            };
+            $.post('/spotlight/add', data, PhotoSender._response);
+        },
+
+        /**
+         * Photo sent request callback
+         * @param result
+         */
+        _response: function(result) {
+            if (result.code === 1 || result.code === 2)
+                PhotoSender.photos = [];
+
+            Profile.alertResponse(result);
+
+            if (PhotoSender.photos.length) {
+                setTimeout(function() {
+                    PhotoSender.trySend(PhotoSender.photos.shift());
+                }, 1000);
+            }
+        },
+
+        /**
+         * Photo resized callback
+         * @param id Photo id
+         * @param album Album
+         */
+        _resized: function(id, album) {
+            if (id === PhotoSender.photo.uuid)
+                PhotoSender._send();
+        }
+
+    };
+
+    window.Spotlight = Spotlight;
+
+    $(function() {
+        Spotlight.init();
+    });
+
+})(window, window.console);

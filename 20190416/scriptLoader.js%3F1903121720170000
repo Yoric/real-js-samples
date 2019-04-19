@@ -1,0 +1,33 @@
+function loadES6Scripts(scripts, cb, async) {
+
+    var loadScripts = function (scripts, cb, current) {
+        current = current || 0;
+        if (!scripts[current]) {
+            return cb ? cb() : false;
+        }
+        var script = document.createElement("script");
+
+        script.type = 'text/javascript';
+
+        script.src = scripts[current];
+
+        document.head.appendChild(script);
+        async ? loadScripts(scripts, cb, ++current) : script.onload = loadScripts.bind(null, scripts, cb, ++current);
+    };
+
+    var supportsES6 = function () {
+        try {
+            new Function("(a = 0) => a");
+            return true;
+        }
+        catch (err) {
+            return false;
+        }
+    }();
+
+    if (supportsES6) {
+        loadScripts(scripts, cb);
+    } else {
+        return false;
+    }
+}

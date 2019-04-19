@@ -1,0 +1,1 @@
+"use strict";honey.def("lib:jquery",function(e){e.setPlayerWidth=function(){}});

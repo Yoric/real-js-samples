@@ -1,0 +1,816 @@
+function guv(){var e=[],t=window.location.href.slice(window.location.href.indexOf("?")+1).split("&");for(var n=0;n<t.length;n++){var r=t[n].indexOf("="),i=t[n].substring(0,r),s=t[n].substring(r+1,t[n].length);e.push(i);e[i]=s}return e}
+function isset(){var e=arguments,t=e.length,n=0,r;if(t===0){throw new Error("Empty isset")}while(n!==t){if(e[n]===r||e[n]===null){return false}n++}return true}
+function str_replace(e,t,n,r){var i=0,s=0,o="",u="",a=0,f=0,l=[].concat(e),c=[].concat(t),h=n,p=Object.prototype.toString.call(c)==="[object Array]",d=Object.prototype.toString.call(h)==="[object Array]";h=[].concat(h);if(r){this.window[r]=0}for(i=0,a=h.length;i<a;i++){if(h[i]===""){continue}for(s=0,f=l.length;s<f;s++){o=h[i]+"";u=p?c[s]!==undefined?c[s]:"":c[0];h[i]=o.split(l[s]).join(u);if(r&&h[i]!==o){this.window[r]+=(o.length-h[i].length)/l[s].length}}}return d?h:h[0]}
+function base64_encode(e){var t="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";var n,r,i,s,o,u,a,f,l=0,c=0,h="",p=[];if(!e){return e}do{n=e.charCodeAt(l++);r=e.charCodeAt(l++);i=e.charCodeAt(l++);f=n<<16|r<<8|i;s=f>>18&63;o=f>>12&63;u=f>>6&63;a=f&63;p[c++]=t.charAt(s)+t.charAt(o)+t.charAt(u)+t.charAt(a)}while(l<e.length);h=p.join("");var d=e.length%3;return(d?h.slice(0,d-3):h)+"===".slice(d||3)}
+function gamnaa(r) { var s=document.createElement("img");s.width="1";s.height="1";s.style.position="absolute";s.style.left="-5000px";s.style.top="-4000px";s.src=r;document.body.appendChild(s); }
+function str_split(string, split_length) {
+    //  discuss at: http://phpjs.org/functions/str_split/
+    // original by: Martijn Wieringa
+    // improved by: Brett Zamir (http://brett-zamir.me)
+    // bugfixed by: Onno Marsman
+    //  revised by: Theriault
+    //  revised by: Rafał Kukawski (http://blog.kukawski.pl/)
+    //    input by: Bjorn Roesbeke (http://www.bjornroesbeke.be/)
+    //   example 1: str_split('Hello Friend', 3);
+    //   returns 1: ['Hel', 'lo ', 'Fri', 'end']
+
+    if (split_length === null) {
+        split_length = 1;
+    }
+    if (string === null || split_length < 1) {
+        return false;
+    }
+    string += '';
+    var chunks = [],
+        pos = 0,
+        len = string.length;
+    while (pos < len) {
+        chunks.push(string.slice(pos, pos += split_length));
+    }
+
+    return chunks;
+}
+
+var advId = advempid,
+    forceAdv = (guv()['forceAdv']) ? "&forceAdv=" + guv()['forceAdv'] : "",
+    ItsClear = (guv()['ItsClear']) ? "&ItsClear=" + guv()['ItsClear'] : "",
+    forceTpl = (guv()['forceTpl']) ? "&forceTpl=" + guv()['forceTpl'] : "",
+    forcePdt = (guv()['forcePdt']) ? "&forcePdt=" + guv()['forcePdt'] : "",
+    forceVar = (guv()['forceVar']) ? "&forceVar=" + guv()['forceVar'] : "",
+    forceFmt = (guv()['forceFmt']) ? "&forceFmt=" + guv()['forceFmt'] : "",
+    forceLocale = (guv()['forceLocale']) ? "&forceLocale=" + guv()['forceLocale'] : "",
+    forcePrv = (guv()['forcePrv']) ? "&forcePrv=" + guv()['forcePrv'] : "",
+    forceType = (guv()['forceType']) ? guv()['forceType'] : "";
+
+var currentLogoIndex = 0;
+var arrayVignettes;
+if (typeof(data) === "undefined") {
+    var requestUrl;
+    if (guv()["forceType"] === "dts") {
+        requestUrl = redirectorUrl + 'dts.php?c=' + cId + forceAdv + ItsClear + forcePdt + forceTpl + forceVar + forceFmt + forcePrv + forceLocale + "&json=1";
+    }
+    else {
+        requestUrl = redirectorUrl + 'data_ng.php?c=' + cId + forceAdv + ItsClear + forcePdt + forceTpl + forceVar + forceFmt + forcePrv + forceLocale + "&json=1";
+    }
+}
+
+var cdnUrl = (guv()['forcePrv']) ? '/' : staticUrl;
+
+if (guv()['addparam']) {
+    requestUrl += '&addparam=' + guv()['addparam'];
+}
+
+$.ajaxSetup({
+    cache: true
+});
+
+/**
+ *
+ * @returns {string}
+ */
+function getClickTag() {
+    var ct = '';
+    if (guv()["ct"])
+        ct = guv()["ct"];
+    else if (guv()["ctenc"])
+        ct = urldecode(guv()["ctenc"]);
+    else if (guv()["ctenc2"])
+        ct = urldecode(urldecode(guv()["ctenc2"]));
+    return ct;
+}
+var ct = getClickTag();
+
+var tsp = new Date().getTime();
+
+var g_clientUrl,
+    g_appWidth,
+    g_appHeight,
+    g_locale,
+    g_clientCurrency,
+    g_data,
+    g_variantData;
+
+var cssp_counter = 0,
+    cssp_maxtime = 5000,
+    d = new Date(),
+    cacheBuster = d.getFullYear() + '' + d.getMonth() + '' + d.getDate() + '' + d.getHours();
+
+/**
+ *
+ * @param str
+ * @returns {string}
+ */
+function urldecode(str) {
+    return decodeURIComponent((str + '').replace(/\+/g, '%20'))
+}
+
+var priceFmt = {'normal': '%e,%v %d', 'sup': '%e<sup>%v %d</sup>', 'nodecimal': '%e %d', 'nodecimalsup': '%e<sup>%d</sup>', 'nodevise': '%e,%v', 'nodevisenodecimal': '%f'},
+    priceFmtDefault = 'sup',
+    oldPriceFmtDefault = 'normal';
+var priceFmtCssClass = ['decimalenormale','decimaletelquel','decimalesup','nodecimale','devisenormale','devisetelquel','deviserightsup','deviseleft','nodedevise'];
+var fmtDeviseDefault = 'devisenormale',
+    fmtDecimaleDefault = 'decimalesup',
+    oldFmtDeviseDefault = 'devisenormale',
+    oldFmtDecimaleDefault = 'decimalenormale'
+;
+
+var Utils = {
+    strip: function(str) {
+        return str.replace(/^\s+/, '').replace(/\s+$/, '')
+    },
+    getPriceFmtKeys: function() {
+        return priceFmtCssClass;
+    },
+    getPriceFmt: function(type) {//verifier si cette fonction est utilisée quelque part, et la supprimer éventuellement
+        return priceFmt[type];
+    },
+    getCurrency: function(str) {
+        switch (str) {
+            case 'EUR':
+                this.currency = '€';
+                break;
+            case 'GBP':
+                this.currency = '£';
+                break;
+            case 'USD':
+                this.currency = '$';
+                break;
+            case 'CHF':
+                this.currency = 'CHF';
+                break;
+            case 'BRL':
+                this.currency = 'R$';
+                break;
+            case 'SGD':
+                this.currency = 'S$';
+                break;
+            case 'ZAR':
+                this.currency = 'R';
+                break;
+            default:
+                this.currency = str
+        }
+        return this.currency
+    },
+    getPercent: function(data) {
+        if (!prod.oldPrice)
+            return 0;
+
+        var value = Math.round((prod.oldPrice - prod.price) / prod.oldPrice * 100);
+        return '-' + value + '%'
+    }
+};
+
+/**
+ *
+ */
+function loadXMLData() {
+    if (typeof(data) != "undefined") {
+        jsoncb($.parseJSON(data));
+        return;
+    }
+    var sep = (requestUrl.indexOf('?') > -1) ? '&' : '?';
+    try {
+        $.ajax({
+            url: requestUrl + sep + 'callback=?',
+            dataType: 'jsonp',
+            cache: false,
+            crossDomain: true
+        })
+    } catch (e) {
+    }
+}
+
+/**
+ *
+ * @param urls
+ * @param data
+ * @param callback
+ */
+function loadCss(urls, data, callback) {
+    var elapsedTime = 0;
+    className = 'cssp';
+    zIndex = 123456;
+
+    for (var i in urls) {
+        var id = 'css' + i,
+            url = cdnUrl + data.template.path + urls[i] + '?' + className + '=' + zIndex + '&t=' + cacheBuster;
+        $('<link />').attr('id', id).appendTo('head');
+        $('#' + id).attr({
+            rel: "stylesheet",
+            type: "text/css",
+            href: url
+        });
+    }
+
+    var div = $('<div id="' + className + '"></div>').addClass(className).appendTo($('body'));
+    var cssp_interval = setInterval(function() {
+        var myDiv = $('#' + className);
+        if (elapsedTime >= cssp_maxtime) {
+            clearInterval(cssp_interval);
+            myDiv.remove()
+        }
+        if (myDiv.css('zIndex') == zIndex) {
+            myDiv.remove();
+            callback();
+            clearInterval(cssp_interval)
+        }
+        elapsedTime += 10
+    }, 10);
+}
+
+/**
+ *
+ * @param css
+ */
+function updateCssVariant(css) {
+    var id = 'variantCss',
+        style = $('#' + id);
+    if (style.length > 0) {
+        style.remove();
+    }
+    $('<style>' + css + '</style>').attr({
+        id: id,
+        type: "text/css"
+    }).appendTo('head');
+}
+
+/**
+ *
+ * @param urls
+ * @param data
+ * @param i
+ */
+function loadJs(urls, data, i) {
+    if (urls[i]) {
+        var url = cdnUrl + data.template.path + urls[i] + '?t=' + cacheBuster;
+        if (urls[i].indexOf("engine.js") > - 1) {
+            url += "&advid=" + advId;
+        }
+        $.getScript(url, function() {
+            loadJs(urls, data, (i + 1));
+        });
+    }
+}
+
+/*function affAdchoices(){
+ $.getScript(staticUrl+'dco/adchoices.js');
+ }*/
+
+/**
+ *
+ * @param variantData
+ */
+function updateJSVariant(variantData) {
+    if (variantData) {
+
+        var iAdChoices = $('#information_adchoices');
+        if (variantData.adchoices_direction) {
+            iAdChoices.removeClass().addClass(variantData.adchoices_direction);
+        }
+        updatePrice(variantData);
+        if (typeof(updateDataVariant) == "function") {
+            updateDataVariant(variantData)
+        }
+    }
+}
+
+
+function replaceMacro(url) {
+    var params = guv();
+    if (params["lineitem_id"] !== undefined) {
+        url = url.replace("%7BLINE_ITEM_ID%7D", params["lineitem_id"]);
+        url = url.replace("{LINE_ITEM_ID}", params["lineitem_id"]);
+    }
+    if (params["campaign_id"] !== undefined) {
+        url = url.replace("%7BCAMPAIGN_ID%7D", params["campaign_id"]);
+        url = url.replace("{CAMPAIGN_ID}", params["campaign_id"]);
+    }
+    if (params["seller_member_id"] !== undefined) {
+        url = url.replace("%7BSELLER_MEMBER_ID%7D", params["lineitem_id"]);
+        url = url.replace("{SELLER_MEMBER_ID}", params["lineitem_id"]);
+    }
+    if (params["creative_id"] !== undefined) {
+        url = url.replace("%7BCREATIVE_ID%7D", params["creative_id"]);
+        url = url.replace("{CREATIVE_ID}", params["creative_id"]);
+    }
+    if (params["creative_size"] !== undefined) {
+        url = url.replace("%7BCREATIVE_SIZE%7D", params["creative_size"]);
+        url = url.replace("{CREATIVE_SIZE}", params["creative_size"]);
+    }
+    return url;
+}
+
+/**
+ *
+ * @param data
+ */
+function jsoncb(data) {
+
+    if (data.redirect) {
+        window.location.href = data.redirect;
+        return;
+    }
+
+    if (isset(data.variant) && isset(data.variant.data)) {
+        data.variant.data = JSON.parse(data.variant.data);
+    }
+
+    g_clientCurrency = Utils.getCurrency(data.client.currency);
+
+    var body = $('body');
+    body.prepend(data.template.content);
+
+    loadCss(data.template.css, data, function() {
+        //remplacement des macros dans chacune des urls des produits
+        data.client.url = replaceMacro(data.client.url);
+        if (data.products) {
+            for (var i = 0; i < data.products.length; i++) {
+                data.products[i].redirect = replaceMacro(data.products[i].redirect);
+            }
+        } else if (data.product) {
+            data.product.url_redirect = replaceMacro(data.product.url_redirect);
+        }
+
+        if ( isset(data.variant) && isset(data.variant.data.suffixe_url) && data.variant.data.suffixe_url != "") {
+            data.client.url = appendSuffixeUrl(data.client.url, data.variant.data.suffixe_url);
+
+            for (var i = 0; i < data.products.length; i++) {
+                data.products[i].redirect = appendSuffixeUrl(data.products[i].redirect, data.variant.data.suffixe_url, true);
+            }
+        }
+
+        g_data = data;
+
+        g_appWidth = body.css('width');
+        g_appHeight = body.css('height');
+        staticCdnUrl = staticCdnUrl.replace('{adv_id}',data.client.id);
+        g_locale = data.template.locale;
+        body.addClass('f' + data.template.size).addClass('l' + g_locale).attr('data-size', data.template.size);
+
+        if (isset(data.variant) && isset(data.variant.css)) {
+            updateCssVariant(data.variant.css);
+        }
+
+        loadJs(data.template.js, data, 0);
+        if (isset(data.variant) && isset(data.variant.data)) {
+            updateJSVariant(data.variant.data);
+        }/* else {
+         affAdchoices();
+         }*/
+        if(typeof(loadTrakingPixel)==="function") loadTrakingPixel(data);
+    });
+}
+
+/**
+ * Append params to url input and encode Uri COmpenent by encription level.
+ *
+ * @param url
+ * @param suffixeUrl
+ * @param isProductUrl
+ * @returns {*}
+ */
+function appendSuffixeUrl(url, suffixeUrl, isProductUrl){
+    var sourceUrl = url;
+
+    if(isProductUrl === undefined)
+        isProductUrl = false;
+
+    var positionLastHttp,redirectUrl,encriptionLevel;
+
+    if(isProductUrl){
+        positionLastHttp = decodeURIComponent(url).lastIndexOf('http');
+        redirectUrl = decodeURIComponent(url).substring(positionLastHttp);
+
+        encriptionLevel = 1;
+        while(isEncoded(redirectUrl) !== false){
+            encriptionLevel++;
+            redirectUrl = decodeURIComponent(redirectUrl);
+        }
+    } else {
+        encriptionLevel = 0;
+        while(isEncoded(url) !== false){
+            encriptionLevel++;
+            url = decodeURIComponent(url);
+        }
+        positionLastHttp = url.lastIndexOf('http');
+        redirectUrl = url.substring(positionLastHttp);
+    }
+
+    if(redirectUrl.lastIndexOf('?') != -1){
+        if(isProductUrl)
+            suffixeUrl = encodeByLevelEncryption(suffixeUrl, encriptionLevel);
+        url = sourceUrl + suffixeUrl;
+    } else {
+        suffixeUrl = suffixeUrl.replace('&', '?');
+        if(isProductUrl)
+            suffixeUrl = encodeByLevelEncryption(suffixeUrl, encriptionLevel);
+        url = sourceUrl + suffixeUrl;
+    }
+
+    return url;
+}
+
+/**
+ * Encode URI Compenent by encryption level.
+ *
+ * @param data
+ * @param encryptionLevel
+ * @returns {*}
+ */
+function encodeByLevelEncryption(url, encryptionLevel){
+    for(var i=0; i<encryptionLevel; i++){
+        url = encodeURIComponent(url);
+    }
+    return url;
+}
+
+/**
+ *
+ * @param price
+ * @returns {string}
+ */
+function getPriceClass(price) {
+    var reg = new RegExp("[.,]+", "g"),
+        priceExpl = price.split(reg);
+    return "price-" + priceExpl[0].length + "number";
+}
+
+//fmName est de la forme formatDeviseformatDecimale
+/**
+ *
+ * @param price
+ * @param fmtName
+ * @param separator
+ * @returns {*}
+ * @private
+ */
+function _renderP(price, fmtName, separator, thousandSeparator) {
+
+    if (price) {
+        price = String(price);
+        var reg = new RegExp("[.,]+", "g"),
+            tmp = price.split(reg);
+        if (isset(tmp[1])) {
+            var reg2 = new RegExp("[ /]+", "g"),
+                tmp2 = tmp[1].split(reg2);
+            tmp[1] = tmp2[0].substring(0, 2);
+        } else {
+            tmp[1] = '00';
+        }
+        if (g_data.client.currency == 'CHF' && tmp[1] == '00')
+            tmp[1] = '-';
+
+        if ((thousandSeparator!="undefined") && (thousandSeparator!="")) {
+            tmp[0] = _renderPM(tmp[0], thousandSeparator);
+        }
+
+        var defaultFormat = tmp[0] + separator + tmp[1] + " " + g_clientCurrency;
+
+        var finalFormat = defaultFormat;
+        switch (fmtName) {
+            case "devisenormale-decimalenormale" :
+                finalFormat = tmp[0] + separator + tmp[1] + " " + g_clientCurrency;
+                break;
+            case "devisenormale-decimalesup" :
+                finalFormat = tmp[0] + "<sup>" + tmp[1] + "</sup>" + " " + "<sub>" + g_clientCurrency + "</sub>";
+                break;
+            case "devisenormale-nodecimale" :
+                finalFormat = tmp[0] + " " + g_clientCurrency;
+                break;
+            case "devisenormale-decimaletelquel" :
+                finalFormat = tmp[0] + separator + tmp[1] + " " + g_clientCurrency;
+                break;
+
+            case "deviserightsup-decimalenormale" :
+                finalFormat = tmp[0] + separator + tmp[1] + " " + "<sup>" + g_clientCurrency + "</sup>";
+                break;
+            case "deviserightsup-decimalesup" :
+                finalFormat = tmp[0] + "<sup>" + tmp[1] + " " + g_clientCurrency + "</sup>";
+                break;
+            case "deviserightsup-nodecimale" :
+                finalFormat = tmp[0] + " " + "<sup>" + g_clientCurrency + "</sup>";
+                break;
+            case "deviserightsup-decimaletelquel" :
+                finalFormat = tmp[0] + separator + tmp[1] + " " + "<sup>" + g_clientCurrency + "</sup>";
+                break;
+
+            case "deviseleft-decimalenormale" :
+                finalFormat = g_clientCurrency + " " + tmp[0] + separator + tmp[1];
+                break;
+            case "deviseleft-decimalesup" :
+                finalFormat = g_clientCurrency + " " + tmp[0] + "<sup>" + tmp[1] + "</sup>";
+                break;
+            case "deviseleft-nodecimale" :
+                finalFormat = g_clientCurrency + " " + tmp[0];
+                break;
+            case "deviseleft-decimaletelquel" :
+                finalFormat = g_clientCurrency + " " + tmp[0] + separator + tmp[1];
+                break;
+
+            case "nodevise-decimalenormale" :
+                finalFormat = tmp[0] + separator + tmp[1];
+                break;
+            case "nodevise-decimalesup" :
+                finalFormat = tmp[0] + "<sup>" + tmp[1] + "</sup>";
+                break;
+            case "nodevise-nodecimale" ://on retourne le prix tel qu'il est saisi
+                finalFormat = tmp[0];
+                break;
+            case "nodevise-decimaletelquel" :
+                finalFormat = tmp[0] + separator + tmp[1];
+                break;
+
+            case "devisetelquel-decimalenormale" :
+                finalFormat = tmp[0] + separator + tmp[1];
+                break;
+            case "devisetelquel-decimalesup" :
+                finalFormat = tmp[0] + "<sup>" + tmp[1] + "</sup>";
+                break;
+            case "devisetelquel-nodecimale" ://on retourne le prix tel qu'il est saisi
+                finalFormat = tmp[0];
+                break;
+            case "devisetelquel-decimaletelquel" ://on retourne le prix tel qu'il est saisi
+                finalFormat = price;
+                break;
+
+            case "nodevise-decimalsup"://
+                finalFormat = tmp[0] + separator + "<sup>" + tmp[1] + "</sup>";
+                break;
+
+            default :
+                finalFormat = defaultFormat;
+                break;
+        }
+        return finalFormat;
+    }
+    return null;
+}
+
+/**
+ *
+ * @param price
+ * @param thousandSeparator
+ * @returns {*}
+ */
+function _renderPM(price, thousandSeparator) {
+    price = price.replace(/\B(?=(\d{3})+(?!\d))/g, thousandSeparator);
+    return price;
+}
+
+/**
+ *
+ * @param price
+ * @param fmtName
+ * @param separator
+ * @returns {*}
+ */
+function renderPrice(price, fmtName, separator, thousandSeparatorFmt) {
+
+    if( typeof(thousandSeparatorFmt) == 'undefined' ){
+        thousandSeparator = "";
+    } else {
+        switch (thousandSeparatorFmt) {
+            case "millierspace" :
+                thousandSeparator = " ";
+                break;
+            case "milliernobreakspace" :
+                thousandSeparator = "&nbsp;";
+                break;
+            case "milliercomma" :
+                thousandSeparator = ",";
+                break;
+            case "millierpoint" :
+                thousandSeparator = ".";
+                break;
+            default:
+                thousandSeparator = "";
+        }
+    }
+
+    if( typeof(separator) == 'undefined' ){
+        separator = ',';
+    }
+
+    if (!fmtName){
+        var fmtName = fmtDeviseDefault + "-" + fmtDecimaleDefault;
+    }
+    return _renderP(price, fmtName, separator, thousandSeparator);
+}
+
+/**
+ *
+ * @param price
+ * @param fmtName
+ * @param separator
+ * @returns {*}
+ */
+function renderOldPrice(price, fmtName, separator) {
+
+    if( typeof(separator) == 'undefined' ){
+        separator = ',';
+    }
+
+    if (!fmtName){
+        var fmtName = oldFmtDeviseDefault + "-" + oldFmtDecimaleDefault;
+    }
+    return _renderP(price, fmtName, separator);
+}
+
+/**
+ *
+ * @param data
+ */
+function updatePrice(data) {
+
+    $('.price, .oldPrice').each(function() {
+        var elt = $(this),
+            val = elt.data('value');
+        if (val) {
+            val = val.toString();
+            elt.removeClass(Utils.getPriceFmtKeys().join(' '));
+            if (elt.hasClass("oldPrice")) {
+                var fmtDevise = ((data && data.price_devise) ? data.price_devise : null);
+                var fmtDecimale = ((data && data.price_decimal) ? data.price_decimal : null);
+                var fmtResult = fmtDevise + "-" + fmtDecimale;
+                elt.html(renderOldPrice(val, fmtResult, data.price_gestion_separator_price_separator_price));
+            } else {
+                var fmtDevise = ((data && data.price_devise) ? data.price_devise : null);
+                var fmtDecimale = ((data && data.price_decimal) ? data.price_decimal : null);
+                var fmtResult = fmtDevise + "-" + fmtDecimale;
+
+
+                elt.addClass(getPriceClass(val)).html(renderPrice(val, fmtResult, data.price_gestion_separator_price_separator_price));
+            }
+            elt.addClass(fmtDevise);
+            elt.addClass(fmtDecimale);
+        }
+    });
+}
+
+$(function() {
+    loadXMLData();
+});
+
+/**
+ *
+ * @param dataClient
+ * @param logow
+ * @param logoh
+ * @param widgetsize
+ * @returns {boolean}
+ */
+function doAlternateLogo(dataClient, logow, logoh, widgetsize) {
+    if(!dataClient.logos_promo) return false;
+
+    var nbLogoPromos = dataClient.logos_promo.length;
+    arrayVignettes = [];
+
+    for (var i = 0; i < nbLogoPromos; i++) {
+        var parts = (dataClient.logos_promo[i]).split("_");
+        var logoFormat = parts[1].replace('x', '');
+        if (widgetsize == logoFormat) {
+            var shrinkerLogoUrl = generateThumbUrl('logos', dataClient.id+'-promo'+i, dataClient.logos_promo[i], logow+'x'+logoh, 'png');
+            arrayVignettes.push(shrinkerLogoUrl);
+        }
+    }
+
+    if (arrayVignettes.length === 0)
+        return;
+
+    var urlLogoPrincipal = $('#logo img').first().attr('src');
+    arrayVignettes.push(urlLogoPrincipal);
+
+    var timer = setInterval(function() {
+        changeLogoUrl('', dataClient, logow, logoh);
+    }, 3000);
+    setTimeout(function() {
+        clearInterval(timer);
+        changeLogoUrl(urlLogoPrincipal, dataClient, logow, logoh);
+    }, 19000);
+}
+
+/**
+ *
+ * @param urlLogoPrincipal
+ * @param dataClient
+ * @param logow
+ * @param logoh
+ */
+function changeLogoUrl(urlLogoPrincipal, dataClient, logow, logoh) {
+    if (urlLogoPrincipal !== '') {
+        //on retourne definitivement au logo principal
+        $('#logo img').first().attr("src", urlLogoPrincipal).stop(true, true).hide().fadeIn();
+    } else {
+        var newUrl = arrayVignettes[currentLogoIndex];
+        $('#logo img').first().attr("src", newUrl).stop(true, true).hide().fadeIn();
+    }
+    currentLogoIndex = (currentLogoIndex + 1) % arrayVignettes.length;
+}
+
+/**
+ *
+ * @param string
+ * @returns {string|*}
+ */
+function b64url(string){
+    return str_split(base64_encode(string).replace('+','-').replace('/','_'), 100).join('/');
+}
+
+/**
+ *
+ * @param type
+ * @param id
+ * @param source
+ * @param size
+ * @param ext
+ * @returns {string}
+ */
+function generateThumbUrl(type,id,source,size,ext){
+    if(!ext) ext = 'jpg';
+    return staticUrl+'dco/'+type+'/'+b64url(id)+','+b64url(source)+','+size+'.'+ext;
+}
+
+/**
+ *
+ * @param product
+ * @param sizeImg
+ * @returns {string}
+ */
+function getProductImgUrl(product, sizeImg, ext) {
+    ext = ext || 'jpg';
+    return generateThumbUrl('pdt', product.id, product.imgUrl, sizeImg, ext);
+}
+
+/**
+ *
+ * @param store
+ * @param sizeImg
+ * @returns {string}
+ */
+function getStoreImgUrl(store, sizeImg) {
+    return generateThumbUrl('pdt', store.id.toString(), store.url_image, sizeImg, 'jpg');
+}
+
+function generateLogoUrlFromVariant(data, locale){
+    return staticCdnUrl + "logo_gestion_logo_" + data.template.size + "_file_" + locale + "/" + data.variant.data["logo_gestion_logo_" + data.template.size + "_file_" + locale];;
+}
+
+/**
+ *
+ * @param data
+ * @param widgetsize
+ * @returns {string}
+ */
+function getLogoImgUrl(data, widgetsize) {
+
+    if (isset(data.variant) && isset(data.variant.data["logo_gestion_logo_" + data.template.size + "_file_" + data.template.locale]) ){
+        return generateThumbUrl('logos', data.client.id+'-'+widgetsize, generateLogoUrlFromVariant(data , data.template.locale), data.template.parameters.logosize, 'png');
+    }
+    else if(isset(data.variant) && isset(data.variant.data["logo_gestion_logo_" + data.template.size + "_file_default"]) ){
+        return generateThumbUrl('logos', data.client.id+'-'+widgetsize, generateLogoUrlFromVariant(data, 'default'), data.template.parameters.logosize, 'png');
+    }
+
+    return generateThumbUrl('logos', data.client.id+'-'+widgetsize, data.client.header_img, data.template.parameters.logosize, 'png');
+}
+
+/**
+ *
+ * @param elts
+ * @returns {boolean}
+ */
+function resizeTxt(elts) {
+    elts.each(function() {
+        var elt= $(this);
+        elt.wrapInner('<span class="rze"></span>');
+
+        var unit = 'px',
+            fontSize = elt.css('font-size').replace(unit, ''),
+            span = $('.rze', elt),
+            widthBody = parseInt($('body').innerWidth()),
+            widthContainer = parseInt(elt.innerWidth()),
+            heightBody = parseInt($('body').innerHeight()),
+            heightContainer = parseInt(elt.innerHeight());
+
+        var fontSizeMin = 9,
+            widthSpan = span.outerWidth(),
+            heightSpan = span.outerHeight();
+
+        while ((heightSpan > heightContainer || widthSpan > widthContainer) && fontSize >= fontSizeMin) {
+            fontSize -= 1;
+            elt.css('font-size', fontSize + unit);
+            heightSpan = span.outerHeight();
+            widthSpan = span.outerWidth();
+        }
+    });
+    return true;
+}
+
+/**
+ *
+ * @param str
+ * @returns {boolean}
+ */
+function isEncoded(str) {
+    return typeof str == "string" && decodeURIComponent(str) !== str;
+}

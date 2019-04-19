@@ -1,0 +1,12 @@
+$(document).ready(function(){
+	//跟隨版位
+	stickerAdPostion();
+});
+
+function stickerAdPostion()
+{
+	$("#adSticker").sticky({
+		topSpacing:0,
+		bottomSpacing:$(".notMiss").height() + 140
+	});
+}

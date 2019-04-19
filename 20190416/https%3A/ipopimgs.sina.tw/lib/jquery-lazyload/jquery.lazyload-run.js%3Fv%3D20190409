@@ -1,0 +1,6 @@
+$(function() {
+	// 圖片後載控制
+	$("img.lazy").lazyload({
+		effect : "fadeIn",
+	});
+});

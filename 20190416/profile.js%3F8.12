@@ -1,0 +1,759 @@
+(function(window, console, undefined) {
+
+    try {
+        top.location.toString();
+        if (top != self)
+            throw new Error('');
+    }
+    catch (e) {
+        top.location = location;
+    }
+
+    if (!console || !$.isFunction(console.log)) {
+        console = {
+            log:   function(){},
+            error: function(){}
+        };
+    }
+
+    window.Profile = {
+        rate: undefined,
+        gold: 0,
+        accPeriod: 0,
+        ratingPoints: 0,
+        goldForm: undefined,
+        designs: [
+            'camomile', 'cat', 'city', 'flower', 'glass', 'gun', 'heart2', 'lamp', 'map',
+            'rose', 'rose2', 'skull', 'smoke', 'stone', 'tea', 'wave', 'candle', 'cat2', 'dragon',
+            'flower2', 'green', 'heart', 'kanji', 'kanji2', 'love', 'ornament', 'sakura', 'skull2',
+            'star', 'star2', 'star3', 'strawberry', 'water', 'football'
+        ],
+
+        /*****************************
+         *
+         *  Global
+         *
+         *****************************/
+
+        init: function() {
+            Notifications.subscribe('CURRENCY_UPDATE', this.onCurrencyUpdated);
+            Notifications.subscribe('GOLD_PURCHASE', this.onGoldPurchased);
+            Notifications.subscribe('ONLINE_STATUS_NEW', function(response) {
+                console.log('Online statuses updated', response);
+                $('.online-status-indicator').trigger('online-status', [response.online]);
+                $('.online-status-indicator').trigger('recently-status', [response.wasOnline]);
+            });
+            $(window.document)
+                .on('online-status', '.online-status-indicator', function(e, ids) {
+                    var $this = $(this);
+                    if ($.inArray($this.data('uid'), ids) >= 0) {
+                        $this.toggleClass('on', true);
+                    }
+                });
+            $(window.document)
+                .on('recently-status', '.online-status-indicator', function(e, ids) {
+                    var $this = $(this);
+                    if ($.inArray($this.data('uid'), ids) >= 0) {
+                        $this.toggleClass('on-recently', true);
+                    }
+                });
+            Profile.updateOnlineStatuses();
+        },
+
+        updateOnlineStatuses: function() {
+            var ids = $('.online-status-indicator')
+                        .map(function() { return $(this).data('uid'); })
+                        .get();
+
+            if (ids.length > 0) {
+                Notifications.onConnect('online-status', function() {
+                    Notifications.checkOnlineStatus(ids);
+                });
+            }
+        },
+
+        onCurrencyUpdated: function (msg) {
+            console.log('Currencies updated', msg);
+
+            Profile.gold = msg.gold;
+
+            $('#user-gold').html(msg.gold);
+            $('#user-silver').html(msg.silver);
+        },
+
+        onGoldPurchased: function(msg) {
+            console.log('Gold purchased', msg);
+
+            if (window['yaCounter26214453']) {
+                window['yaCounter26214453'].reachGoal('GOAL_PURCHASE');
+            }
+        },
+
+        /*****************************
+         *
+         *  Profile
+         *
+         *****************************/
+
+        showProfileInfo: function(uid) {
+            $('#profile-info')
+                .empty()
+                .append('<img src="/public/img/ajax.gif" class="ajax" alt="" />')
+                .load('/profile/info/' + uid, function() {
+                    $('#protege-price').numeric();
+                });
+        },
+
+        savePersonalInfo: function() {
+            var $form = $("#save-personal-info-form");
+            if ($form) {
+                $.post($form.attr('action'), $form.serialize(), Profile.alertResponse);
+            }
+        },
+
+        toggleLevelGains: function() {
+            var $c = $('#user-gains-content');
+            var $l = $c.find('.content-wrapper');
+
+            if ($c.hasClass('opened')) {
+                $l.hide().empty();
+                $c.removeClass('opened');
+            }
+            else {
+                $l.load('/profile/gains', function() {
+                    $c.addClass('opened');
+                    $l.show();
+                });
+            }
+        },
+
+        showMenuContext: function(id) {
+            var $m = $(id).mouseleave(onMouseOut).show();
+            var onMouseOut = function() {
+                $m.hide();
+            };
+            $m.parent().mouseleave(onMouseOut);
+        },
+
+        /*****************************
+         *
+         *  User status
+         *
+         *****************************/
+
+        showStatusEditor: function() {
+            $.ajax({
+                url: '/profile/status',
+                type: 'get',
+                dataType: 'html',
+                complete: function(xhr) {
+                    $('#user-status').after(xhr.responseText).hide();
+                }
+            });
+        },
+
+        selectStatusIcon: function(icon) {
+            $('#status-edit-icon').val(icon);
+            $('#status-edit-preview-icon').attr('src', '/public/img/status/' + icon + '.png');
+        },
+
+        saveStatus: function() {
+            if ($('#status-edit-male').length) {
+                var sex = 0;
+                if ($('#status-edit-male').is(":checked"))
+                    sex += 1;
+                if ($('#status-edit-female').is(":checked"))
+                    sex += 2;
+
+                $('#status-edit-sex').val(sex > 0 ? sex : 3);
+            }
+
+            var form = $('#status-edit-form');
+            $.post(form.attr('action'), form.serialize(), Profile.alertResponse);
+        },
+
+        /*****************************
+         *
+         *  Messenger
+         *
+         *****************************/
+
+        showMessagePopup: function(uid) {
+            $.getJSON('/messenger/exists', { uid: uid }, function (result) {
+                if (result.success) {
+                    window.location.href = '/messenger/' + uid;
+                } else {
+                    Popup.showAjax('Отправить сообщение', '/messenger/popup', {uid: uid}, {width: 500});
+                }
+            });
+        },
+
+        sendMessage: function(uid) {
+            var data = {
+                uid: uid,
+                text: $('#send-message-text').val()
+            };
+            $.post('/messenger/send', data, Profile.alertResponse);
+        },
+
+        /*****************************
+         *
+         *  Gold purchase
+         *
+         *****************************/
+
+        showGoldPurchase: function() {
+            Popup.showAjax('Купить золото', '/payments/add', {}, {
+                width: 640
+            });
+        },
+
+        purchaseGold: function(gold) {
+            var selected = Popup.$('.billing-systems-list .system.selected');
+            if (!selected.length) {
+                Popup.alert('Ошибка', 'Выберите платежную систему');
+            }
+            else if (gold > 0) {
+                Profile.goldForm.find('input[data-amount]').val(gold);
+                Profile.goldForm.submit();
+            }
+        },
+
+        selectPaymentSystem: function(elem) {
+            Profile.goldForm = $('#billing-form');
+            var $elem = this.markPaymentSystem(elem);
+            Profile.goldForm.find('input[name=pid]').val($elem.data('pid'));
+        },
+
+        selectYandexSystem: function(elem, type) {
+            Profile.goldForm = $('#billing-yandex-form');
+            Profile.goldForm.find('input[name=paymentType]').val(type);
+            this.markPaymentSystem(elem);
+        },
+
+        markPaymentSystem: function(elem) {
+            Popup.$('.billing-systems-list .system').removeClass('selected');
+            return $(elem).addClass('selected');
+        },
+
+        /*****************************
+         *
+         *  Profile customizations
+         *
+         *****************************/
+
+        rotateDesigns: function() {
+            var current = $('html').data('design') || 'default';
+            var used = [];
+
+            $('.user-bgs-panel .bg-item:gt(0)').each(function(i, elem) {
+                var design;
+
+                do {
+                    var idx = Math.floor(Math.random() * Profile.designs.length);
+                    design = Profile.designs[idx];
+                }
+                while ($.inArray(design, used) > -1);
+
+                used.push(design);
+
+                $(elem).removeClass().addClass('bg-item ' + design)
+                    .toggleClass('selected', current === design)
+                    .data('design', design)
+                    .find('img')
+                        .attr('src', '/public/img/bg/' + design + '/s.png')
+            });
+        },
+
+        previewDesign: function($elem) {
+            var $designs = $('.user-bgs-panel');
+            $('.user-bgs-link.cancel').show();
+            $('.bg-item', $designs).removeClass('selected');
+
+            var id = $elem.addClass('selected').data('design');
+            var html = $('html').removeClass().data('design', id);
+
+            if (id != 'default') {
+                html.addClass('custom-design ' + id);
+            }
+        },
+
+        saveDesign: function() {
+            var design = $('html').data('design');
+            if (!design) return;
+
+            $.post('/profile/design/save ', {id: design}, Profile.alertResponse);
+        },
+
+        /*****************************
+         *
+         *  Gold exchange
+         *
+         *****************************/
+
+        showExchange: function() {
+            Popup.showAjax('Обмен золота на серебро', '/payments/gold/exchange', {}, {
+                width: 400,
+                onOpen: function() {
+                    Profile.$gold = $('#gold-exchange-gold')
+                        .numeric().keyup(Profile._updateSilver);
+                    $('#gold-exchange-inc').repeatedclick(function() {
+                        Profile.updateGold(1);
+                    });
+                    $('#gold-exchange-dec').repeatedclick(function() {
+                        Profile.updateGold(-1);
+                    });
+                }
+            });
+        },
+
+        updateGold: function(value) {
+            var gold = Profile.$gold.value() + value;
+            if (gold > 0 && gold <= Profile.gold)
+                Profile.$gold.value(gold);
+            Profile._updateSilver();
+        },
+
+        _updateSilver: function() {
+            var gold = Profile.$gold.value();
+            if (gold > 0) {
+                $('#gold-exchange-silver').value(gold * Profile.rate);
+            }
+        },
+
+        exchangeGold: function() {
+            var params = {
+                gold: Profile.$gold.value()
+            };
+            $.post('/payments/gold/exchange', params, function(result) {
+                if (result.success)
+                    window.location.reload();
+            });
+        },
+
+        /*****************************
+         *
+         *  Gold transfer
+         *
+         *****************************/
+
+        showGoldTransfer: function(uid) {
+            Popup.showAjax('Перевод золота', '/payments/gold/transfer', {uid:uid}, {
+                width: 400,
+                onOpen: function() {
+                    Profile.$gold = $('#gold-transfer-gold').numeric();
+                    $('#gold-transfer-inc').repeatedclick(function() {
+                        Profile.updateGold(1);
+                    });
+                    $('#gold-transfer-dec').repeatedclick(function() {
+                        Profile.updateGold(-1);
+                    });
+                }
+            });
+        },
+
+        transferGold: function() {
+            var params = {
+                uid:  $('#gold-transfer-gold').data('uid'),
+                gold: Profile.$gold.value()
+            };
+            $.post('/payments/gold/transfer', params, Profile.alertResponse);
+        },
+
+        /*****************************
+         *
+         *  Accounts
+         *
+         *****************************/
+
+        showBuyAccount: function() {
+            Popup.showAjax('Купить Элитный аккаунт', '/accounts/show', {}, {
+                width: 550
+            });
+        },
+
+        buyAccount: function(uid) {
+            var data = {
+                period: Profile.accPeriod
+            };
+            if (uid !== undefined) {
+                data.uid = uid;
+                $.post('/accounts/present', data, Profile.alertResponse);
+            }
+            else {
+                $.post('/accounts/buy', data, Profile.alertResponse);
+            }
+        },
+
+        showPresentAccount: function(uid, name) {
+            var data = {
+                uid: uid
+            };
+            var title = name ? 'Аккаунт для ' + name : 'Подарить аккаунт';
+            Popup.showAjax(title, '/accounts/present', data, {
+                width: 550
+            });
+        },
+
+        /*****************************
+         *
+         *  Rating
+         *
+         *****************************/
+
+        showBuyRating: function() {
+            Popup.showAjax('Покупка рейтинга', '/user/rating', {}, {
+                width: 635
+            });
+        },
+
+        buyRating: function() {
+            $.post('/user/rating', { rating: Profile.ratingPoints }, function(result) {
+                if (result.success) {
+                    Profile.showBuyRating();
+                    Popup.alert(result.title, result.text);
+                }
+                else if (result.title)
+                    Profile.alertResponse(result, false);
+            });
+        },
+
+        /*****************************
+         *
+         *  Friends
+         *
+         *****************************/
+
+        showFriendRequest: function(uid) {
+            Popup.showAjax('Добавление в друзья', '/friends/confirm/add', {id:uid}, {width:500});
+        },
+
+        showFriendRemove: function(uid) {
+            Popup.showAjax('Удаление из друзей', '/friends/confirm/remove', {id:uid}, {width:500});
+        },
+
+        sendFriendRequest: function(id) {
+            $.post('/friends/request', {id: id}, Profile.alertResponse);
+        },
+
+        sendFriendRemove: function(id) {
+            $.post('/friends/broke', {id: id}, Profile.alertResponse);
+        },
+
+        /*****************************
+         *
+         *  Favorites
+         *
+         *****************************/
+
+        showAddFavorites: function(uid) {
+            Popup.showAjax('Добавление в Избранное', '/favorites/confirm/add', {id: uid}, {width:500});
+        },
+
+        showRemoveFavorites: function(uid) {
+            Popup.showAjax('Удалить из Избранное', '/favorites/confirm/remove', {id: uid}, {width:500});
+        },
+
+        sendAddFavorites: function(uid) {
+            $.post('/favorites/add', {id: uid}, Profile.alertResponse);
+        },
+
+        sendRemoveFavorites: function(uid) {
+            $.post('/favorites/remove', {id: uid}, Profile.successResponse);
+        },
+
+        /*****************************
+         *
+         *  Abuses
+         *
+         *****************************/
+
+        addBlackList: function(uid) {
+            var data = {
+                uid: uid
+            };
+            $.post('/blacklist/add', data, Profile.alertResponse);
+        },
+
+        reportUser: function(uid) {
+            var data = {
+                uid: uid
+            };
+            $.post('/report/user', data, Profile.alertResponse);
+        },
+
+        /*****************************
+         *
+         *  Gifts
+         *
+         *****************************/
+
+        showBuyGifts: function(uid, room, name) {
+            var data = {
+                uid: uid,
+                room: room
+            };
+            var title = name ? 'Подарок для ' + name : 'Выберите подарок';
+            Popup.showAjax(title, '/gifts/types', data, {
+                width: 630
+            });
+        },
+
+        showProfileGifts: function(uid, last) {
+            var url = '/gifts/profile/' + uid;
+            if (last !== undefined) {
+                url += '?last=' + !!last;
+            }
+
+            $('#profile-gifts')
+                .empty()
+                .append('<img src="/public/img/ajax-wide.gif" class="ajax" alt="" />')
+                .load(url);
+        },
+
+        selectGiftType: function(gift, img) {
+            Popup.$('.gifts-list .gift').removeClass('selected');
+            $('#gift-' + gift).addClass('selected');
+            $('#gift-chosen')
+                .data('gid', gift)
+                .attr('src', '/public/img/gifts/' + img + '.png');
+            $('#gifts-text-input').focus();
+        },
+
+        buyGift: function() {
+            var $gift = $('#gift-chosen');
+
+            if ($gift.data('gid') > 0) {
+                var data = {
+                    id: $gift.data('gid'),
+                    uid: $gift.data('uid'),
+                    room: $gift.data('room'),
+                    text: $('#gifts-text-input').val()
+                };
+                $.post('/gifts/buy', data, function(result) {
+                    if (result.success) {
+                        Profile.showProfileGifts(data.uid, true);
+                        Popup.close();
+                        Popup.alert('Подарок отправлен', '');
+                    }
+                    else {
+                        Profile.alertResponse(result, true);
+                    }
+                });
+            }
+            else {
+                Popup.alert('Ошибка', 'Выберите подарок');
+            }
+        },
+
+        removeGift: function(gift) {
+            Popup.confirm('Удалить подарок?', function() {
+                $.post('/gifts/remove', {gid: gift}, Profile.alertResponse);
+            },
+            { destructive: true });
+        },
+
+        /*****************************
+         *
+         *  Protege
+         *
+         *****************************/
+
+        buyProtege: function(uid) {
+            var data = {
+                uid:   uid,
+                price: $('#protege-price').value()
+            };
+
+            $.post('/protege/buy', data, function(result) {
+                Popup.close();
+                if (result.success)
+                    Profile.showProfileInfo(uid);
+                else
+                    Profile.alertResponse(result, false);
+            });
+        },
+
+        /*****************************
+         *
+         *  Avatars
+         *
+         *****************************/
+
+        showSelectAvatar: function() {
+            $.getJSON('/album/getAll', function(result) {
+                if (!$.isArray(result) || !result.length) {
+                    Popup.alert('У Вас нет ни одной фотографии', 'Загрузите несколько фотографий к себе в альбом');
+                    return;
+                }
+
+                Resizer.reset();
+                $.each(result, function(i, el) {
+                    Resizer.addFile(el.id, el.thumb, el.album, el.server);
+                });
+                Resizer.show(true);
+            });
+        },
+
+        /*****************************
+         *
+         *  Referrals
+         *
+         *****************************/
+
+        showReferralPopup: function() {
+            Popup.showAjax('Реферальная программа', '/profile/referrals/popup', {}, {width: 371});
+        },
+
+        /*****************************
+         *
+         *  On-load handlers
+         *
+         *****************************/
+
+        startTimers: function() {
+            var $counters = $('.js-action.countdown');
+            if (!$counters.length) return;
+
+            setInterval(function() {
+                $counters.each(function(i, obj) {
+                    var $obj = $(obj);
+
+                    var result = '';
+                    var secs = parseInt($obj.data('secs'));
+
+                    if (--secs < 0) {
+                        $obj.html('не осталось');
+                        return;
+                    }
+
+                    $obj.data('secs', secs);
+
+                    // hours
+                    var hours = parseInt(secs / 3600);
+                    secs = secs % 3600;
+                    if (hours > 0) {
+                        result += hours + ' ч. ';
+                    }
+
+                    // minutes
+                    var mins = parseInt(secs / 60);
+                    secs = secs % 60;
+                    if (mins > 0) {
+                        result += padWithZero(mins) + ' м. ';
+                    }
+
+                    $obj.html(result + padWithZero(secs) + ' с.');
+                });
+            }, 1000);
+        },
+
+        /*****************************
+         *
+         *  Common
+         *
+         *****************************/
+
+        help: function(title, help, width) {
+            Popup.showAjax(title, '/help/' + help, {}, {width: 500});
+        },
+
+        underConstruction: function() {
+            Popup.alert('В разработке', 'Данный функционал находится в разработке и будет доступен в ближайшее время');
+        },
+
+        vipRequired: function(text) {
+            Popup.show('Требуется Элитный аккаунт', $('#popup-no-extended-account'), {
+                width: 350,
+                onOpen: function() {
+                    if (text !== undefined)
+                        Popup.$('.text').text(text);
+                }
+            });
+        },
+
+        fillInfo: function() {
+            Popup.alert('Расскажите сперва о себе', 'Установите фотографию на аватарку, а также укажите пол и возраст');
+        },
+
+        showFillProfilePopup: function () {
+            Popup.show('Четыре шага к общению', $('#fill-info-popup'), {width: 411});
+        },
+
+        pleaseRegister: function() {
+            Popup.show('Требуется регистрация', $('#popup-quick-register'), {
+                width: 500
+            });
+        },
+
+        hideBlock: function(id) {
+            $.post('/profile/hide-block', {id:id}, function() {
+                $('#' + id).hide();
+            });
+        },
+
+        alertResponse: function(result, closePopup) {
+            if (closePopup !== false)
+                Popup.close();
+            if (result.error) {
+                Popup.alert('Ошибка', result.error);
+            }
+            else if (result.title) {
+                if (result.code > 0) {
+                    if (result.code === 4) {
+                        Profile.pleaseRegister();
+                        return;
+                    } else if (result.code === 999) {
+                        window.location.href = window.location.href;
+                        return;
+                    }
+
+                    var id = result.code === 1 ? '#popup-not-enough-silver'
+                           : result.code === 2 ? '#popup-not-enough-gold'
+                           : result.code === 3 ? '#popup-no-extended-account'
+                           : '';
+                    if (id) {
+                        Popup.show(result.title, $(id), {
+                            width: 350,
+                            onOpen: function() {
+                                if (result.text)
+                                    Popup.$('.text').text(result.text);
+                            }
+                        });
+                        return;
+                    }
+                }
+
+                Popup.alert(result.title, result.text);
+            }
+        },
+
+        successResponse: function(result) {
+            Popup.close();
+            if (result.error) {
+                Popup.alert('Ошибка', result.error);
+            }
+            else if (result.success) {
+                window.location.reload();
+            }
+        },
+
+        checkTextLimit: function($el, limit, label) {
+            var value = $el.val();
+            if (value.length > limit) {
+                $el.val(value.substring(0, limit));
+            }
+            else if (label && label.length) {
+                label.text(limit - value.length);
+            }
+        }
+
+    };
+
+    $(Profile.startTimers);
+
+    window.padWithZero = function(number) {
+        return number < 10 ? '0' + number : number;
+    };
+
+})(window, window.console);

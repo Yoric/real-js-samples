@@ -1,0 +1,3 @@
+window.scriptsLoaded = window.scriptsLoaded || {}; window.scriptProcessStart = window.scriptProcessStart || {}; window.scriptProcessStart['owa.SurfaceActions.mail.js'] = (new Date()).getTime();(window.$wj=window.$wj||[]).push([[237],{7180:function(n,t,i){"use strict";i.r(t);var e=i(2442),c=i(4),d=Object(c.action)("setAddinOptionSurfaceItems")(function(n){e.a.addinOptionSurfaceItems=n});i.d(t,"setAddinOptionSurfaceItems",function(){return d})}}]);
+//# sourceMappingURL=owa.SurfaceActions.mail.js.map
+window.scriptsLoaded['owa.SurfaceActions.mail.js'] = 1; window.scriptProcessEnd = window.scriptProcessEnd || {}; window.scriptProcessEnd['owa.SurfaceActions.mail.js'] = (new Date()).getTime();

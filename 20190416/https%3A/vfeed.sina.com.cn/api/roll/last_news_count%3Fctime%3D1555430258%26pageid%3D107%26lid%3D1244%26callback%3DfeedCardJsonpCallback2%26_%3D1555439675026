@@ -1,0 +1,1 @@
+try{feedCardJsonpCallback2({"result":{"status":{"code":0,"msg":"succ"},"timestamp":"Wed Apr 17 02:35:36 +0800 2019","total":0,"ctime":1555430258,"lid":1244,"rtime":1555439736,"data":[]}});}catch(e){};

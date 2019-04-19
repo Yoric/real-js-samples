@@ -1,0 +1,105 @@
+var pathname = location.pathname;
+var pathname_arr = pathname.split('/');
+var article_id = pathname_arr[pathname_arr.length - 1];
+
+function setCookie(cname, cvalue, exunmber, extype) {
+	var d = new Date();
+	// 單位是 milliseconds (千份之一秒)
+	// console.log('expires ::' + (d.getTime() + (exunmber * 24 * 60 * 60 * 1000)));
+	// d.setTime(d.getTime() + (exunmber * 24 * 60 * 60 * 1000));
+	if(extype == 'year')
+	{
+		d.setTime(d.getTime() + (1000 * 60 * 60 * 24 * 365 * exunmber));
+	}
+	else if(extype == 'month')
+	{
+		d.setTime(d.getTime() + (1000 * 60 * 60 * 24 * 30 * exunmber));
+	}
+	else if(extype == 'day')
+	{
+		d.setTime(d.getTime() + (1000 * 60 * 60 * 24 * exunmber));
+	}
+	else
+	{
+		d.setTime(d.getTime() + 1000 * 60 * exunmber);
+	}
+
+	var expires = "expires=" + d.toGMTString();
+	document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+}
+
+function getCookie(cname)
+{
+	var name = cname + "=";
+	var ca = document.cookie.split(';');
+	for(var i = 0; i < ca.length; i++)
+	{
+		var c = ca[i];
+		while (c.charAt(0) == ' ')
+		{
+			c = c.substring(1);
+		}
+
+		if (c.indexOf(name) == 0)
+		{
+			return c.substring(name.length, c.length);
+		}
+	}
+
+	return '';
+}
+
+function checkCookie(cookieName)
+{
+	if(!getCookie(cookieName))
+	{
+		return false;
+	}
+	return true;
+}
+
+function getCookieName()
+{
+	if (checkURLParameter())
+	{
+		var host = location.host.replace(/m./, "");	// 因為ipop手機版有多一個「m.」所以先將取得的網址的「m.」取代掉。
+		var host_arr = host.split('.');
+		var channel_name = host_arr[0];
+
+		return "sina_analytics_" + channel_name + '_' +  getURLParameter('cf') + "_" + getURLParameter('u') + "_" + article_id;
+	}
+}
+
+function getURLParameter(name)
+{
+	return decodeURIComponent((new RegExp('[?|&]' + name + '=' + '([^&;]+?)(&|#|;|$)').exec(location.search) || [null, ''])[1].replace(/\+/g, '%20')) || null;
+}
+
+function checkURLParameter()
+{
+	if (!getURLParameter('cf') || !getURLParameter('u')){
+		return false;
+	}
+	return true;
+}
+
+if (checkURLParameter())
+{
+	var cookieName = getCookieName();
+	// 判斷是否取得到 cookie name
+	if (cookieName)
+	{
+		if (!checkCookie(cookieName))
+		{
+			// 設定 pv cookie (cookie 名稱, cookie 值, cookie 有效時間, cookie 有效期限類別，如：日(day)、月(month)、年(year))
+			setCookie(cookieName, article_id, 30, 'min');
+			var params = location.search.substr(1);
+			params = "url=" +  encodeURIComponent(location.protocol + "//" +  location.hostname +  location.pathname) + "&" + params;
+			var img = document.createElement("img");
+			img.id = 'sina_analytics';
+			img.width = 1;
+			img.height = 1;
+			img.src = window.location.protocol + "//report.sina.com.tw/analytics?" + params;
+		}
+	}
+}

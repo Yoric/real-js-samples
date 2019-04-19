@@ -1,0 +1,1 @@
+init_video_info({"width":1200,"isai":0,"dm":2,"arid":6,"pic170110":"http://bd4944a8.vrs.imgcdn.sohucs.com/img/o_zoom,w_170,h_110/video_hor_125989783.jpg","height":548,"voteId":"","voteRegion":1,"fee":0,"early":1});

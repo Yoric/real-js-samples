@@ -1,0 +1,275 @@
+(function(){
+var browser = {
+    ie6: function() {
+        return ((window.XMLHttpRequest == undefined) && (ActiveXObject != undefined))
+    },
+    getWindow: function() {
+        var myHeight = 0;
+        var myWidth = 0;
+        if (typeof(window.innerWidth) == 'number') {
+            myHeight = window.innerHeight;
+            myWidth = window.innerWidth
+        } else if (document.documentElement) {
+            myHeight = document.documentElement.clientHeight;
+            myWidth = document.documentElement.clientWidth
+        } else if (document.body) {
+            myHeight = document.body.clientHeight;
+            myWidth = document.body.clientWidth
+        }
+        return {
+            'height': myHeight,
+            'width': myWidth
+        }
+    },
+    getScroll: function() {
+        var myHeight = 0;
+        var myWidth = 0;
+        if (typeof(window.pageYOffset) == 'number') {
+            myHeight = window.pageYOffset;
+            myWidth = window.pageXOffset
+        } else if (document.documentElement) {
+            myHeight = document.documentElement.scrollTop;
+            myWidth = document.documentElement.scrollLeft
+        } else if (document.body) {
+            myHeight = document.body.scrollTop;
+            myWidth = document.body.scrollLeft
+        }
+        return {
+            'height': myHeight,
+            'width': myWidth
+        }
+    },
+    getDocWidth: function(D) {
+        if (!D) var D = document;
+        return Math.max(Math.max(D.body.scrollWidth, D.documentElement.scrollWidth), Math.max(D.body.offsetWidth, D.documentElement.offsetWidth), Math.max(D.body.clientWidth, D.documentElement.clientWidth))
+    },
+    getDocHeight: function(D) {
+        if (!D) var D = document;
+        return Math.max(Math.max(D.body.scrollHeight, D.documentElement.scrollHeight), Math.max(D.body.offsetHeight, D.documentElement.offsetHeight), Math.max(D.body.clientHeight, D.documentElement.clientHeight))
+    }
+};
+var dom = {
+    ID: function(id) {
+        var type = typeof(id);
+        if (type == 'object') return id;
+        if (type == 'string') return document.getElementById(id);
+        return null
+    },
+    insertHtml: function(html) {
+        var frag = document.createDocumentFragment();
+        var div = document.createElement("div");
+        div.innerHTML = html;
+        for (var i = 0,
+        ii = div.childNodes.length; i < ii; i++) {
+            frag.appendChild(div.childNodes[i])
+        }
+        document.body.insertBefore(frag, document.body.firstChild)
+    }
+};
+var myEvent = {
+    add: function(element, type, handler) {
+        var ele = dom.ID(element);
+        if (!ele) return;
+        if (ele.addEventListener) ele.addEventListener(type, handler, false);
+        else if (ele.attachEvent) ele.attachEvent("on" + type, handler);
+        else ele["on" + type] = handler
+    },
+    remove: function(element, type, handler) {
+        var ele = dom.ID(element);
+        if (!ele) return;
+        if (ele.removeEventListener) ele.removeEventListener(type, handler, false);
+        else if (ele.detachEvent) ele.detachEvent("on" + type, handler);
+        else ele["on" + type] = null
+    }
+};
+var ie6Max=1200;
+var position = {
+    rightCenter: function(id) {
+        var id = dom.ID(id);
+        var ie6 = browser.ie6();
+        var win = browser.getWindow();
+        var ele = {
+            'height': id.clientHeight,
+            'width': id.clientWidth
+        };
+        if (ie6) {
+            var scrollBar = browser.getScroll()
+        } else {
+            var scrollBar = {
+                'height': 0,
+                'width': 0
+            };
+            id.style.position = 'fixed'
+        }
+        //ele.top = parseInt((win.height - ele.height) / 2 + scrollBar.height);
+        ele.top = AD_TOP + scrollBar.height;
+         if(ie6 && ele.top>ie6Max){
+             return;
+         }  
+        id.style.top = ele.top + 'px';
+        id.style.right = '3px'
+    },
+    floatRightCenter: function(id) {
+        position.rightCenter(id);
+        var fun = function() {
+            position.rightCenter(id)
+        };
+        if (browser.ie6()) {
+            myEvent.add(window, 'scroll', fun);
+            //myEvent.add(window, 'resize', fun)
+        } else {
+            myEvent.add(window, 'resize', fun)
+        }
+    },
+    leftCenter: function(id) {
+        var id = dom.ID(id);
+        var ie6 = browser.ie6();
+        var win = browser.getWindow();
+        var ele = {
+            'height': id.clientHeight,
+            'width': id.clientWidth
+        };
+        if (ie6) {
+            var scrollBar = browser.getScroll()
+        } else {
+            var scrollBar = {
+                'height': 0,
+                'width': 0
+            };
+            id.style.position = 'fixed'
+        }
+        //ele.top = parseInt((win.height - ele.height) / 2 + scrollBar.height);
+        ele.top = AD_TOP + scrollBar.height;
+          if(ie6 && ele.top>ie6Max){
+             return;
+         }  
+
+        id.style.top = ele.top + 'px';
+        id.style.left = '3px'
+    },
+    floatLeftCenter: function(id) {
+        position.leftCenter(id);
+        var fun = function() {
+            position.leftCenter(id)
+        };
+        if (browser.ie6()) {
+            myEvent.add(window, 'scroll', fun);
+            //myEvent.add(window, 'resize', fun)
+        } else {
+            myEvent.add(window, 'resize', fun)
+        }
+    }
+};
+    var main_body_width = 1040;
+    var default_width=140;
+    var ad_width=default_width;
+    var AD_TOP=60;
+    var isShow=false;
+ function computeAdWidth(){
+            ad_width = ($(window).width()-main_body_width)/2;
+            if(ad_width>250){
+                ad_width=250;
+            }
+ }
+ $(window).resize(function(){
+     
+    computeAdWidth(); 
+    if(ad_width<50){
+        $("#ad_left").hide();
+        $("#ad_right").hide();
+    }else{
+        if($("#ad_left").length>0){
+                $("#ad_left").show();
+                $("#ad_right").show();
+                $("#ad_left").find("img").width(ad_width);
+                $("#ad_right").find("img").width(ad_width);     
+        }else{
+            addAd();
+        }
+      
+    }
+     
+ })
+ function addAd(){
+     var pid= "", pidparam = "";
+     if((pid=window.location.search.substr(1).match("(^|&)pid=([^&]*)(&|$)")) != null){
+         pidparam = pid[2];
+     }
+     if(f == 'null' || f == '' || f == undefined){
+    	 f = '0';
+     }
+	var fpid = ImageUtil.getPidorHost("pid");
+	var host = ImageUtil.getPidorHost("host");
+     var serverurl='http://game.galaxy.brand.sogou.com/bycouplet?pid='+fpid+'&f='+f+'&fpid='+fpid+'&host='+host+'&pos=20023';
+     var fquery = getUrlParameterF('fquery');
+     if (!fquery) fquery = '';
+     serverurl += '&fquery=' + fquery;
+     Util.getDataJsonP(serverurl,function(result){
+          if(result && result.data && result.data.datalist){
+                 var obj = result.data.datalist[0];
+                 /*
+                 if(ad_width<0){
+                     ad_width=default_width;
+                 }*/
+                 ad_left(obj.clickurl,obj.leftimageurl);
+                 ad_right(obj.clickurl,obj.rightimageurl);
+          }
+      });
+ }
+ $(function(){
+    computeAdWidth(); 
+    if(ad_width>50){
+        addAd();
+    }
+
+ })
+ function getUrlParameterF(sParam){
+     var sPageURL = window.location.search.substring(1);
+     var sURLVariables = sPageURL.split('&');
+     for (var i = 0; i < sURLVariables.length; i++) 
+     {
+         var sParameterName = sURLVariables[i].split('=');
+         if (sParameterName[0] == sParam) 
+         {
+             return sParameterName[1];
+         }
+     }
+ };
+
+function ad_left(left_ad_url,leftPicUrl) {
+    if(left_ad_url==null || leftPicUrl==null){
+        return;
+    }
+    if(leftPicUrl.indexOf("http://")>-1){
+    	leftPicUrl = leftPicUrl.replace("http://","https://");
+    }
+    var html;
+    html = '<DIV id=\'ad_left\' style=\'Z-INDEX: 10; left: 0px; position:fixed;_position:absolute; TOP: 124px;\'><span style=\' position:absolute; top:2px; right:2px;display:block; border:1px solid #fff; width:35px; height:18px; color:#fff; cursor:pointer;line-height:18px; text-align:center; font-weight:bold\' onClick=\'javascript:close_left_ad()\' >X</span><a uigs="leftadcl" onclick="return sogou_adclk(event,this)" href=\''+left_ad_url+'\' target=\'_blank\'><img src=\''+leftPicUrl+'\' style="width:'+ad_width+'px" border=\'0\'></a></DIV>';
+    dom.insertHtml(html);
+    position.floatLeftCenter('ad_left');
+}
+function ad_right(right_ad_url,rightPicUrl) {
+
+   if(right_ad_url==null || rightPicUrl==null){
+        return;
+    }
+    if(rightPicUrl.indexOf("http://")>-1){
+    	rightPicUrl = rightPicUrl.replace("http://","https://");
+    }
+ 
+    var html;
+    html = '<DIV id=\'ad_right\' style=\'Z-INDEX: 10; right: 0px; position:fixed;_position:absolute; TOP: 124px;\'><a uigs="rightadcl" onclick="return sogou_adclk(event,this)" href=\''+right_ad_url+'\' target=\'_blank\'><img src='+rightPicUrl+' style="width:'+ad_width+'px" border=\'0\'></a></DIV>';
+    dom.insertHtml(html);
+    position.floatRightCenter('ad_right');
+}
+
+	
+})()
+function close_left_ad(){
+	$("#ad_left").hide();
+	$("#ad_right").hide();
+	uigsPB("close_lr_ad");
+}
+
+
+

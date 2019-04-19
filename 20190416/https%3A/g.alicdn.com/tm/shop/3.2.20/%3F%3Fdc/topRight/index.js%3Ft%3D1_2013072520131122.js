@@ -1,0 +1,1 @@
+KISSY.add("shop/dc/topRight/index",function(e,t){return{"initView":function(e,a,n,i){var r=this;n.onModCallback("shop/dc/global/",function(a){a.onData(function(n){var i=n&&n.topRight;i?(_CTKa87f(31,"dc.topright.init","dc.mod.init"),a.html(e,i),_CTKa87f(31,"dc.topright.show","dc.topright.init")):t.hide(e)})}),i(r)}}},{"requires":["dom"]});

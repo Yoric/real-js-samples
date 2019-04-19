@@ -1,0 +1,297 @@
+var _gaq = _gaq || [],
+	_hmt = _hmt || [];
+!function(a, b, c) {
+
+	function r(a) {
+		return b.getElementById(a)
+	}
+
+	var dy_trace = window.dy_trace || function(typ, desc) {
+		var a, isMini = false,
+			isdown = false;
+		desc = typeof desc === 'string' && desc.length > 0 ? desc : '';
+
+		if (typ == 'full') {
+			isdown = true;
+			a = ['client', 'download', desc || '完整客户端'];
+		} else if (typ == 'mini') {
+			isMini = true;
+			isdown = true;
+			a = ['client', 'download', desc || '迷你客户端'];
+		} else if (typeof typ === 'string' && typ.length > 0) {
+			a = ['other', 'other', typ];
+		} else if (Object.prototype.toString.call(typ) === '[object Array]' && typ.length === 3) {
+			a = typ;
+		} else {
+			return '无效值';
+		}
+
+		var b = ['_trackEvent'].concat(a);
+		_hmt.push(b);
+		_gaq.push(b);
+
+	}
+
+	
+
+	function t(b, c, d) {
+		b.addEventListener ? b.addEventListener(c, d, !1) : b.attachEvent("on" + c, function(c) {
+			d.call(b, c || a.event)
+		})
+	}
+
+	function B(a, b, c) {
+		for (var f, g, d = a.length, e = "", h = 0; d > h; h++) f = a[h].split(","), g = '<a href="{1}' + (c ? "" : "?from=topbar") + '" target="_blank"  rel="noopener noreferrer" title="{3}" {2}>{0}</a>', g = g.replace(/\{(0|3)\}/g, f[0]).replace("{1}", f[1].replace(/^\//, q.url)).replace("{2}", f[2] || ""), b && (g = "<" + b + ">" + g + "</" + b + ">"), e += g;
+		return e
+	}
+
+	var d = {
+			site: "",
+			bottom: !0,
+			bID: "DY_COMMON_FOOT",
+			debug: !1,
+			down: "", //自定义的下载链接
+			bg: "dark", //自定义底部logo，注：bg => background,包含值dark、light、old,默认为dark
+			fn: [] //在文件载入完成时调用
+		},
+		e = a.DY_COMMON_NAV_CONFIG;
+
+	if (e)
+		for (var f in e) d[f] = e[f];
+	for (var i, j, g = b.getElementsByTagName("script"), h = g.length, k = 0; h > k; k++)
+		if (j = g[k].src, j && (j.indexOf(".duoyi.com/js/dy_common_foot.js") > 0 || d.debug && -1 !== j.indexOf("dy_common_foot.js"))) {
+			i = j;
+			break
+		}
+	if (i && i.indexOf("?") > 0){
+		for (var n, l = i.slice(i.indexOf("?") + 1).split("&"), m = l.length, o = 0; m > o; o++) n = l[o].split("="), d[n[0]] = n[1];
+	}
+
+	var p = {
+			product: d.site || a.location.href.replace(/^https?:\/\/(.*)\.duoyi\.com.*$/, "$1"),
+			"bei":"粤网文〔2016〕4915-1182号",
+			"icp":"ICP粤B2-20060723",
+			my: {
+				url: "http://my.duoyi.com/",
+				service: [],
+				down: "my_ver",
+				bei:"文网游备字：[2013]C-RPG034号"
+			},
+			mx: {
+				url: "https://mx.duoyi.com/",
+				service: ["客户服务,http://kf.duoyi.com/mx/"],
+				down: "mx_ver",
+				bei:"文网游备字：[2009]025号"
+			},
+			dw: {
+				url: "http://dw.duoyi.com/",
+				service: ["客户服务,http://kf.duoyi.com/dw/Login.aspx"],
+				down: "dw_ver",
+				bei:"文网游备字：[2011]C-SLG001号"
+			},
+			sw: {
+				url: "http://sw.duoyi.com/",
+				service: ["客户服务,http://kf.duoyi.com/sw/Login.aspx"],
+				down: "sw_ver",
+				bei:"文网游备字：[2016]C-RPG0798号"
+			},
+			xw: {
+				url: "http://xw.duoyi.com/",
+				service: [],
+				down: "xw_ver",
+				bei:""
+			},
+			www: {
+				url: "https://www.duoyi.com/",
+				service: [],
+				down: "",
+				bei:""
+			},
+			mars: {
+				url: "http://mars.duoyi.com/",
+				service: [],
+				down: "mars_ver",
+				bei:""
+			},
+			swz: {
+				url: "http://swz.duoyi.com/",
+				service: [],
+				down: "swz_ver",
+				bei:"文网游备字：[2015]C-SLG0359号"
+			},
+			swsy: {
+				url: "http://swsy.duoyi.com/",
+				service: [],
+				down: "",
+				bei:"文网游备字：[2016]M-RPG0436号"
+			},
+			jl: {
+				url: "http://jl.duoyi.com/",
+				service: ["客户服务,http://kf.duoyi.com/jl/"],
+				down: "jl_ver",
+				bei:""
+			},
+			mx2: {
+				url: "http://mx2.duoyi.com/",
+				service: ["客户服务,http://kf.duoyi.com/mx2/"],
+				down: "mx2_ver",
+				bei:"文网游备字：[2015]C-RPG0355号"
+			},
+			mxsy: {
+				url: "https://mxsy.duoyi.com/",
+				service: [],
+				down: "",
+				bei:"文网游备字：[2015]M-RPG0452号"
+			},
+			zs: {
+				url: "http://zs.duoyi.com/",
+				service: [],
+				down: "",
+				bei:"文网游备字：[2015]C-RPG0358号"
+			},
+			kd: {
+				url: "http://kd.duoyi.com/",
+				service: [],
+				down: "",
+				bei:"文网游备字：[2016]M-SLG0433号"
+			},
+			d10: {
+				url: "http://d10.duoyi.com/",
+				service: [],
+				down: "d10_ver",
+				bei:"文网游备字：[2016]C-CSG5787号"
+			},
+			cm: {
+				url: "http://cm.duoyi.com/",
+				service: [],
+				down: "",
+				bei:"文网游备字：[2016]M-SLG8711号"
+			},
+			mx3d: {
+				url: "https://mx3d.duoyi.com/",
+				service: [],
+				down: "",
+				bei:"文网游备字：[2017]M-RPG0380号"
+			},
+			yh: {
+				url: "https://yh.duoyi.com/",
+				service: [],
+				down: "yh_ver",
+				bei:"文网游备字：[2017]C-RPG0003号"
+			},
+			cf: {
+				url: "http://cf.duoyi.com/",
+				service: [],
+				down: "cf_ver",
+				bei:""
+			},
+			csm: {
+				url: "https://csm.duoyi.com/",
+				service: [],
+				down: "csm_ver",
+				bei:"文网游进字：[2017]0123号"
+			},
+			szwy: {
+				url: "https://szwy.duoyi.com/",
+				service: [],
+				down: "szwy_ver",
+				bei:"文网游备字：[2017]M-RPG1331号"
+			},
+			cjyx: {
+				url: "http://cjyx.duoyi.com/",
+				service: [],
+				down: "cjyx_ver",
+				bei:""
+			},
+			sw3: {
+				url: "https://sw3.duoyi.com/",
+				service: [],
+				down: "sw3_ver",
+				bei:"文网游备字：[2017]C-RPG0076号"
+			},
+			sw3sy: {
+				url: "https://sw3sy.duoyi.com/",
+				service: [],
+				down: "",
+				bei:"文网游备字：[2017]M-RPG1727号"
+			},
+			csmsy: {
+				url: "https://csmsy.duoyi.com/",
+				service: [],
+				down: "",
+				bei:"文网游进字：[2018]0052号"
+			},
+			dwsy: {
+				url: "https://dwsy.duoyi.com/",
+				service: [],
+				down: "",
+				bei:"文网文：粤网文〔2018〕7303-2626号"
+			},
+			jz: {
+				url: "https://jz.duoyi.com/",
+				service: [],
+				down: "",
+				bei:""
+			},
+			csmol: {
+				url: "https://csmol.duoyi.com/",
+				service: [],
+				down: "",
+				bei:""
+			},
+			th: {
+				url: "https://th.duoyi.com/",
+				service: [],
+				down: "",
+				bei:"文网游备字：[2018]M-RPG1061号"
+			},
+			akx: {
+				url: "https://akx.duoyi.com/",
+				service: [],
+				down: "",
+				bei:""
+			},
+			shz: {
+				url: "https://shz.duoyi.com/",
+				service: [],
+				down: "",
+				bei:""
+			},
+			s2: {
+				url: "https://s2.duoyi.com/",
+				service: [],
+				down: "",
+				bei:""
+			},
+			daka: {
+				url: "https://daka.duoyi.com/",
+				service: [],
+				down: "",
+				bei:""
+			},
+			xmx: {
+				url: "https://xmx.duoyi.com/",
+				service: [],
+				down: "",
+				bei:""
+			}
+		},
+		q = p[p.product];
+	if (q) {
+		var v = null;
+        
+			z = '<div class="foot_logo"><a class="logo-img" target="_blank"  rel="noopener noreferrer" href="http://www.duoyi.com/">多益网络</a></div><div class="copyright"><p><a target="_blank"  rel="noopener noreferrer" href="http://hr.duoyi.com/">\u62db\u8058\u4fe1\u606f</a>-<a target="_blank"  rel="noopener noreferrer" href="http://www.duoyi.com/dycommerce/ch/business.shtm">\u5546\u52a1\u5408\u4f5c</a>-{service}<a target="_blank"  rel="noopener noreferrer" href="http://www.duoyi.com/">\u591a\u76ca\u6e38\u620f</a></p><p>\u5e7f\u5dde\u591a\u76ca\u7f51\u7edc\u80a1\u4efd\u6709\u9650\u516c\u53f8 <a target="_blank"  rel="noopener noreferrer" href="http://www.miitbeian.gov.cn/">'+p.icp+'</a></p><p>'+(q.bei ? q.bei : "文网文："+p.bei)+'</p></div><style type="text/css">#' + d.bID + "{width:1000px;margin:0 auto;height:91px;}.logo-img{font-size:0;}.foot_logo{ width:280px;height:46px; margin:30px 0 0 242px; float:left; display:inline; }" + '.foot_logo a{background: url("//img.duoyi.com/img/logo' + d.bg + '.png") no-repeat 0 0;display:block;width:100%;height:100%; cursor:pointer;_filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src="//img.duoyi.com/img/logo' + d.bg + '.png",sizingMethod="crop");  _background:none}' + ".copyright{ width:300px; float:left; margin:30px 0 0 20px; font-size:12px; line-height:1.5;}" + ".copyright,.copyright a{color:#" + ("light" == d.bg ? "666" : "eee") + ";}" + ".copyright p{text-align:left;margin:0;padding:0;}" + ".copyright a{text-decoration:none;}" + ".copyright a:hover{ color:#F00; text-decoration:underline;}" + "</style>",
+			A = "<ul>{nav}</ul>";
+
+		if (r(d.bID) && d.bottom && (r(d.bID).innerHTML = z.replace("{service}", q.service.length ? B(q.service, null, !0) + "-" : ""))) {
+			
+		}
+		"function" == typeof define && define.amd && define("dy_common_nav", [], function() {
+			return d
+		});
+		for (var J; d.fn[0];) J = d.fn.pop(), "function" == typeof J && J()
+	}
+	if(d.debug&&window.console){
+		console.log(d,q);
+	}
+}(window, document, document.getElementsByTagName("body")[0]);

@@ -1,0 +1,3 @@
+if (self.CavalryLogger) { CavalryLogger.start_js(["kXRWT"]); }
+
+__d("VCKUpdateReloadedDraftsDataAction",["Laminar","VCKReloadDraftsDataReducerPlugins","VCKDraftSetsDataProvider"],(function(a,b,c,d,e,f){"use strict";a=b("Laminar").__createAction(function(){return[b("Laminar").__createReducer(b("VCKReloadDraftsDataReducerPlugins").VCKUpdateReloadedDraftsDataReducerPlugin,b("VCKDraftSetsDataProvider"),{})]},function(){return[]},"VCKUpdateReloadedDraftsDataActionPlugin");e.exports=a}),null);

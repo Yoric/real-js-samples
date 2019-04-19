@@ -1,0 +1,82 @@
+function loadVariant() {
+    if (g_data.product) {
+        showProducts();
+    }
+}
+
+function updateDataVariant(data) {
+    var locale = g_locale;
+    var widgetSize = g_data.template.size;
+
+    var fileBgKey = "general_gestion_banniere_" + widgetSize + "_file_" + locale;
+    var fileBgUrl = "";
+
+    $('body.f' + widgetSize + ' #background img').remove();
+
+    if (data && data[fileBgKey]) {
+        fileBgUrl = $("<img />").attr("src", staticCdnUrl + fileBgKey + "/" + data[fileBgKey]).css("width", "inherit").css("height", "inherit");
+        $("#background").append(fileBgUrl);
+    }
+}
+
+$(function () {
+    loadVariant();
+    initEventListener();
+
+    var h = $('.description').width();
+    var t = 0;
+
+    if (h == 141 || h == 135)
+        t = 60;
+    else if (h == 120)
+        t = 45
+    else if (h == 98)
+        t = 40
+});
+
+function initEventListener() {
+    $('body').hover(function () {
+        $(this).css('cursor', 'pointer')
+    }, function () {
+        $(this).css('cursor', 'auto')
+    });
+}
+
+function showProducts() {
+    var data = g_data;
+    if (ct && guv()["ctenc"]) {
+        g_data.product.url_redirect = ct + encodeURIComponent(g_data.product.url_redirect);
+    } else if (ct && guv()["ct"]) {
+        g_data.product.url_redirect = ct + g_data.product.url_redirect;
+    }
+
+    var locale = g_locale;
+
+    $("#name").html(data.product.name);
+    $("#address").html(data.product.address);
+    $("#text1").html(data.product.text1);
+    $("#text2").html(data.product.text2);
+    $('#freefield').html(data.variant.data['general_gestion_free_field_msg_' + locale]);
+    
+    $("#lienbg").attr("href", data.product.url_redirect);
+    var widgetSize = data.template.size;
+
+    //background
+    var fileBgKey = "general_gestion_banniere_" + widgetSize + "_file_" + locale;
+    var fileBgUrl = "";
+    if (data && data.variant.data && data.variant.data[fileBgKey]) {
+        fileBgUrl = $("<img />").attr("src", staticCdnUrl + fileBgKey + "/" + data.variant.data[fileBgKey]).css("width", "inherit").css("height", "inherit");
+    }
+    $("#background").append(fileBgUrl);
+    //cta
+    var fileCTAKey = "general_gestion_img_" + widgetSize + "_file_" + locale;
+    var fileUrlCTA = "";
+    if (data && data.variant && data.variant.data && data.variant.data[fileCTAKey]) {
+        fileUrlCTA = $("<img />").attr("src", staticCdnUrl + fileCTAKey + "/" + data.variant.data[fileCTAKey]).css("width", "inherit").css("height", "inherit");
+    }
+    $('#cta').append(fileUrlCTA);
+
+    var btnCtaText = "cta_gestion_css_msg_" + locale;
+    $('#btn_cta').html(data.variant.data[btnCtaText]);
+    $('#poi').html(data.product.name);
+}

@@ -1,0 +1,866 @@
+window["ru"] = window["ru"] || {}; window["ru"]["mail"] = window["ru"]["mail"] || {}; window["ru"]["mail"]["mpf"] = window["ru"]["mail"]["mpf"] || {}; window["ru"]["mail"]["mpf"]["components"] = window["ru"]["mail"]["mpf"]["components"] || {}; window["ru"]["mail"]["mpf"]["components"]["PushNotifications"] =
+/******/ (function(modules) { // webpackBootstrap
+/******/ 	// The module cache
+/******/ 	var installedModules = {};
+
+/******/ 	// The require function
+/******/ 	function __webpack_require__(moduleId) {
+
+/******/ 		// Check if module is in cache
+/******/ 		if(installedModules[moduleId])
+/******/ 			return installedModules[moduleId].exports;
+
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = installedModules[moduleId] = {
+/******/ 			exports: {},
+/******/ 			id: moduleId,
+/******/ 			loaded: false
+/******/ 		};
+
+/******/ 		// Execute the module function
+/******/ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+
+/******/ 		// Flag the module as loaded
+/******/ 		module.loaded = true;
+
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
+
+
+/******/ 	// expose the modules object (__webpack_modules__)
+/******/ 	__webpack_require__.m = modules;
+
+/******/ 	// expose the module cache
+/******/ 	__webpack_require__.c = installedModules;
+
+/******/ 	// __webpack_public_path__
+/******/ 	__webpack_require__.p = "/bundles/";
+
+/******/ 	// Load entry module and return exports
+/******/ 	return __webpack_require__(0);
+/******/ })
+/************************************************************************/
+/******/ ([
+/* 0 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.View = exports.Model = undefined;
+
+	var _env = __webpack_require__(1);
+
+	Object.keys(_env).forEach(function (key) {
+	  if (key === "default" || key === "__esModule") return;
+	  Object.defineProperty(exports, key, {
+	    enumerable: true,
+	    get: function get() {
+	      return _env[key];
+	    }
+	  });
+	});
+
+	var _Model = __webpack_require__(2);
+
+	var _Model2 = _interopRequireDefault(_Model);
+
+	var _View = __webpack_require__(6);
+
+	var _View2 = _interopRequireDefault(_View);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	exports.Model = _Model2.default;
+	exports.View = _View2.default;
+
+/***/ }),
+/* 1 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	"use strict";
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	var version = exports.version = ("5.3.0");
+
+/***/ }),
+/* 2 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+
+	var _utils = __webpack_require__(3);
+
+	var _settings = __webpack_require__(4);
+
+	function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+
+	exports.default = function (window, cpf, DEBUG) {
+	  if (typeof cpf === 'undefined' || cpf === null) {
+	    throw new Error(_settings.ERRORS.CPF_NOT_FOUND.message);
+	  }
+
+	  var getModel = cpf.Basic.getModel;
+
+
+	  var _trigger = function _trigger(name) {
+	    var _this = this;
+
+	    var type = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 'info';
+
+	    return function () {
+	      var _console, _console2;
+
+	      for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+	        args[_key] = arguments[_key];
+	      }
+
+	      if (DEBUG) {
+	        var params = [_settings.MODEL_NAME + '[' + name + ']'].concat(args);
+	        switch (type) {
+	          case 'error':
+	          case 'warn':
+	            (_console = console).warn.apply(_console, _toConsumableArray(params));
+	            break;
+
+	          default:
+	            (_console2 = console).info.apply(_console2, _toConsumableArray(params));
+	            break;
+	        }
+	      }
+	      _this._trigger.apply(_this, [name].concat(args));
+	    };
+	  };
+
+	  var _handleReady = function _handleReady(inst, state) {
+	    // отписываемся, если не активно, но подписан
+	    var trigger = _trigger.bind(this);
+	    var isEnabled = this.isEnabled();
+	    var _opts = this._opts,
+	        timeMarkDelta = _opts.timeMarkDelta,
+	        useLocalStorageTimemark = _opts.useLocalStorageTimemark;
+
+
+	    if (!isEnabled && state.isSubscribed) {
+	      inst.unsubscribe();
+	    } else if (isEnabled) {
+	      (0, _utils.checkTimeMark)(timeMarkDelta, useLocalStorageTimemark).then(function () {
+	        var permission = (0, _utils.getPermission)();
+	        trigger('ready')(Object.assign({}, state, { permission: permission }));
+	        (0, _utils.observePermission)(timeMarkDelta, useLocalStorageTimemark);
+	      }).catch(trigger('error', 'warn'));
+	    }
+	  };
+
+	  var _instance = null;
+
+	  return getModel({
+	    _Events: ['ready', 'change', 'error', 'subscribe', 'unsubscribe'],
+
+	    isEnabled: function isEnabled() {
+	      return this._opts.isEnabled;
+	    },
+	    _Init: function _Init() {
+	      if (_instance === null) {
+	        var trigger = _trigger.bind(this);
+	        var getInstance = this._opts.getInstance;
+
+
+	        _instance = getInstance();
+
+	        _instance.on('change', trigger('change'));
+	        _instance.on('subscribe', trigger('subscribe'));
+	        _instance.on('unsubscribe', trigger('unsubscribe'));
+	        _instance.on('ready', _handleReady.bind(this));
+	        _instance.on('error', trigger('error', 'error'));
+	      }
+	    },
+	    ready: function ready() {
+	      return _instance.ready();
+	    },
+	    toggle: function toggle() {
+	      var _this2 = this;
+
+	      return (0, _utils.clearTimemark)().then(function () {
+	        return _instance.ready();
+	      }).then(function (inst) {
+	        return inst.toggle();
+	      }).then(function (inst) {
+	        var state = inst.getState();
+	        (0, _utils.setUnsubscribeFlag)(!state.isSubscribed);
+	        return state.isSubscribed ? inst : _this2.defer().then(function () {
+	          return inst;
+	        });
+	      });
+	    },
+	    subscribe: function subscribe() {
+	      var trigger = _trigger.bind(this);
+	      var _opts2 = this._opts,
+	          timeMarkDelta = _opts2.timeMarkDelta,
+	          useLocalStorageTimemark = _opts2.useLocalStorageTimemark;
+
+	      return (0, _utils.checkTimeMark)(timeMarkDelta, useLocalStorageTimemark, true).then(function () {
+	        return (0, _utils.clearTimemark)().then(function () {
+	          return _instance.ready();
+	        }).then(function (inst) {
+	          var state = inst.getState();
+	          (0, _utils.setUnsubscribeFlag)(false);
+	          return !state.isSubscribed ? inst.subscribe() : inst;
+	        });
+	      }).catch(trigger('error', 'warn'));
+	    },
+	    unsubscribe: function unsubscribe() {
+	      return this.defer().then(function () {
+	        return _instance.ready();
+	      }).then(function (inst) {
+	        var state = inst.getState();
+	        (0, _utils.setUnsubscribeFlag)(true);
+	        return state.isSubscribed ? inst.unsubscribe() : inst;
+	      });
+	    },
+	    clear: function clear() {
+	      return (0, _utils.clearTimemark)().then(function () {
+	        return _instance.ready();
+	      });
+	    },
+	    defer: function defer() {
+	      var timeMarkDelta = this._opts.timeMarkDelta;
+
+	      var trigger = _trigger.bind(this);
+
+	      return (0, _utils.updateTimeMark)(timeMarkDelta, this._opts.useLocalStorageTimemark).catch(trigger('error', 'warn'));
+	    }
+	  }, _settings.MODEL_DEFAULTS_OPTS, null, _settings.MODEL_NAME);
+	}(window, window.ru.mail.cpf, window.DEBUG);
+
+	module.exports = exports['default'];
+
+/***/ }),
+/* 3 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+
+	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+	exports.clearTimemark = clearTimemark;
+	exports.checkTimeMark = checkTimeMark;
+	exports.updateTimeMark = updateTimeMark;
+	exports.checkUnsubscribeFlag = checkUnsubscribeFlag;
+	exports.setUnsubscribeFlag = setUnsubscribeFlag;
+	exports.observePermission = observePermission;
+	exports.getPermission = getPermission;
+	exports.getViewportSizes = getViewportSizes;
+
+	var _settings = __webpack_require__(4);
+
+	var _env = __webpack_require__(1);
+
+	function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
+	var localStorage = window.localStorage;
+
+	function getTimemarkName() {
+	  return _settings.LS_TIME_KEY + ':' + _env.version;
+	}
+
+	function clearSimilarTimemarks() {
+	  // подчищаем старые версии
+	  var markName = getTimemarkName();
+	  var data = Object.keys(localStorage).filter(function (name) {
+	    return name.indexOf(_settings.LS_TIME_KEY) === 0 && name !== markName;
+	  }).reduce(function (acc, name) {
+	    localStorage.removeItem(name);
+	    return _extends({}, acc, _defineProperty({}, name, localStorage.getItem(name)));
+	  }, {});
+
+	  return Promise.resolve(data);
+	}
+
+	/**
+	 * Получаем служебную куку s_cp
+	 * @returns {array} fields - массив полей в куке (да-да, их может быть больше одной ¯\_(ツ)_/¯)
+	 */
+	function getScpCookie() {
+	  var scpCookieMatch = window.document.cookie.match(/s_cp=([^;]*)/);
+	  var scpString = scpCookieMatch ? scpCookieMatch[1] : '';
+	  var fields = scpString ? scpString.split('|') : [];
+	  return fields;
+	}
+
+	/**
+	 * Как ты уже догадался, записываем в служебную куку s_cp
+	 * @param {array} fields – массив полей куки
+	 */
+	function setScpCookie(fields) {
+	  if (fields && fields.length) {
+	    var domain = window.location.hostname.indexOf('devmail') === -1 ? '.mail.ru' : '.devmail.ru';
+	    // const domain = window.location.hostname.indexOf('localhost') === -1 ? '.mail.ru' : 'localhost';
+	    window.document.cookie = 's_cp=' + fields.join('|') + ';path=/;domain=' + domain + ';max-age=' + 60 * 60 * 24 * 365;
+	  }
+	}
+
+	/**
+	 * Получаем время
+	 * @param {boolean} useLocalStorage – используем куку или localstorage
+	 * @returns {number} time - таймстемп
+	 */
+	function getTime(useLocalStorage) {
+	  var markName = getTimemarkName();
+	  var time = void 0;
+
+	  if (useLocalStorage) {
+	    time = localStorage.getItem(markName);
+	  } else {
+	    var fields = getScpCookie();
+	    fields = fields.filter(function (field) {
+	      return field.indexOf(_settings.SCP_COOKIE_PARAM) > -1;
+	    });
+
+	    time = fields.length && fields[0].split('=')[1];
+	  }
+	  return parseInt(time, 10);
+	}
+
+	/**
+	 * Записываем время
+	 * @param {number} timestamp
+	 * @param {boolean} useLocalStorage – используем куку или localstorage
+	 */
+	function setTime(timestamp, useLocalStorage) {
+	  if (useLocalStorage) {
+	    var markName = getTimemarkName();
+	    localStorage.setItem(markName, timestamp);
+	  } else {
+	    var fields = getScpCookie();
+
+	    fields = fields.filter(function (field) {
+	      return field.indexOf(_settings.SCP_COOKIE_PARAM) === -1;
+	    });
+
+	    fields.push(_settings.SCP_COOKIE_PARAM + '=' + timestamp);
+	    setScpCookie(fields);
+	  }
+	}
+
+	function clearTimemark(useLocalStorage) {
+	  var markName = getTimemarkName();
+	  var value = getTime(useLocalStorage);
+
+	  if (useLocalStorage) {
+	    localStorage.removeItem(markName);
+	  }
+
+	  return Promise.resolve(value);
+	}
+
+	function checkTimeMark(delta, useLocalStorage, ignoreTime) {
+	  var date = new Date();
+
+	  return clearSimilarTimemarks().then(function () {
+	    var prevTimestamp = getTime(useLocalStorage);
+	    var currTimestamp = date.getTime();
+	    var nextTimestamp = currTimestamp + delta;
+
+	    return new Promise(function (resolve, reject) {
+	      if (ignoreTime) {
+	        resolve(0);
+	      } else if (typeof prevTimestamp === 'undefined' || prevTimestamp === null) {
+	        resolve(nextTimestamp);
+	      } else if (currTimestamp > prevTimestamp) {
+	        resolve(nextTimestamp);
+	      } else {
+	        reject(_settings.ERRORS.TIMEMARK_HAS_BEEN_SET);
+	      }
+	    });
+	  });
+	}
+
+	function updateTimeMark(delta, useLocalStorage) {
+	  if (typeof delta === 'undefined' || delta === null) {
+	    return Promise.reject(new Error(_settings.ERRORS.TIMEMARK_DELTA_INVALID.message));
+	  }
+
+	  return clearTimemark(useLocalStorage).then(function () {
+	    return checkTimeMark(delta, useLocalStorage);
+	  }).then(function (markValue) {
+	    setTime(markValue, useLocalStorage);
+
+	    return markValue;
+	  });
+	}
+
+	/**
+	 * @returns {boolean} true - пользователь вручную отписался
+	 *                    false - пользователь не запрещал пуши
+	 */
+	function checkUnsubscribeFlag() {
+	  return !!localStorage.getItem(_settings.LS_HAS_USER_UNSUBSCRIBED_KEY);
+	}
+
+	/**
+	 * @param {boolean} isUnsubscribed
+	 */
+	function setUnsubscribeFlag(isUnsubscribed) {
+	  if (isUnsubscribed) {
+	    localStorage.setItem(_settings.LS_HAS_USER_UNSUBSCRIBED_KEY, '1');
+	  } else {
+	    localStorage.removeItem(_settings.LS_HAS_USER_UNSUBSCRIBED_KEY);
+	  }
+	}
+
+	/**
+	 * Функция подписывается на изменение состояния прав на подписку уведамлений.
+	 * На данный момент следит за состоянием `denied`, когда ползователь выбрал блокировку уведомлений и обновляет время,
+	 * до которого не показывать предложение подписаться.
+	 * @param {number} delta – время, сколько не показывать предложение подписаться.
+	 * @param {boolean} useLocalStorage – флаг, используем ли localstorage. Если true, то ничего не делаем.
+	 */
+	function observePermission(delta, useLocalStorage) {
+	  if (useLocalStorage) {
+	    return;
+	  }
+	  var permissions = window.navigator.permissions;
+
+	  if (permissions) {
+	    permissions.query({ name: 'notifications' }).then(function (result) {
+	      var notifyPermissions = result;
+	      notifyPermissions.onchange = function () {
+	        if (notifyPermissions.state === 'denied') {
+	          updateTimeMark(delta, useLocalStorage);
+	        }
+	      };
+	    });
+	  }
+	}
+
+	function getPermission() {
+	  return {
+	    browserPermission: Notification.permission === _settings.PERMISSION_GRANTED,
+	    userPermission: !checkUnsubscribeFlag()
+	  };
+	}
+
+	function getViewportSizes() {
+	  return {
+	    top: window.pageYOffset || document.body.scrollTop || document.documentElement.scrollTop,
+	    left: window.pageXOffset || document.body.scrollLeft || document.documentElement.scrollLeft,
+	    width: window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth,
+	    height: window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight
+	  };
+	}
+
+/***/ }),
+/* 4 */
+/***/ (function(module, exports) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	var MODEL_NAME = exports.MODEL_NAME = 'PushNotificationsModel';
+	var VIEW_NAME = exports.VIEW_NAME = 'PushNotificationsView';
+	var LS_TIME_KEY = exports.LS_TIME_KEY = MODEL_NAME + ':nextTime';
+	var LS_HAS_USER_UNSUBSCRIBED_KEY = exports.LS_HAS_USER_UNSUBSCRIBED_KEY = MODEL_NAME + ':unsubscribed';
+	var PERMISSION_GRANTED = exports.PERMISSION_GRANTED = 'granted';
+	var SCP_COOKIE_PARAM = exports.SCP_COOKIE_PARAM = 'skipNotificationsTo';
+
+	var MODEL_DEFAULTS_OPTS = exports.MODEL_DEFAULTS_OPTS = {
+	  isEnabled: true,
+	  timeMarkDelta: 1000 * 60 * 60 * 24,
+	  getInstance: function getInstance() {
+	    throw new Error('"push-notifications" not found');
+	  },
+
+	  useLocalStorageTimemark: false
+	};
+
+	var VIEW_DEFAULTS_OPTS = exports.VIEW_DEFAULTS_OPTS = {
+	  template: null,
+	  triggerArea: 0.33,
+	  cssSels: {
+	    button: '.js-push-notifications__button',
+	    statusLabel: '.js-push-notifications__status',
+	    Main: {
+	      statusTooltip: '.js-push-notifications__switch-tooltip'
+	    }
+	  },
+	  cssClss: {
+	    tooltipShown: 'tooltip_shown'
+	  },
+	  allowedActions: ['subscribe', 'unsubscribe', 'defer', 'toggle'],
+	  timeouts: {
+	    initialization: 5000,
+	    updateHeight: 1000,
+	    statusTooltip: 5000
+	  },
+	  getStatusText: function getStatusText(state, $el, opts) {
+	    var textOn = $el.attr(opts.attrs.textPushOn) || '';
+	    var textOff = $el.attr(opts.attrs.textPushOff) || '';
+
+	    return state.isSubscribed ? textOn : textOff;
+	  },
+
+	  styles: {
+	    tooltip: function tooltip() {
+	      return {
+	        position: 'fixed',
+	        zIndex: 9999,
+	        top: -10,
+	        left: 75
+	      };
+	    }
+	  },
+	  attrs: {
+	    index: 'data-action',
+	    textPushOn: 'data-push-on',
+	    textPushOff: 'data-push-off'
+	  }
+	};
+
+	var ERRORS = exports.ERRORS = {
+	  TIMEMARK_HAS_BEEN_SET: {
+	    message: 'Временная отметка',
+	    code: 'time_mark'
+	  },
+	  TIMEMARK_DELTA_INVALID: {
+	    message: 'Некорректное значение метки'
+	  },
+	  CPF_NOT_FOUND: {
+	    message: 'CPF is not found'
+	  },
+	  INVALID_TEMPLATE: {
+	    message: VIEW_NAME + ': invalid template'
+	  },
+	  INVALID_TRIGGER_AREA: {
+	    message: VIEW_NAME + ': invalid triggerArea options'
+	  },
+	  INVALID_ACTION: {
+	    message: VIEW_NAME + ': invalid action'
+	  }
+	};
+
+/***/ }),
+/* 5 */,
+/* 6 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+
+	var _settings = __webpack_require__(4);
+
+	var _utils = __webpack_require__(3);
+
+	exports.default = function ($, window, cpf) {
+	  if (typeof cpf === 'undefined' || cpf === null) {
+	    throw new Error(_settings.ERRORS.CPF_NOT_FOUND.message);
+	  }
+
+	  var getView = cpf.Basic.Constructors.getView;
+	  var debounce = cpf.Basic.debounce;
+	  var setParams = cpf.Basic.moduleOpts.setParams;
+	  var multi = cpf.Tools.FuncTools.multi;
+
+
+	  var statusTooltipTimeoutId = null;
+
+	  /**
+	   * Дожидаемся загрузки данных с бека, а также доскролла до 1/3 страницы (метки)
+	   */
+	  var initialization = function initialization() {
+	    var _state = this._state,
+	        inited = _state.inited,
+	        scrolled = _state.scrolled;
+
+	    if (inited && scrolled) {
+	      this.showDialog();
+	    }
+	  };
+
+	  /**
+	   * Снимаем обработчики и отчищаем таймеры
+	   */
+	  var removeHandleScroll = function removeHandleScroll() {
+	    var state = this._state;
+	    var _state$_timers = state._timers,
+	        updateHeight = _state$_timers.updateHeight,
+	        initScroll = _state$_timers.initScroll;
+
+	    if (updateHeight) {
+	      clearTimeout(updateHeight);
+	    }
+	    if (initScroll) {
+	      clearTimeout(initScroll);
+	    }
+	    $(window).off('scroll.push');
+	  };
+
+	  var _render = function _render(data) {
+	    var template = this._opts.template;
+	    var getStyle = this._opts.styles.tooltip;
+
+
+	    var tplStr = template(data);
+	    var $tplEl = $(tplStr);
+
+	    if (typeof getStyle === 'function') {
+	      $tplEl.css(getStyle.call(this, data));
+	    }
+
+	    return $tplEl;
+	  };
+
+	  var _toggleStatusTooltip = function _toggleStatusTooltip(status) {
+	    var $tooltip = this._elems.statusTooltip;
+	    var tooltipShown = this._opts.cssClss.tooltipShown;
+
+
+	    if (statusTooltipTimeoutId) {
+	      clearTimeout(statusTooltipTimeoutId);
+	      statusTooltipTimeoutId = null;
+	    }
+
+	    if (!$tooltip) {
+	      return;
+	    }
+	    $tooltip.toggleClass(tooltipShown, !!status);
+	  };
+
+	  var _resolveAction = multi(function resolver(type) {
+	    var allowedActions = this._opts.allowedActions;
+
+	    if (allowedActions.indexOf(type) === -1) {
+	      throw new Error(_settings.ERRORS.INVALID_ACTION.message + ' (' + type + ')');
+	    }
+	    this.hideDialog();
+	    return type;
+	  }).method('defer', function defer() {
+	    return this._model.defer();
+	  }).method('subscribe', function subscribe() {
+	    return this._model.subscribe();
+	  }).method('unsubscribe', function unsubscribe() {
+	    return this._model.unsubscribe();
+	  }).method('toggle', function toggle() {
+	    var _this = this;
+
+	    return this._model.ready().then(function (inst) {
+	      _toggleStatusTooltip.call(_this, false);
+	      var state = inst.getState();
+	      if (state.isSubscribed) {
+	        _this._model.unsubscribe();
+	      } else {
+	        removeHandleScroll.call(_this);
+	        _this.showDialog();
+	      }
+	    });
+	  });
+
+	  var _updateLabels = function _updateLabels(state) {
+	    var _this2 = this;
+
+	    var getStatusText = this._opts.getStatusText;
+	    var statusLabel = this._opts.cssSels.statusLabel;
+
+	    var $labels = this._elems.parent.find(statusLabel).toArray();
+
+	    $labels.forEach(function (el) {
+	      var $el = $(el);
+	      var text = getStatusText(state, $el, Object.assign({}, _this2._opts));
+	      $el.html(text);
+	    });
+	  };
+
+	  var _handleButtonClick = function _handleButtonClick(event) {
+	    event.preventDefault();
+
+	    var resolveAction = _resolveAction.bind(this);
+	    var $el = $(event.currentTarget);
+	    var id = $el.attr(this._opts.attrs.index);
+
+	    resolveAction(id);
+	  };
+
+	  var _handleModelReady = function _handleModelReady(state) {
+	    if (!state.isSubscribed) {
+	      // Если пользователь ранее разрешил пуши, и потом не отписывался от них
+	      // то не спрашиваем повторно
+	      if (state.permission.browserPermission && state.permission.userPermission) {
+	        this._model.subscribe();
+	      } else {
+	        // Если подписка на пуши отсутствует, ставим флаг состояния об ответе с сервера
+	        this._state.inited = true;
+	        initialization.call(this);
+	      }
+	    }
+	  };
+
+	  var _handleModelError = function _handleModelError() {};
+
+	  var _handleModelChange = function _handleModelChange(state) {
+	    _updateLabels.call(this, state);
+	  };
+
+	  var _handleModelSubscribe = function _handleModelSubscribe() {
+	    _toggleStatusTooltip.call(this, false);
+	  };
+
+	  var _handleModelUnsubscribe = function _handleModelUnsubscribe() {
+	    var toggle = _toggleStatusTooltip.bind(this);
+	    var timeout = this._opts.timeouts.statusTooltip;
+
+
+	    toggle(true);
+
+	    if (timeout) {
+	      statusTooltipTimeoutId = setTimeout(function () {
+	        toggle(false);
+	      }, timeout);
+	    }
+	  };
+
+	  /**
+	   * Следим за положением скролла, если во viewport'e входит "метка" триггера доскролла,
+	   * устанавливаем соответствующий флаг
+	   */
+	  var handleScroll = function handleScroll() {
+	    var state = this._state;
+
+	    var _getViewportSizes = (0, _utils.getViewportSizes)(),
+	        top = _getViewportSizes.top,
+	        height = _getViewportSizes.height;
+
+	    if (state.triggerPoint < top + height) {
+	      removeHandleScroll.call(this);
+	      state.scrolled = true;
+	      initialization.call(this);
+	    }
+	  };
+
+	  /**
+	   * Проверяем не изменилась ли высота страницы, в случае изменения пересчитывает положение "метки"
+	   */
+	  var handleCheckHeight = function handleCheckHeight() {
+	    var options = this._opts;
+	    var state = this._state;
+	    var triggerArea = options.triggerArea;
+
+	    var currentPoint = document.documentElement.scrollHeight * triggerArea;
+	    if (currentPoint !== state.triggerPoint) {
+	      state.triggerPoint = currentPoint;
+	    }
+	  };
+
+	  /**
+	   * Следим за высотой страницы по таймеру
+	   */
+	  var checkHeight = function checkHeight() {
+	    var options = this._opts;
+	    var state = this._state;
+	    var triggerArea = options.triggerArea;
+	    var timeout = options.timeouts.updateHeight;
+
+	    state.triggerPoint = document.documentElement.scrollHeight * triggerArea;
+	    state._timers.updateHeight = setInterval(handleCheckHeight.bind(this), timeout);
+	  };
+
+	  /**
+	   * Ожидаем {timeout} загрузки страницы, после начиинаем следить за положением скролла
+	   */
+	  var initScroll = function initScroll() {
+	    var state = this._state;
+	    var onScroll = handleScroll.bind(this);
+	    var timeout = this._opts.timeouts.initialization;
+
+	    state._timers.initScroll = setTimeout(function () {
+	      $(window).on('scroll.push', debounce(onScroll, 300));
+	      onScroll();
+	    }, timeout);
+	  };
+
+	  setParams(_settings.VIEW_NAME, {
+	    acceptTypes: [_settings.MODEL_NAME]
+	  });
+
+	  return getView({
+	    _Handlers: {
+	      dom: {
+	        'click:button': _handleButtonClick
+	      },
+	      model: {
+	        change: _handleModelChange,
+	        subscribe: _handleModelSubscribe,
+	        unsubscribe: _handleModelUnsubscribe,
+	        ready: _handleModelReady,
+	        error: _handleModelError
+	      }
+	    },
+
+	    _Init: function _Init() {
+	      var _opts = this._opts,
+	          triggerArea = _opts.triggerArea,
+	          template = _opts.template;
+
+	      if (!template) {
+	        throw new TypeError(_settings.ERRORS.INVALID_TEMPLATE.message);
+	      }
+	      if (typeof triggerArea !== 'number' || triggerArea < 0) {
+	        throw new TypeError(_settings.ERRORS.INVALID_TRIGGER_AREA.message);
+	      }
+	      this._state = {
+	        _timers: {},
+	        inited: false,
+	        scrolled: triggerArea === 0
+	      };
+	      if (triggerArea) {
+	        checkHeight.call(this);
+	        initScroll.call(this);
+	      }
+	    },
+	    showDialog: function showDialog() {
+	      var elements = this._elems;
+	      if (!elements.dialog) {
+	        elements.dialog = _render.call(this);
+	      }
+	      elements.parent.append(elements.dialog);
+	      return this;
+	    },
+	    hideDialog: function hideDialog() {
+	      var elements = this._elems;
+	      if (elements.dialog) {
+	        elements.dialog.remove();
+	      }
+	      return this;
+	    },
+	    toggleDialog: function toggleDialog() {
+	      if (this._elems.dialog) {
+	        this.hideDialog();
+	      } else {
+	        this.showDialog();
+	      }
+	      return this;
+	    }
+	  }, _settings.VIEW_DEFAULTS_OPTS, null, _settings.VIEW_NAME);
+	}(window.jQuery || window.$, window, window.ru.mail.cpf);
+
+	module.exports = exports['default'];
+
+/***/ })
+/******/ ]);

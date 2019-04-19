@@ -1,0 +1,3 @@
+if (self.CavalryLogger) { CavalryLogger.start_js(["ns+UW"]); }
+
+__d("AdsCampaignDraftFragmentsInstreamVideosDefaultOptInDuplicationTriggerReducerPlugin",["AdsDraftFragmentStoreStateUtils","AdsInstreamVideoDefaultOptInStoreUtils"],(function(a,b,c,d,e,f){"use strict";a={reduce:function(a,c){var d=a.copyCompletedCampaignIDs.filter(function(a){return b("AdsDraftFragmentStoreStateUtils").hasDraft(c,a)});d=b("AdsDraftFragmentStoreStateUtils").getAll(c,d.toArray());d=b("AdsInstreamVideoDefaultOptInStoreUtils").getDefaultOptedInNewCampaignIDs(a.defaultOptedInCampaignIDs,d);return a.merge({defaultOptedInCampaignIDs:d})}};e.exports=a}),null);

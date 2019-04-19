@@ -1,0 +1,11 @@
+function m_s()
+{
+var n=new Date().getTime()
+var c=escape(n*1000+Math.round(Math.random()*1000))
+with(document){
+	if(cookie.indexOf("SUV=")<0)
+		cookie="SUV="+c+";path=/;expires=Tue, 19-Jan-2038 00:00:00 GMT;domain=sogou.com"
+		//write("<scr"+"ipt  async src='http://pv.sogou.com/pv.gif"+"?t?="+c+"?r?="+encodeURIComponent(referrer)+"'></scr"+"ipt>")
+}
+}
+var spv;if(!spv)m_s();spv=1

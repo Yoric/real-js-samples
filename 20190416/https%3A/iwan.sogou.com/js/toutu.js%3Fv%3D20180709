@@ -1,0 +1,88 @@
+var MyApplication = (function(){
+    var fpid = ImageUtil.getPidorHost("pid");
+    var host = ImageUtil.getPidorHost("host");
+    var serverurl = "http://game.galaxy.brand.sogou.com/bytoutu?pid="+fpid+"&fpid="+fpid+"&host="+host+"&f="+f+"&pos=20022";
+    var TOP_TPL={
+        "TOP":[
+            '<div class="slider_list_box ">',
+            '<a href="{clickurl}"  target="_blank" uigs="item" >',
+            '<img src="{imageurl}" width="170" height="240">',
+            '<div class="operator">{customer}</div>',
+            '<div class="mask"></div>',
+            '<div class="wrap_box opacity_bg">',
+            '<p class="top_title">{desc}</p>',
+            '<div class="rating">',
+            '<div class="rating_txt">',
+            '<span class="score_l">{scoreL}</span>',
+            '<span class="score_r">.{scoreR}</span>',
+            '</div>',
+            '<div class="star_box">',
+            '<div class="star_box_slider" style="width:{width}%"></div>',
+            '</div>',
+            '</div>',
+            '</div>',
+            '<div class="game_info">',
+            '<span class="game_info_label top_bg">',
+            '{index}<i></i>',
+            '</span>',
+            '<div class="game_info_name">',
+            '<p class="info_title">{gamename}</p>',
+            '<p class="info_classes">',
+            '<span class="info_heat" style="display:none">',
+            '<i class="ui_i info_heat_icon"></i>',
+            '10965',
+            '</span>',
+            '{type}',
+            '</p>',
+            '</div>',
+            '</div>',
+            '</a>',
+            ' </div>'
+        ].join(""),
+        "wrap":  '<li class="silder_panel"> <div class="slider_ranking clearfix" >{html}</div></li>'
+    }
+    function hideContainer(){
+        $("#slider_name").hide();
+        $("div[class='basis_box clearfix']").addClass("pt10");
+    }
+    $(function(){
+        Util.getDataJsonP(serverurl,function(obj){
+            if(obj && obj.data && obj.data.datalist){
+                var items = obj.data.datalist;
+                var finalHtml = [];
+                var sb = [];
+                for(var i =0;i<items.length;i++){
+                    items[i].scoreL=Math.floor(items[i].score);
+                    items[i].scoreR=(items[i].score+"").substr(2,1);
+                    items[i].width=items[i].score*10;
+                    items[i].index=i+1;
+                    if (items[i]['desc']) {
+                    	items[i].desc = Util.subString(items[i].desc,35,true);
+                    }
+                    var html = Util.tpl_replace(TOP_TPL["TOP"],items[i]);
+                    sb.push(html);
+                    if( (i+1)%5==0){
+                        finalHtml.push(Util.tpl_replace(TOP_TPL["wrap"],{"html":sb.join("")}));
+                        //finalHtml.push(TOP_TPL["wrap"].replace("{html}",sb.join("")) );
+                        sb=[];
+                    }
+                }
+                if(sb.length>0){
+                    finalHtml.push(Util.tpl_replace(TOP_TPL["wrap"],{"html":sb.join("")}));
+                    //finalHtml.push(TOP_TPL["wrap"].replace("{html}",sb.join("")));
+                }
+                if (items.length < 5) {
+                    hideContainer();
+                } else {
+                	$("#top_container_1").html(finalHtml.join(""));
+                }
+            }else{
+                hideContainer();
+            }
+            //webTopPic();
+        })
+        $("#top_container_1").on( "mouseenter mouseleave", ".slider_list_box ", function( event ) {
+            $(this).toggleClass('item_hover');
+        });
+    })
+}())

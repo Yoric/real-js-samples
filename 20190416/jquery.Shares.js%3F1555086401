@@ -1,0 +1,737 @@
+/**
+ *  @requires 'lib/basic.js'
+ *  @requires 'tools/jquery/jquery.compTools.js'
+ *  @requires 'lib/types/types.String.js'
+ *  @requires 'lib/types/types.String.Url.js'
+ */
+(function ($, window, oCpf) {
+	'use strict';
+	var oBasic = oCpf.Basic;
+	var fGetNS = window.getNameSpace;
+	var oComp = oCpf.Comp;
+	var ShareButtons = oBasic.getConstructor((function () {
+		var fGetElems = fGetNS('jQuery.Tools', oComp).getElements;
+		var fRegisterEvents = oComp.Methods.registerEventTypes;
+		var fTypeOf = oBasic.typeOf;
+		var fExtend = oBasic.Extend;
+		var oStringTools = oCpf.Types.String;
+		var oUrlTools = oStringTools.Url;
+		var oShareParams = {
+			my: {
+				baseUrl: '//connect.mail.ru/',
+				url: 'share',
+				count: 'share_count?callback=1',
+				countUseCallback: true,
+				getCount: function (oData, sPage) {
+					var oCurPage;
+					return oData && (oCurPage = oData[sPage]) && oCurPage.shares || 0;
+				},
+				sizes: [550, 340],
+				params: {
+					url: 'share_url',
+					title: 'title',
+					description: 'description',
+					image: 'imageurl'
+				},
+				countParams: {
+					url: 'url_list',
+					callback: 'func'
+				}
+			},
+			ok: {
+				baseUrl: '//connect.ok.ru/',
+				url: 'dk?st.cmd=WidgetSharePreview',
+				count: 'dk?st.cmd=extLike',
+				countUseCallback: false,
+				getCount: null,
+				sizes: [550, 320],
+				params: {
+					url: 'st.shareUrl'
+				},
+				countParams: {
+					url: 'ref',
+					id: 'uid',
+					callback: 'callback'
+				},
+				serializeOptions: {
+					// XXX: traditional ломается, нужно в сложных атрибутах сохранять точку
+					getParamName: function (parentName, childName) {
+						return parentName + '.' + childName;
+					}
+				}
+			},
+			fb: {
+				baseUrl: null,
+				url: '//www.facebook.com/sharer.php',
+				count: '//graph.facebook.com/',
+				countUseCallback: true,
+				getCount: function (data) {
+					var count = 0;
+					if (data && data.share) {
+						count = data.share.share_count || count;
+					}
+					return count;
+				},
+				sizes: [660, 370],
+				params: {
+					url: 'p[url]',
+					title: 'p[title]',
+					description: 'p[summary]',
+					image: 'p[images][0]',
+					_url: 'u'
+				},
+				countParams: {
+					url: 'id',
+					callback: 'callback'
+				},
+				addParams: {
+					s: 100
+				}
+			},
+			vk: {
+				baseUrl: '//vk.com/',
+				url: 'share.php',
+				count: 'share.php?act=count&format=json',
+				countUseCallback: false,
+				getCount: null,
+				sizes: [660, 390],
+				params: {
+					url: 'url',
+					title: 'title',
+					description: 'description',
+					image: 'image'
+				},
+				countParams: {
+					url: 'url',
+					id: 'index',
+					callback: 'callback'
+				}
+			},
+			tw: {
+				baseUrl: null,
+				url: 'https://twitter.com/share',
+				count: null,
+				countUseCallback: true,
+				getCount: null,
+				sizes: [550, 300],
+				charsLimit: 114,// 140 символов - 25(ссылка) - 1(пробел)
+				params: {
+					url: 'url',
+					via: 'via'
+				},
+				countParams: {
+					url: 'url',
+					callback: 'callback'
+				}
+			}
+		};
+		var sRedirectBase = '//r.mail.ru/';
+		var reRedirectType = /cl(?:n|b|s|r)/i;
+		var dataTpProp = 'shareType';
+		/**
+		 *  Набор настроек по умолчанию
+		 *  @property {string} cssSels.Main.countCont Необязательная обертка счетчика, если есть, то прячется/показывается она
+		 *  @property {function} prepareParams  Пользовательская функция для обработки this._shareParams
+		 */
+		var defOptions = {
+			cssSels: {
+				Btns: '.js-shares_btn',
+				Cnts: '.js-shares_cnt',
+				countCont: null
+			},
+			cssClss: {
+				hideCount: 'hidden_all'
+			},
+			showCnt: true,
+			getCntOnInit: true,
+			typeAttr: 'data-share',
+			urlTypeParam: 'social',
+			url2Share: null,
+			Counters: null,
+			addParams: null,
+			shareParams: {
+				Title: null,
+				Description: null,
+				Image: null
+			},
+			Handlers: {
+				typeCount: null,
+				windowClose: null
+			},
+			prepareParams: null,
+			// XXX IE режет длинные урлы (только в попапе, в iframe - ок), нужно пересмотреть подход
+			ignoreMetaParams: navigator.userAgent.toLowerCase().indexOf('msie') > -1
+		};
+		var oUserParamsMap = {
+			title: 'Title',
+			description: 'Description',
+			image: 'Image'
+		};
+		var oUserParamsMaxLength = {
+			title: 100,
+			descr: 500
+		};
+		var aUrlParamsOrder = ['url', 'image', 'title', 'description'];
+		/**
+		 *  Функция, собирающая url для шары
+		 *  @param {string} sShareType  Тип шары
+		 *  @param {string} [sUrl]  url для доработки
+		 *  @param {Boolean} [bIgnoreCache]  Флаг, говорящий, что надо пересчитать запрашиваемый url
+		 *  @returns {string}
+		 */
+		var getUrl2Share = (function () {
+			var oCache = {};
+			return function (shareType, sUrl, bIgnoreCache) {
+				sUrl = fTypeOf(sUrl, 'undefined') ? this.url2Share : sUrl;
+				var sCacheKey = shareType + sUrl;
+				var sResUrl = oCache[sCacheKey];
+				var urlParam;
+				if (!bIgnoreCache && sResUrl) { // не генерим url повторно
+					return sResUrl;
+				}
+				sResUrl = oUrlTools.getAbs(sUrl);
+				if (fTypeOf(this.Opts.urlParams) == 'object') {
+					sResUrl = oUrlTools.addParams(this.Opts.urlParams, sResUrl);
+				}
+				urlParam = this.Opts.urlTypeParam;
+				if (!(sResUrl && shareType)) {
+					return null;
+				}
+				if (urlParam !== null) {
+					// если нет имени параметра - подставляем вместо него тип соцсети
+					sResUrl = oUrlTools.addParam(sResUrl,
+						urlParam ? urlParam : shareType,
+						urlParam ? shareType : null
+					);
+				}
+				if (sCacheKey) {
+					oCache[sCacheKey] = sResUrl;
+				}
+				return sResUrl;
+			};
+		})();
+		var getTypeParam = function (shareType, mPrms) {
+			var mType;
+			if (mPrms) {
+				if ((mType = fTypeOf(mPrms)) == 'object') {
+					return mPrms[shareType];
+				} else if (mType == 'string') {
+					return mPrms;
+				}
+			}
+		};
+		/**
+		 *  Объект с методами для работы с коллбэками
+		 *  @type {object}
+		 *  @prop {function} oShareCount.getTypeCount  Метод для получения счетчика
+		 *  @prop {function} oShareCount.initCountCbcks  Инициализация коллбэков
+		 */
+		var oShareCount = (function () {
+			var oTypeCount = {};
+			var oCallbacks;
+			var execCountCallback = function (sType, id, count) {
+				var aCurCallbacks, fCurCallback;
+				if (oCallbacks && (aCurCallbacks = oCallbacks[sType]) && fTypeOf(fCurCallback = aCurCallbacks[id], 'function')) {
+					aCurCallbacks[id] = null;
+					fCurCallback.call(null, count);
+				}
+			};
+			var initCountCbcks = function () {
+				var oOdkl = {
+					updateCount: function (id, count) {
+						execCountCallback.apply(null, ['ok', id, count]);
+					}
+				};
+				var oVK = {Share: {
+					count: function (id, count) {
+						execCountCallback.apply(null, ['vk', id, count]);
+					}
+				}};
+				// TODO: extend
+				window.ODKL = fExtend(window.ODKL, oOdkl);
+				window.VK = fExtend(window.VK, oVK);
+			};
+			var getUrlCount = function (sType, sUrl) {
+				var oCurTypeCount = oTypeCount[sType];
+				sUrl = getUrl2Share.apply(this, [sType, sUrl]);
+				return oCurTypeCount && oCurTypeCount[sUrl];
+			};
+			var drawTypeCount = function (sType) {
+				var oElemsByType = this.Elems.byType[sType];
+				var jCnt = oElemsByType.Count;
+				var curCount;
+				if (jCnt && jCnt.length) {
+					curCount = !isNaN(curCount = getUrlCount.call(this, sType)) ? curCount : 0;
+					jCnt.text(curCount);
+					if (this.Opts.cssClss.hideCount) {
+						oElemsByType.countCont.toggleClass(this.Opts.cssClss.hideCount, !(curCount > 0));
+					} else {
+						oElemsByType.countCont.toggle(curCount > 0);
+					}
+				}
+			};
+			var processTypeCount = function (count, sType, sUrl) {
+				var oCurTypeCount = oTypeCount[sType];
+				if (isNaN(count = count * 1)) {
+					return;
+				}
+				if (!fTypeOf(oCurTypeCount, 'object')) {
+					oTypeCount[sType] = oCurTypeCount = {};
+				}
+				oCurTypeCount[sUrl] = count;
+				this._trigger('typeCount', sType, count);
+				if (sUrl === getUrl2Share.call(this, sType)) {
+					drawTypeCount.call(this, sType);
+				}
+			};
+			/**
+			 *  Функция, сохраняющая callback для определенного типа шары
+			 *  @param sType
+			 *  @param fCallback
+			 *  @returns {number} Id коллбэка
+			 */
+			var addCountCallback = function (sType, fCallback) {
+				var aCurCallbacks, oInstances;
+				if (!fTypeOf(oCallbacks, 'object')) {
+					// храним oCallbacks в oCpf для поддержки нескольких инстансов галерей
+					oInstances = window.getNameSpace('Instances', oCpf);
+					if (oInstances.oShareCallbacks) {
+						oCallbacks = oInstances.oShareCallbacks;
+					} else {
+						oInstances.oShareCallbacks = oCallbacks = {};
+					}
+				}
+				if (!((aCurCallbacks = oCallbacks[sType]) instanceof Array)) {
+					aCurCallbacks = oCallbacks[sType] = [];
+				}
+				return aCurCallbacks.push(fCallback) - 1;
+			};
+			/**
+			 *  Запрос числа расшаривания для определенного типа
+			 *  @param {string} sType  Тип шары
+			 *  @private
+			 */
+			var reqTypeCount = function (sType) {
+				var shares = this;
+				var curType = oShareParams[sType];
+				if (curType.count === null) {
+					// у твиттера больше нет api получения счетчика
+					return;
+				}
+				var curTypeCount = curType.countParams;
+				var useCallback = curType.countUseCallback;
+				var sUrl = getUrl2Share.call(this, sType);
+				var сountUrlParams = {};
+				var reqUrl;
+				сountUrlParams[curTypeCount.url] = sUrl;
+				if (!useCallback) {
+					сountUrlParams[curTypeCount.id] = addCountCallback.apply(this, [sType, function (count) {
+						processTypeCount.apply(shares, [count, sType, sUrl]);
+					}]);
+				}
+				if (curTypeCount.url) {
+					сountUrlParams[curTypeCount.callback] = '?';
+				}
+				reqUrl = oUrlTools.addParams(сountUrlParams, (curType.baseUrl || '') + curType.count, curType.serializeOptions);
+				initCountCbcks(); // настоящее API соцсетей может перетирать наши ссылки
+				$.getJSON(reqUrl, useCallback ? function (mData) {
+					var count = curType.getCount(mData, sUrl);
+					processTypeCount.apply(shares, [count, sType, sUrl]);
+				} : null);
+			};
+			var getTypeCount = function (sType, reload) {
+				var currentCount = getUrlCount.call(this, sType);
+				if (!isNaN(currentCount) && reload !== true) {
+					drawTypeCount.call(this, sType);
+				} else {
+					reqTypeCount.call(this, sType);
+				}
+				return currentCount;
+			};
+			return {
+				getTypeCount: getTypeCount,
+				initCbcks: initCountCbcks
+			};
+		})();
+		var getTypeCount = oShareCount.getTypeCount;
+		var getCount = function () {
+			var shareTypes = this.Types;
+			if (shareTypes) {
+				for (var tpNo = 0; tpNo < shareTypes.length; tpNo++) {
+					getTypeCount.call(this, shareTypes[tpNo]);
+				}
+			}
+		};
+		var getElemSet = function (elem, addElem) {
+			if (elem) {
+				addElem = elem.add(addElem);
+			}
+			return addElem;
+		};
+		var asscElmsWthTps = function () {
+			var oElems = this.Elems;
+			var jCount = oElems.jCnts;
+			var jCountCont = oElems.jCountCont;
+			var oOpts = this.Opts;
+			var typeAttr = oOpts.typeAttr;
+			var byType = oElems.byType = {};
+			var aTypes = this.Types = [];
+			if (oElems.jBtns) {
+				oElems.jBtns.each(function (index) {
+					var jBtn = $(this);
+					var curType = jBtn.attr(typeAttr) || jBtn.data(dataTpProp);
+					var oTypeElems = byType[curType] = {};
+					var jCurCount;
+					if (!curType) {
+						return;
+					}
+					if (aTypes.indexOf(curType) === -1) {
+						aTypes.push(curType);
+					}
+					jBtn.removeAttr(typeAttr).data(dataTpProp, curType);
+					oTypeElems.Btn = getElemSet(oTypeElems.Btn, jBtn);
+					if (oOpts.showCnt && jCount) {
+						jCurCount = jCount.eq(index);
+						if (jCurCount.length) {
+							oTypeElems.Count = getElemSet(oTypeElems.Count, jCurCount);
+							oTypeElems.countCont = getElemSet(
+								oTypeElems.countCont,
+								jCountCont && jCountCont.eq(index) || jCurCount
+							);
+						}
+					}
+				});
+			}
+		};
+		var createShareWindow = (function () {
+			/**
+			 *  Функция, следящая за моментом закрытия окна
+			 *  @param shareType
+			 */
+			var attachUnload = function (shareType) {
+				var oShares = this;
+				var chkTmr = this._Timers.ppCheckTimer;
+				if (chkTmr) {
+					clearTimeout(chkTmr);
+					this.ppCheckTimer = null;
+					getTypeCount.call(this, shareType, true);
+				}
+				this._Timers.ppCheckTimer = setTimeout(function () {
+					var currentCount;
+					oShares._Timers.ppCheckTimer = null;
+					try { // если окно было заблокировано, обращение к его свойству вызовет ошибку
+						if (oShares.curWin.closed) {
+							currentCount = getTypeCount.call(oShares, shareType, true);
+							oShares._trigger('windowClose', shareType, currentCount);
+						} else {
+							attachUnload.call(oShares, shareType);
+						}
+					} catch (ex) {}
+				}, 500);
+			};
+			function getParamsFromPageMeta () {
+				var oMetaProps = {};
+				$('meta', document.head).each(function () {
+					var sPropName = this.getAttribute('property') || this.getAttribute('name');
+					var aPropName;
+					if (sPropName && (
+							sPropName === 'description' ||
+							(aPropName = sPropName.split(':')) && aPropName.length === 2 && aPropName.shift() === 'og'
+						)) {
+						oMetaProps[aPropName && aPropName.shift() || sPropName] = this.getAttribute('content');
+					}
+				});
+				return oMetaProps;
+			}
+			/**
+			 *  Проверяет и в случае наличия агрегирует предустановленные параметры шары
+			 *  @param {string} [sShareType]  Тип шары
+			 *  @returns {object} oResParams  Дополнительные параметры url, для окна шары
+			 */
+			var fGetUserParams = function (sShareType) {
+				var oUserParams = fExtend({}, this._shareParams);
+				var oOpts = this.Opts;
+				var sVia = oUserParams.via;
+				var fPrepareParams = oOpts.prepareParams;
+				var bWithMetaParams = oOpts.ignoreMetaParams !== true;
+				var oResParams = {},
+					bHasParams = false;
+				var oMetaParams, sParamVal, prmMaxLength, sTwTitle, iTwTitleMax;
+				// произвольная подготовка данных
+				// TODO: обрабатывать результирующие параметры
+				if (fTypeOf(fPrepareParams, 'function')) {
+					fPrepareParams.call(this, oUserParams, sShareType);
+				}
+				if (bWithMetaParams) {
+					oMetaParams = getParamsFromPageMeta();
+				}
+				// Для всех, кроме Твиттера
+				if (sShareType != 'tw') {
+					for (var sParamName in oUserParamsMap) {
+						if (oUserParamsMap.hasOwnProperty(sParamName) && (
+								sParamVal = oUserParams[oUserParamsMap[sParamName]] || bWithMetaParams && oMetaParams[sParamName]
+							)) {
+							if ((prmMaxLength = oUserParamsMaxLength[sParamName]) && sParamVal.length > prmMaxLength) {
+								prmMaxLength -= 3;
+								sParamVal = sParamVal.substr(0, prmMaxLength) + (sParamVal.charAt(prmMaxLength) != ' ' ? '...' : '');
+							}
+							oResParams[sParamName] = sParamVal;
+							bHasParams = true;
+						}
+					}
+				} else { // Для Твиттера всегда подставляем только title (он всегда есть)
+					bHasParams = true;
+					sTwTitle = oUserParams.Title || document.title;
+					sTwTitle = sTwTitle.replace(/\"/g, '');
+					iTwTitleMax = oShareParams[sShareType].charsLimit;
+					if (sVia) {
+						oResParams.via = sVia;
+						bHasParams = true;
+						iTwTitleMax = iTwTitleMax - (11 + sVia.length); // 11(_с_помощью_)
+					}
+					if (sTwTitle.length > iTwTitleMax) {
+						sTwTitle = oStringTools.cutBySpace(sTwTitle, iTwTitleMax - 3) + '...';
+					}
+					oResParams.text = sTwTitle;
+				}
+				return bHasParams ? oResParams : null;
+			};
+			/**
+			 *  Функция, возвращающая базовый url сервиса
+			 *  @param {string} sShareType
+			 *  @returns {string}
+			 */
+			var getBaseUrl = (function () {
+				var oBaseUrl = {};
+				return function (sShareType) {
+					var sCached = oBaseUrl[sShareType];
+					var oParams, mCounters, sBaseUrl, sNewBaseUrl;
+					if (sCached) {
+						return sCached;
+					}
+					oParams = oShareParams[sShareType];
+					mCounters = this.Opts.Counters;
+					sBaseUrl = (oParams.baseUrl || '') + oParams.url;
+					if (mCounters) {
+						if ((sNewBaseUrl = getTypeParam(sShareType, mCounters))) {
+							sNewBaseUrl = sRedirectBase + (
+									(fTypeOf(sNewBaseUrl, 'string') &&
+									reRedirectType.test(sNewBaseUrl)) ? '' : 'cln') + sNewBaseUrl;
+						}
+					}
+					oBaseUrl[sShareType] = sCached = sNewBaseUrl ? sNewBaseUrl + '/' + sBaseUrl.replace(/^(http(s)?:)?\/\//i, '') : sBaseUrl;
+					return sCached;
+				};
+			})();
+			/**
+			 *  Функция, формирующая url для окна сервиса
+			 *  @param {string} shareType  Сервис, для которого подготавливается url
+			 *  @returns {string}
+			 */
+			var getWinUrl = function (shareType) {
+				var mAddPrms = this.Opts.addParams;
+				var resUrl = getUrl2Share.call(this, shareType);
+				var oCurType = oShareParams[shareType];
+				var oParamsNames = oCurType.params;
+				var serializeOptions = oCurType.serializeOptions || {};
+				var addTypeParams = oCurType.addParams;
+				var sWinUrl = getBaseUrl.call(this, shareType);
+				var oUrlParams = {},
+					sParamName, sParamVal, mUrlParams, bHasDetailParams;
+				if (!resUrl) {
+					return null;
+				}
+				mUrlParams = fGetUserParams.call(this, shareType);
+				bHasDetailParams = mUrlParams !== null;
+				oUrlParams.url = resUrl;
+				if (bHasDetailParams) {
+					fExtend(oUrlParams, mUrlParams);
+				}
+				// параметры, для которых критична очередность
+				for (var paramNo = 0; paramNo < aUrlParamsOrder.length; paramNo++) {
+					sParamName = aUrlParamsOrder[paramNo];
+					sParamVal = oUrlParams[sParamName];
+					if (!sParamVal) {
+						continue;
+					}
+					delete oUrlParams[sParamName];
+					// XXX костыль для facebook (разное имя параметра в зависимости от набора доп. параметров)
+					if (shareType === 'fb' && !bHasDetailParams && sParamName === 'url') {
+						sParamName = '_url';
+					}
+					var sUrlParamName = oParamsNames[sParamName];
+					if (sUrlParamName) {
+						sWinUrl = oUrlTools.addParam(sWinUrl, sUrlParamName, sParamVal, serializeOptions);
+					}
+				}
+				if (addTypeParams) {
+					fExtend(oUrlParams, addTypeParams);
+				}
+				if (mAddPrms) {
+					fExtend(oUrlParams, getTypeParam(shareType, mAddPrms));
+				}
+				return oUrlTools.addParams(oUrlParams, sWinUrl, serializeOptions);
+			};
+			var getWinParams = function (aSizes) {
+				var aParams = [],
+					curSize, curSzDmnsn, curPosDmnsn;
+				for (var szNo = 0; szNo < aSizes.length; szNo++) {
+					curSize = aSizes[szNo];
+					curSzDmnsn = szNo ? 'height' : 'width';
+					curPosDmnsn = (szNo ? 'top' : 'left');
+					aParams.push(
+						curSzDmnsn + '=' + curSize,
+						curPosDmnsn + '=' + Math.max(0, Math.round(screen[curSzDmnsn] / 2 - curSize / 2))
+					);
+				}
+				return aParams.join(',');
+			};
+			return function (shareType) {
+				var windowUrl = getWinUrl.call(this, shareType);
+				var oCurType = oShareParams[shareType];
+				var curWin;
+				if (!(windowUrl && oCurType)) {
+					return;
+				}
+				if ((curWin = this.curWin)) {
+					try { // Опера запрещает закрывать окна с других доменов
+						curWin.close();
+					} catch (ex) {}
+				}
+				this.curWin = window.open(
+					windowUrl, 'share',
+					getWinParams(oCurType.sizes) + ',personalbar=0,toolbar=0,scrollbars=1,resizable=1'
+				);
+				attachUnload.call(this, shareType);
+			};
+		})();
+		/**
+		 *  Функция, добавляющая некоторые обработчики событий
+		 */
+		var attachHandlers = function () {
+			var oShares = this;
+			this.Elems.jCont.on('click', this.Opts.cssSels.Btns, function (event) {
+				event.preventDefault();
+				createShareWindow.call(oShares, $(this).data(dataTpProp));
+			});
+		};
+		/** @lends ShareButtons */
+		return {
+			/**
+			 *  Конструктор для ShareButtons
+			 *  @param jCont Контейнер со счетчиками
+			 *  @param oOptions Опции
+			 *  @constructor
+			 */
+			_Init: function (jCont, oOptions) {
+				var oOpts;
+				this.Opts = oOpts = fExtend(true, {}, defOptions, oOptions);
+				this.url2Share = oOpts.url2Share ||
+					$(window.document.head).find('link[rel=canonical]').attr('href') ||
+					window.location.href;
+				this._shareParams = oOpts.shareParams;
+				this.Elems = fGetElems(oOpts.cssSels, jCont, {jCont: jCont});
+				this._Timers = {};
+				fRegisterEvents.call(this, {Types: oOpts.Handlers});
+				asscElmsWthTps.apply(this);
+				attachHandlers.apply(this);
+				if (oOpts.showCnt && oOpts.getCntOnInit === true) {
+					getCount.apply(this);
+				}
+			},
+			/**
+			 *  Метод, устанавливающий url для расшаривания
+			 *  @param {string} sUrl  Новый адрес
+			 *  @param {object} [shareParams]  Новый набор параметров для url
+			 *  @param {boolean} [bReplaceParams=true] Если false, то объект будет дополнен различиями,
+			 *  иначе – полностью перезаписан
+			 */
+			setUrl2Share: function (sUrl, shareParams, bReplaceParams) {
+				var countElems;
+				if (!(sUrl && fTypeOf(sUrl, 'string'))) {
+					return;
+				}
+				this.url2Share = sUrl;
+				if (shareParams) {
+					if (fTypeOf(bReplaceParams, 'undefined') ? true : bReplaceParams) {
+						this._shareParams = fExtend(true, {}, shareParams);
+					} else {
+						this._shareParams = fExtend(true, this._shareParams, shareParams);
+					}
+				}
+				if (this.Opts.showCnt) {
+					if ((countElems = this.Elems.jCountCont || this.Elems.jCnts)) {
+						if (this.Opts.cssClss.hideCount) {
+							countElems.addClass(this.Opts.cssClss.hideCount);
+						} else {
+							countElems.hide();
+						}
+					}
+					getCount.apply(this);
+				}
+			},
+			updateElementsSet: function (elemsCont) {
+				this.Elems = fGetElems(this.Opts.cssSels, elemsCont, {jCont: elemsCont});
+				asscElmsWthTps.apply(this);
+			}
+		};
+	})());
+	// Доступ к ShareButtons
+	$.fn.initShareBtns = function (oOpts) {
+		var sDataParam = 'shareBtnsObj';
+		return this.each(function () {
+			var jCont = $(this);
+			var instance = jCont.data(sDataParam);
+			if (instance instanceof ShareButtons) {
+				return instance;
+			}
+			instance = new ShareButtons($(this), oOpts);
+			jCont.data(sDataParam, instance);
+		});
+	};
+	oCpf.Basic.moduleOpts.setParams('Shares', {
+		initializer: function (oOpts, jElem) {
+			return new ShareButtons(jElem, oOpts);
+		},
+		options: {
+			Handlers: {
+				typeCount: function (type, count) {
+					// обновляем значение счетчика определенного типа
+					var totalCount = this._totalCount = this._totalCount || {};
+					totalCount[type] = count;
+					// суммируем
+					var total = 0;
+					for (var typeName in totalCount) if (totalCount.hasOwnProperty(typeName)) {
+						total += totalCount[typeName];
+					}
+					// обновляем значение суммарного счетчика
+					var jTotal = this.Elems.jTotal;
+					if (jTotal) {
+						jTotal.text(total);
+						jTotal.toggleClass(this.Opts.cssClss.hidden, total <= 0)
+					}
+				}
+			},
+			cssSels: {
+				Total: '.js-shares_total'
+			},
+			cssClss: {
+				hidden: 'hidden_all'
+			},
+			urlTypeParam: 'social',
+			prepareParams: function (oShareParams, sShareType) {
+				var sTweet = oShareParams.Tweet;
+				if (sShareType == 'tw' && sTweet) {
+					oShareParams.Title = sTweet;
+				}
+			}
+		},
+		paramAttrs: {
+			shareParams: {
+				Tweet: 'data-twshare'
+			},
+			url2Share: 'data-url2share'
+		}
+	});
+	fGetNS('Comp.jQuery.Modules', oCpf).shareButtons = ShareButtons;
+})(jQuery, this, this.ru.mail.cpf);

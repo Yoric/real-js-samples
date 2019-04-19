@@ -1,0 +1,5 @@
+BrightTag.site('CLsGMhs',function(s){
+s.domready(function(){
+s.tag('\x3cscript type\x3d\x22text/javascript\x22 src\x3d\x22https://s.yimg.jp/images/commerce/js/service/shp/sc/VisitorAPI-2.5.0.js\x22\x3e\n\x3c/script\x3e\n\x3cscript type\x3d\x22text/javascript\x22 src\x3d\x22https://s.yimg.jp/images/commerce/js/service/shp/sc/2.1.2/s_code_pc.js\x22\x3e\n\x3c/script\x3e\n\x3cscript type\x3d\x22text/javascript\x22\x3e\nYAHOO.JP.sc.prop73 \x3d \x22ytm\x22;\nYAHOO.JP.sc.t();\n\x3c/script\x3e',{tagId:4920134});
+});
+});

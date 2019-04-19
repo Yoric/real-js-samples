@@ -1,0 +1,74 @@
+(function ($, window, cpf) {
+	'use strict';
+
+	var setParams = cpf.Basic.moduleOpts.setParams;
+
+	setParams('SpringsItem', {
+		options: {
+			cssClss: {
+				active: 'sticky-springs__item_active'
+			}
+		}
+	});
+
+	setParams('SpringsContainer', {
+		options: {
+			lazyTimeout: 1000,
+			minSegmentHeight: 400,
+			itemOptions: {
+				minHeight: 40
+			},
+			paddingTop: 20,
+			_Handlers: {
+				ready: function () {
+					var itemSelector = this._Opts.cssSels.item,
+							groups = this._Elems.Parent.find('.js-springs__group').toArray(),
+							springs = this;
+
+					groups.forEach(function (group, i) {
+						var groupNode = $(group),
+								groupTop = groupNode.find('.js-springs__group__top'),
+								groupBottom = groupNode.find('.js-springs__group__bottom'),
+								groupItems = groupNode.find(itemSelector).toArray().map(function (item) {
+									return {
+										$: $(item),
+										options: {}
+									};
+								});
+
+						springs.addGroup(groupItems, {
+							anchorTop: groupTop.length ? groupTop : null,
+							anchorBottom: groupBottom.length ? groupBottom : null
+						});
+					});
+				}
+			}
+		}
+	});
+	
+	
+	setParams('SpringsItem', {
+		options: {
+			_Handlers: {
+				toggle: function (flag) {
+					var item = this._elems.parent;
+					var counterShown = item.attr('data-counter-shown');
+					if (!!flag && counterShown && !this.isShown) {
+						this.isShown = true;
+						hitPixel( counterShown)
+					}
+					
+				}
+			}
+		}
+	});
+	
+	/**
+	 * Хэлпер, дергающий пиксель счетчика
+	 * @param {string} id
+	 */
+	function hitPixel (id) {
+		(new Image()).src = '//rs.mail.ru/d' + id + '.gif?r=' + Math.round(Math.random() * 10e10);
+	}
+
+})(this.jQuery, this, this.ru.mail.cpf);

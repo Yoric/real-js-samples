@@ -1,0 +1,618 @@
+/**
+ *  @requires 'lib/basic.js'
+ *  @requires 'lib/types/types.String.js'
+ *  @requires 'lib/types/types.String.Html.js'
+ *  @requires 'lib/types/types.String.Url.js'
+ *  @requires 'lib/types/types.Array.js'
+ *  @requires 'tools/tools.Deferred.js'
+ *  @requires 'tools/DOM/Requests.js'
+ */
+(function ($, window, oCpf) {
+	'use strict';
+	var fGetNs = window.getNameSpace;
+	var oStrings = oCpf.Types.String;
+	var oHtmlStrTools = oStrings.Html;
+	var oUrlStrTools = oStrings.Url;
+	var oStrRe = oStrings.regExp;
+	var reUrl = oStrRe.Url;
+	var fSplitHtml = oHtmlStrTools.Split;
+	var fGetPrms = oHtmlStrTools.getParams;
+	var oBasic = oCpf.Basic;
+	var typeOf = oBasic.typeOf;
+	var fPromise = oCpf.Tools.Promise;
+	var fRequest = $.ajax || oCpf.DOM.Tools.Ajax.request;
+	var extend = oCpf.Basic.Extend;
+	var aCounters = [];
+	var fHitImg = function (sUrl) {
+		(new Image()).src = sUrl;
+	};
+	var fDefHndlr = function (oPrms) {
+		fHitImg(oPrms.src);
+	};
+	var oTypesPrms = (function (oNavigator, oDocument) {
+		var screen = window.screen;
+		// XXX настоящий referrer не используется сознательно, для предотвращения "накрутки" переходов извне
+		var sDefaultReferrer = oDocument.URL;
+		return {
+			admail: {
+				rqdPrms: 'id',
+				hitCntr: function (params) {
+					var url = location.protocol + '//ad.mail.ru/${id}.gif';
+					fDefHndlr({src: oStrings.supplant(url, params)});
+				},
+				hitEvent: function () {}
+			},
+			radar: (function () {
+				var url = '//stat.radar.imgsmail.ru/update?t=${name}&p=${project}&v=${value}&i=${info}&rnd=${rnd}';
+				/**
+				 * Добавляет к счетчику тип события и отправляет запрос.
+				 * @param {object} params Параметры счетчика.
+				 */
+				var hitEvent = function (params) {
+					params.info = Object.keys(params.info)
+						.map(function (key) {
+							return key + ':' + params.info[key];
+						}).join(',');
+					params.info = encodeURIComponent(params.info);
+					fDefHndlr({src: oStrings.supplant(url, params)});
+				};
+				return {
+					rqdPrms: 'project',
+					/**
+					 * Обрабатывает вызов счетчика. Если в params предан промис, счетчик
+					 * вызывается дваждны: незамедлительно c событием `pending`
+					 * и по срабатыванию промиса с событием `success` или `error`.
+					 * @param {Object} base Основные парметры, указанные при создании счетчика.
+					 * @param {Object} [params] Дополнительные парметры, переданные в hit.
+					 */
+					hitCntr: function (base, params) {
+						var ts = (new Date()).valueOf(),
+							promise;
+						if (params && params.promise && params.promise.then) {
+							promise = params.promise;
+							delete params.promise;
+						}
+						params = extend({}, base, params);
+						params.name = encodeURIComponent(params.name);
+						params.value = encodeURIComponent(params.value || 0);
+						params.info = typeOf(params.info, 'object') ? params.info : {};
+						params.rnd = Math.random();
+						if (promise) {
+							promise.then(function () {
+								params.info.success = (new Date()).valueOf() - ts;
+								params.info.success = (new Date()).valueOf() - ts;
+								hitEvent(params);
+							}, function () {
+								params.info.error = (new Date()).valueOf() - ts;
+								hitEvent(params);
+							});
+						} else {
+							hitEvent(params);
+						}
+					}
+				};
+			})(),
+			topmail: (function () {
+				function getCounterApi () {
+					var counterApi = window._tmr;
+					return counterApi && typeOf(counterApi.push, 'function') ? counterApi : null;
+				}
+				return {
+					domain: '*.top.mail.ru',
+					rqdPrms: ['id', function (params) {
+						return getCounterApi() !== null || 'domain' in params;
+					}],
+					hitCntr: function (oPrms, oAddPrms) {
+						var sReferrer = (oAddPrms && oAddPrms.referrer) || sDefaultReferrer;
+						var sPageUrl = oAddPrms && oAddPrms.url;
+						var counterApi = getCounterApi();
+						if (counterApi !== null) { // новый GA-подобный интерфейс
+							counterApi.push({
+								id: oPrms.id,
+								type: 'pageView',
+								url: sPageUrl,
+								referrer: sReferrer,
+								start: (new Date()).getTime()
+							});
+						} else { // старый интерфейс
+							var sUrl = [
+								'//' + oPrms.domain + '/counter?id=' + oPrms.id + ';js=13',
+								(sPageUrl ? ';u=' + encodeURIComponent(sPageUrl) : ''),
+								(typeof oNavigator.javaEnabled != 'undefined' ? ';j=' + oNavigator.javaEnabled() : ''),
+								(sReferrer ? ';r=' + encodeURIComponent(sReferrer) : ''),
+								(
+									screen ? ';s=' + screen.width + '*' + screen.height +
+									';d=' + (screen.colorDepth || screen.pixelDepth) : ''
+								),
+								';_=' + Math.random()
+							].join('');
+							fHitImg(sUrl);
+						}
+					},
+					hitEvent: function (params, vars) {
+						var counterApi = getCounterApi();
+						if (counterApi !== null) {
+							counterApi.push(extend({}, params, vars));
+						}
+					}
+				};
+			}()),
+			rbmail: {
+				rqdPrms: 'src|id',
+				nrmlzPrms: function (prms) {
+					var url = location.protocol + '//rs.mail.ru/${type}${id}.gif';
+					prms.type = prms.type || 'd';
+					if (!prms.src) {
+						prms.src = oStrings.supplant(url, prms);
+					}
+					return prms;
+				},
+				hitCntr: function (base, params) {
+					var search = params && Object.keys(params).map(function (param) {
+							return param + '=' + params[param];
+						}).join('&');
+					if (search) {
+						base = extend({}, base);
+						base.src += ('?' + search);
+					}
+					fDefHndlr(base);
+				},
+				domain: 'rs.mail.ru'
+			},
+			comscore: {
+				rqdPrms: 'src|id',
+				hitCntr: function (oParams, oAddParams) {
+					var sReferrer = (oAddParams && oAddParams.referrer) || sDefaultReferrer;
+					var sPageUrl = oAddParams && oAddParams.url;
+					var sUrl = [
+						'http' + ((oDocument.URL.charAt(4) == 's') ? 's://sb' : '://b'),
+						'.scorecardresearch.com/b?' + 'c1=2',
+						'&c2=' + oParams.id,
+						'&ns__t=' + (new Date()).getTime(),
+						'&ns_c=' + (oDocument.characterSet || oDocument.defaultCharset || ''),
+						'&c7=' + encodeURIComponent(sPageUrl),
+						'&c9=' + encodeURIComponent(sReferrer)
+					].join('');
+					fHitImg(sUrl);
+				}
+			},
+			tns: {
+				rqdPrms: 'src',
+				hitCntr: fDefHndlr,
+				domain: 'www.tns-counter.ru'
+			},
+			yaru: {
+				rqdPrms: 'id',
+				hitCntr: function (oPrms, oAddPrms) {
+					var oCntr = window['yaCounter' + oPrms.id];
+					var sUrl, sTtl, sRef;
+					if (oCntr) {
+						if (oAddPrms) {
+							sUrl = oAddPrms.url;
+							sTtl = oAddPrms.title;
+							sRef = oAddPrms.referrer;
+						}
+						sRef = sRef || sDefaultReferrer;
+						oCntr.hit(sUrl, sTtl, sRef);
+					}
+				}
+			},
+			googl: (function () {
+				var fInterface = window.ga;
+				var goUid = 0,
+					oGoUids;
+				function pushCommand (aCommand) {
+					var aCommandName = aCommand.shift().split('.');
+					var sComandNs = aCommandName.length > 1 && aCommandName[0];
+					var sCommandName = aCommandName.pop();
+					switch (sCommandName) {
+						case '_setAccount':
+							fInterface('create', aCommand.shift(), {
+								name: sComandNs
+							});
+							aCommand = null;
+							break;
+						case '_set':
+							aCommandName.push('set');
+							aCommand.unshift(aCommandName.join('.'));
+							break;
+						case '_trackPageview':
+							aCommandName.push('send');
+							aCommand.unshift(aCommandName.join('.'), 'pageview');
+							break;
+						case '_setReferrerOverride':
+							aCommandName.push('set');
+							aCommand.unshift(aCommandName.join('.'), 'referrer');
+							break;
+						case '_trackEvent':
+							aCommandName.push('send');
+							aCommand.unshift(aCommandName.join('.'), 'event');
+							break;
+						default:
+							break;
+					}
+					if (aCommand !== null) {
+						fInterface.apply(null, aCommand);
+					}
+				}
+				function getGaq () {
+					var aCommands = window._gaq;
+					var mResult;
+					/*
+					 * до загрузки своего скрипта Analitycs эмулирует интерфейс,
+					 * а после затирает эмуляцию, нужно актуализировать ссылку
+					 */
+					fInterface = window.ga;
+					if (typeOf(fInterface, 'function')) {
+						mResult = {
+							push: pushCommand
+						};
+						if (Array.isArray(aCommands)) {
+							for (var commanNo = 0; commanNo < aCommands.length; commanNo++) {
+								pushCommand(aCommands[commanNo]);
+							}
+						}
+					} else {
+						mResult = window._gaq = aCommands || [];
+					}
+					return mResult;
+				}
+				function createUid () { // создаем уникальное имя для счетчика
+					return 'mrga' + goUid++;
+				}
+				function getCounterUid (sId) {
+					var mGaq = getGaq();
+					var sUid;
+					if (typeOf(oGoUids, 'object')) {
+						sUid = oGoUids[sId];
+					} else {
+						oGoUids = {};
+					}
+					if (!sUid) {
+						sUid = createUid();
+						oGoUids[sId] = sUid;
+						mGaq.push([sUid + '._setAccount', sId]);
+					}
+					return sUid;
+				}
+				return {
+					rqdPrms: 'id',
+					hitCntr: function (oPrms, oAddPrms) {
+						var mGaq = getGaq();
+						var sCounterName = getCounterUid(oPrms.id) || oPrms.name || (oAddPrms && oAddPrms.name);
+						var sReferrer = (oAddPrms && oAddPrms.referrer) || sDefaultReferrer;
+						if (sReferrer) {
+							mGaq.push([sCounterName + '._setReferrerOverride', sReferrer]);
+						}
+						mGaq.push([sCounterName + '._trackPageview', oAddPrms && oAddPrms.url]);
+					},
+					hitEvent: function (oPrms, aEventParams, trackEventComplete) {
+						var mGaq = getGaq();
+						var sCounterName = getCounterUid(oPrms.id) || oPrms.name;
+						var sMethodName = sCounterName + '._trackEvent';
+						aEventParams.unshift(sMethodName);
+						if (typeOf(trackEventComplete) == 'function') {
+							mGaq.push([sCounterName + '._set', 'hitCallback', trackEventComplete]);
+						}
+						mGaq.push(aEventParams);
+					}
+				};
+			})(),
+			liru: {
+				hitCntr: function (oPrms, oAddPrms) {
+					var sRfrr = (oAddPrms && oAddPrms.referrer) || sDefaultReferrer;
+					var sDomain = oPrms && oPrms.domain ? oPrms.domain : 'counter.yadro.ru';
+					var aPath = ['/hit'];
+					var sPersonalPath = oPrms.personal;
+					if (sPersonalPath) {
+						aPath.push(sPersonalPath);
+					}
+					var sUrl = [
+						'//' + sDomain + aPath.join(';'),
+						'?r' + encodeURIComponent(sRfrr),
+						(typeOf(screen, 'undefined') ? '' :
+						';s' + screen.width + '*' + screen.height + '*' + (screen.colorDepth || screen.pixelDepth)),
+						';u' + encodeURIComponent((oAddPrms && oAddPrms.url) || oDocument.URL) + ';' + Math.random()
+					].join('');
+					fHitImg(sUrl);
+				},
+				domain: 'counter.yadro.ru'
+			}
+		};
+	})(navigator, document);
+	var checkReqPrms = (function () {
+		var checkPrm = function (checkParam, oParams) {
+			var bOk = false,
+				aEqPrms, eqPrmNo;
+			if (typeOf(checkParam, 'function')) {
+				bOk = checkParam(oParams);
+			} else {
+				aEqPrms = checkParam.split('|');
+				eqPrmNo = 0;
+				while ((checkParam = aEqPrms[eqPrmNo++])) {
+					if ((bOk = oParams.hasOwnProperty(checkParam))) {
+						break;
+					}
+				}
+			}
+			return bOk;
+		};
+		return function (sType, oPrms) {
+			var bOk = sType in oTypesPrms;
+			var prmNo, sPrm, oTypePrms, mTpRqrd;
+			if (bOk) {
+				oTypePrms = oTypesPrms[sType];
+				bOk = !('rqdPrms' in oTypePrms);
+			}
+			if (!bOk) {
+				mTpRqrd = oTypesPrms[sType].rqdPrms;
+				if (Array.isArray(mTpRqrd)) {
+					prmNo = 0;
+					while ((sPrm = mTpRqrd[prmNo++])) {
+						if (!(bOk = checkPrm(sPrm, oPrms))) {
+							break;
+						}
+					}
+				} else {
+					bOk = checkPrm(mTpRqrd, oPrms);
+				}
+			}
+			return bOk;
+		};
+	})();
+	var nrmlzPrms = function (sType, oPrms) {
+		var oTypePrms = oTypesPrms[sType];
+		var fNrmlz = oTypePrms && oTypePrms.nrmlzPrms;
+		if (typeOf(fNrmlz, 'function')) {
+			oPrms = fNrmlz(oPrms);
+		}
+		return oPrms;
+	};
+	var parseCntrsCntnts = (function () {
+		var cmmntsLbl = 'mr_counter';
+		var getTpFromSrc = (function () {
+			var sPrtcl = '//';
+			var reIllgl = /(\?|\/)/i;
+			return function (sSrc) {
+				var bStrict, iDmnIdx, iDmnStrt, sDmn, sTpDmn;
+				for (var sType in oTypesPrms) {
+					if (oTypesPrms.hasOwnProperty(sType) && (sTpDmn = oTypesPrms[sType].domain)) {
+						sDmn = (bStrict = sTpDmn.charAt(0) != '*') ? sTpDmn : sTpDmn.substr(1);
+						iDmnIdx = sSrc.indexOf(sDmn);
+						iDmnStrt = sSrc.indexOf(sPrtcl) + sPrtcl.length;
+						if (iDmnIdx > 0 && (bStrict ? iDmnIdx == iDmnStrt : !reIllgl.test(sSrc.slice(iDmnStrt, iDmnIdx)))) {
+							return sType;
+						}
+					}
+				}
+			};
+		})();
+		var rmSrvcPrms = (function () {
+			var aSrvcPrms = ['tagName', cmmntsLbl, 'type'];
+			return function (oPrms) {
+				var prmNo = 0,
+					prmName;
+				while ((prmName = aSrvcPrms[prmNo++])) {
+					delete oPrms[prmName];
+				}
+				return oPrms;
+			};
+		})();
+		return function (sCntnts) {
+			var iCntrStrt = null,
+				bIsCntr = false,
+				aBlcks, blckNo, aRes, sBlck, sTag, oTagPrms, sCntrTp, oCntrPrms, sCntrCntnts;
+			if ((aBlcks = fSplitHtml(sCntnts)).length) {
+				aRes = [];
+				blckNo = -1;
+				while ((sBlck = aBlcks[++blckNo])) {
+					sTag = sBlck.substr(0, sBlck.indexOf('>') + 1);
+					oTagPrms = fGetPrms(sTag);
+					if (oTagPrms.tagName == '!--') {
+						if (oTagPrms.hasOwnProperty(cmmntsLbl)) {
+							bIsCntr = true;
+							iCntrStrt = blckNo;
+							sCntrTp = oTagPrms.type;
+							oCntrPrms = rmSrvcPrms(oTagPrms);
+						} else if (bIsCntr && oTagPrms.hasOwnProperty('/' + cmmntsLbl)) {
+							bIsCntr = false;
+							sCntrCntnts = aBlcks.slice(iCntrStrt + 1, blckNo).join('');
+						}
+					} else if (!bIsCntr) {
+						if (oTagPrms.tagName == 'img' && oTagPrms.hasOwnProperty('src')) {
+							if ((sCntrTp = getTpFromSrc(oTagPrms.src))) {
+								oCntrPrms = rmSrvcPrms(oTagPrms);
+							}
+						}
+					}
+					if (!bIsCntr && oCntrPrms) {
+						if (
+							sCntrTp in oTypesPrms && (
+								checkReqPrms(sCntrTp, oCntrPrms) ||
+								(sCntrCntnts && checkReqPrms(sCntrTp, oCntrPrms))
+							)
+						) {
+							if (iCntrStrt) {
+								aBlcks.splice(iCntrStrt, blckNo - iCntrStrt + 1);
+								blckNo = iCntrStrt;
+							} else {
+								aBlcks.splice(blckNo, 1);
+							}
+							blckNo--;
+							aRes.push({
+								type: sCntrTp,
+								params: nrmlzPrms(sCntrTp, oCntrPrms)
+							});
+						}
+						iCntrStrt = sCntrCntnts = oCntrPrms = null;
+					}
+				}
+			}
+			return aRes;
+		};
+	})();
+	function hitOne (oCntr, oAddPrms) {
+		var oTypePrms = oTypesPrms[oCntr.type];
+		var fHndlr = oTypePrms && oTypePrms.hitCntr;
+		if (typeOf(fHndlr, 'function')) {
+			fHndlr(oCntr.params, oAddPrms);
+		}
+	}
+	function getCntrsCntnts (cntrIdx) {
+		var oCurCntr = aCounters[cntrIdx];
+		if (!oCurCntr) {
+			return;
+		}
+		var oCurPrms = oCurCntr.promise;
+		var sUrl = oCurCntr.url;
+		if (!oCurPrms && sUrl) {
+			oCurCntr.promise = oCurPrms = fPromise().promise();
+			fRequest({
+				url: sUrl,
+				type: 'GET',
+				success: function (htmlCntnts) {
+					oCurPrms.done(htmlCntnts);
+					oCurCntr.contents = parseCntrsCntnts(htmlCntnts);
+				},
+				error: function (oXHR) {
+					oCurPrms.fail();
+					if (oXHR && oXHR.status == 404) {
+						aCounters[cntrIdx] = null;
+					}
+				},
+				complete: function () {
+					oCurCntr.promise = null;
+				}
+			});
+		}
+		return oCurPrms;
+	}
+	function addCounter () {
+		var sUrl, sCntnts, oPrms;
+		var oArgs = arguments;
+		var bByUrl, bByPrms, curIdx, sType, aCntnts, mFrstPrm, mCurCntnts;
+		bByUrl = bByPrms = false;
+		if (!oArgs.length) {
+			return;
+		}
+		switch (typeOf(mFrstPrm = oArgs[0])) {
+			case 'string':
+				if (oArgs.length > 1) {
+					if (mFrstPrm in oTypesPrms && typeOf(oPrms = oArgs[1], 'object')) {
+						bByPrms = true;
+						(aCntnts = []).push({
+							type: mFrstPrm,
+							params: oPrms
+						});
+					}
+				} else {
+					if (reUrl.test(mFrstPrm)) {
+						bByUrl = true;
+						sUrl = mFrstPrm;
+					} else {
+						sCntnts = mFrstPrm;
+					}
+				}
+				break;
+			case 'array':
+				bByPrms = true;
+				aCntnts = mFrstPrm;
+				break;
+			default:
+				return;
+		}
+		if (bByPrms && aCntnts.length) {
+			for (var cntntsNo = 0; cntntsNo < aCntnts.length; cntntsNo++) {
+				mCurCntnts = aCntnts[cntntsNo];
+				if (typeOf(mCurCntnts, 'object') && checkReqPrms(sType = mCurCntnts.type, oPrms = mCurCntnts.params)) {
+					mCurCntnts.params = nrmlzPrms(sType, oPrms);
+				} else {
+					aCntnts.splice(cntntsNo--, 1);
+				}
+			}
+		}
+		if ((bByUrl && sUrl) || (bByPrms && aCntnts.length) || sCntnts) {
+			curIdx = aCounters.push({
+				url: bByUrl ? sUrl : null,
+				contents: bByUrl ? null : bByPrms ? aCntnts : parseCntrsCntnts(sCntnts)
+			}) - 1;
+			if (bByUrl) {
+				getCntrsCntnts(curIdx);
+			}
+		}
+		return curIdx;
+	}
+	function hasContents (bnnrIdx) {
+		var oCurCntr;
+		return !!((oCurCntr = aCounters[bnnrIdx]) && oCurCntr.contents);
+	}
+	var rnwCounter = (function () {
+		var oNrmlz = {
+			'referrer,url': oUrlStrTools.getAbs
+		};
+		var nrmlzPrms = function (oPrms) {
+			var aPrms, sPrmName, fNrmlz;
+			if (typeOf(oPrms, 'object')) {
+				for (var sPrms in oNrmlz) {
+					if (oNrmlz.hasOwnProperty(sPrms) && typeOf(fNrmlz = oNrmlz[sPrms], 'function')) {
+						aPrms = sPrms.split(/,\s?/);
+						for (var prmNo = aPrms.length; prmNo--;) {
+							if (oPrms.hasOwnProperty(sPrmName = aPrms[prmNo])) {
+								oPrms[sPrmName] = fNrmlz(oPrms[sPrmName]);
+							}
+						}
+					}
+				}
+			}
+		};
+		return function (oCurCntr, oAddPrms) {
+			var aCntnts = oCurCntr.contents;
+			var cntrNo = 0,
+				oCntr;
+			if (oAddPrms) {
+				nrmlzPrms(oAddPrms);
+			}
+			while ((oCntr = aCntnts[cntrNo++])) {
+				hitOne(oCntr, oAddPrms);
+			}
+		};
+	})();
+	function hitCounter (cntrIdx, oAddPrms) {
+		var oCurCntr = aCounters[cntrIdx];
+		if (!oCurCntr) {
+			return;
+		}
+		fPromise.when(hasContents(cntrIdx) || getCntrsCntnts(cntrIdx)).done(function () {
+			rnwCounter(oCurCntr, oAddPrms);
+		});
+	}
+	function hitEvent (cntrIdx, sType, aParams, trackEventComplete) {
+		var oCurCntr;
+		if (!(oCurCntr = aCounters[cntrIdx])) {
+			return;
+		}
+		var aCntnts = oCurCntr.contents;
+		var oCounter = null,
+			oTypePrms, fTrackEvent;
+		for (var counterNo = aCntnts.length; counterNo--;) {
+			if (aCntnts[counterNo].type === sType) {
+				oCounter = aCntnts[counterNo];
+				break; // FIXME: несколько счетчиков такого типа?
+			}
+		}
+		if (oCounter !== null) {
+			oTypePrms = oTypesPrms[oCounter.type];
+			fTrackEvent = oTypePrms && oTypePrms.hitEvent;
+			if (typeOf(fTrackEvent, 'function')) {
+				fTrackEvent(oCounter.params, aParams, trackEventComplete);
+			}
+		}
+	}
+	extend(fGetNs('Instances', oCpf), {
+		cntrsCtrl: {
+			add: addCounter,
+			hit: hitCounter,
+			hitEvent: hitEvent
+		}
+	});
+})(this.jQuery || this.$ || this.$f, this, this.ru.mail.cpf);

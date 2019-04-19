@@ -1,0 +1,3 @@
+if (self.CavalryLogger) { CavalryLogger.start_js(["orSNq"]); }
+
+__d("AdsUEditorCampaignGroupSetBidStrategyReducerPlugin",["AdsCampaignGroupBudgetMutationUtils","AdsMutators","AdsUEditorCampaignGroupReducerUtils","AdsUEditorCampaignGroupSetBidStrategyActionFlux"],(function(a,b,c,d,e,f){"use strict";a={reduce:b("AdsUEditorCampaignGroupReducerUtils").createReducer({},function(a,c){return b("AdsMutators").mutateEach(a,c.campaignGroupIDs,function(a){return b("AdsCampaignGroupBudgetMutationUtils").setCampaignGroupBidStrategyAndLegacyFlags(a,c.bidStrategy)})},b("AdsUEditorCampaignGroupSetBidStrategyActionFlux").actionType)};e.exports=a}),null);

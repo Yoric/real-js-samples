@@ -1,0 +1,187 @@
+(function () {
+    /**
+     * pc店铺打点
+     * @type {String}
+     */
+    var $window = $(window);
+    var $moduleList = $('div[module-name][instanceid]');
+    var point = '[href*="//"],[ref*="//"],.J_send-log';
+    var pointData = 'pageclick|keycount|';
+    var shop_id = $('#shop_id').length > 0 && $('#shop_id').val().trim() || 0;
+    var voidLiModule = ['UserDefine', 'shop_link'];//2018.9.18加上shop_link，修复老模块将导航li标签当做商品列表来处理的bug
+
+    //2018.9.18 log埋点参数
+    var page_id = $('#pageInstance_id').length > 0 && $('#pageInstance_id').val().trim() || 0;
+    var template_id = $('#template_id').length > 0 && $('#template_id').val().trim() || 0;
+    var templateReg = /\d+/;
+    var skuReg = /item\.(jd|yhd)\.com\/(\d+)\.html/;
+
+    /**
+     * 节流函数
+     * @param  {Function} callback [description]
+     * @param  {[Number]}   limit    [description]
+     * @return {[Function]}            [description]
+     */
+    var throttle = function (callback, limit) {
+        var wait = false;
+        return function () {
+            if (!wait) {
+                callback.call();
+                wait = true;
+                setTimeout(function () {
+                    wait = false;
+                }, limit);
+            }
+        }
+    };
+    var autoPoint = function ($module) {
+
+        var instanceid = $module.attr('instanceid'),
+            moduleName = $module.attr('module-name'),
+            pointArray = $module.find(point);
+        // 如果一个模块中没有点击位，那么说明这个模块可能是终结者新模块，因为终结者新模块是在页面上面渲染的
+        // 执行埋点方法时可能还没有渲染模块，所以这里暂时不执行埋点，等到渲染结束执行到这里时，模块里面就有了点击位
+        // 就可以执行埋点方法了
+        if (pointArray.length === 0) {
+            return;
+        }
+
+        pointArray.each(function () {
+            var $this = $(this),
+                pointTarget = point,
+                isListProduct = $($this.closest('li')).length > 0 && voidLiModule.indexOf(moduleName) < 0,
+                $pointTarget = isListProduct ? $this.closest('li') : $this,
+                hasSameLink = false;
+
+            if (!$module.length) {
+                return;
+            }
+
+            if (isListProduct) {
+                pointTarget = 'li';
+                $pointTarget.find('[clstag]').removeAttr('clstag');
+            }
+
+            $pointTarget.attr('clstag', pointData + moduleName + '_' + instanceid + '_' + ($module.find(pointTarget).index($pointTarget) + 1) + '|' + shop_id);
+        });
+        $module.attr('data-has-point', 'true');
+    };
+
+    var isInView = function ($module) {
+        var isIn = false;
+        var viewHeight = ($window.height() * 3 / 2) + $window.scrollTop();
+        var offsetTop = $module.offset().top;
+
+        if (offsetTop < viewHeight) {
+            isIn = true;
+        }
+
+        return isIn;
+    }
+
+    $window.scroll(
+        throttle(function () {
+            $moduleList = $('div[module-name][instanceid]');
+            $moduleList.each(function (i, module) {
+                var $module = $(module);
+                if ($module.length === 0 || $module.attr('data-has-point') === 'true') {
+                    return;
+                }
+
+                if (isInView($module)) {
+                    autoPoint($module);
+                }
+            });
+        }, 1000)
+    );
+    $window.bind('newDomLoad', function (e, module) {
+        autoPoint($(module));
+    });
+    $window.trigger('scroll');
+
+    //log埋点 logPoint
+
+    // 适用于从模块的class节点获取模板id：'fn-clear sh-head-menu-black-633592' -> 633592
+    var matchTemplate = function (modId, str) {
+        var prefix = '';
+        // 如果模块的id小于0，那么说明这是个终结者项目的新模块，那么在取模板id的时候，需要添加一个'-'号
+        if (Number(modId) < 0) {
+            prefix = '-'
+        }
+        var result = '';
+        try {
+            result = prefix + str.match(templateReg)[0];
+        } catch (e) {
+
+        }
+        return result;
+    };
+    // 适用于从详情页获取sku：item.jd.com/123321.html -> 123321
+    var matchSku = function (str) {
+        var result = '';
+        try {
+            result = str.match(skuReg)[2];
+        } catch (e) {
+
+        }
+        return result;
+    };
+
+    var logPoint = function ($module, matchedPoint) {
+        var log_type_id1 = 'Jshopx_PC';
+        var log_type_id2 = 'terminator_homepage';
+
+        var instanceid = $module.attr('instanceid'),
+            moduleName = $module.attr('module-name'),
+            pointArray = $module.find(point),
+            modeId = $module.attr('modeid') ? $module.attr('modeid') : '', // 模块原型id
+            templateId = matchTemplate(modeId, $module.attr('class')),
+            layoutId = $module.closest('.J_LayoutWrap').attr('id') || '', //布局id
+            mType = '',// 素材组类型：0商品素材，1广告素材
+            mId = ''; //商品组ID/广告组ID
+
+        if (pointArray.length === 0) {
+            return;
+        }
+
+        try {
+            var configData = $module.find('.J_data').html().trim();
+            if (configData.indexOf('goodsMaterialGroup') != -1
+                || configData.indexOf('preSellGoodsGroup') != -1
+                || configData.indexOf('secKillGoodsGroup') != -1
+                || configData.indexOf('pingouGoodsGroup') != -1) {
+                mType = 0;
+            }
+            if (configData.indexOf('lunboGoodsGroup') != -1) {
+                mType = 1;
+            }
+
+            mId = configData.match(/\"materialCode\".*?\"([\w\W]+?)\"/)[1];
+
+        } catch (e) {
+
+        }
+        var pointTarget = point;
+        var isListProduct = matchedPoint.closest('li').length > 0 && voidLiModule.indexOf(moduleName) < 0;
+        var $pointTarget = isListProduct ? matchedPoint.closest('li') : matchedPoint;
+        var roleId = $pointTarget.attr('data-roleid') ? $pointTarget.attr('data-roleid') : '';
+        var href = matchedPoint.attr('href') ? matchedPoint.attr('href') : '';
+        var skuId = matchSku(href);
+
+        if (isListProduct) {
+            pointTarget = 'li';
+        }
+        var positionId = $module.find(pointTarget).index($pointTarget) + 1;
+
+        log(log_type_id1, log_type_id2, moduleName, instanceid, positionId, modeId, templateId, mType, mId, layoutId, skuId, roleId, page_id, template_id);
+    }
+
+    $('body').delegate(point, 'click', function () {
+        var $this = $(this);
+        var $module = $this.closest('div[module-name][instanceid]');
+        if ($module.length === 0) {
+            return;
+        }
+        logPoint($module, $this)
+    });
+})();
